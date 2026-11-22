@@ -240,10 +240,6 @@ const EN: Record<string, string> = {
     'One .zip file with every product and its files. Use it to move the library to another device too: importing merges, it never deletes. The file is not encrypted — keep it somewhere safe.',
   'Εξαγωγή': 'Export',
   'Εισαγωγή': 'Import',
-  'Συγχρονισμός συσκευών': 'Device sync',
-  'Ο αυτόματος συγχρονισμός iPhone–iPad δεν είναι ακόμη διαθέσιμος. Προς το παρόν η μεταφορά γίνεται με το αντίγραφο ασφαλείας.':
-    'Automatic iPhone–iPad sync is not available yet. For now, move your data with the backup file.',
-  'Ανενεργός': 'Off',
   'Αποθήκευση': 'Storage',
   'Όλα τα δεδομένα βρίσκονται μόνο σε αυτή τη συσκευή.': 'All data lives on this device only.',
   'Μόνιμη αποθήκευση': 'Persistent storage',
@@ -251,7 +247,6 @@ const EN: Record<string, string> = {
   'Ο browser μπορεί να σβήσει δεδομένα ιστοσελίδων που δεν χρησιμοποιούνται. Πρόσθεσε την εφαρμογή στην οθόνη Αφετηρίας και κράτα αντίγραφο ασφαλείας.':
     'The browser may delete data of websites you don’t use. Add the app to your Home Screen and keep a backup.',
   'Διαγραφή όλων των δεδομένων': 'Delete all data',
-  'Σβήνει όλα τα προϊόντα και τα αρχεία από αυτή τη συσκευή. Δεν αναιρείται.': 'Removes every product and file from this device. This cannot be undone.',
   'Όλα τα δεδομένα διαγράφηκαν': 'All data deleted',
   'Ναι, διαγραφή όλων': 'Yes, delete everything',
   'Διαγραφή όλων': 'Delete all',
@@ -262,5 +257,23 @@ const EN: Record<string, string> = {
   '{n} νέα προϊόντα': '{n} new products',
   '{n} ενημερώθηκε': '{n} updated',
   '{n} ενημερώθηκαν': '{n} updated',
+  // συγχρονισμός
+  'Συγχρονισμός iCloud': 'iCloud sync',
+  'Τα προϊόντα και τα αρχεία σου αποθηκεύονται στον ιδιωτικό χώρο iCloud του Apple ID σου και εμφανίζονται σε όλες τις συσκευές σου. Μετρούν στον αποθηκευτικό σου χώρο iCloud.': 'Your products and files are stored in the private iCloud space of your Apple ID and appear on all your devices. They count toward your iCloud storage.',
+  'Ο συγχρονισμός με iCloud λειτουργεί στην εφαρμογή για iPhone και iPad. Εδώ η μεταφορά γίνεται με το αντίγραφο ασφαλείας.': 'iCloud sync works in the iPhone and iPad app. Here, move your data with the backup file.',
+  'Κλειστός': 'Off',
+  'Ανοιχτός': 'On',
+  'Συγχρονίζω…': 'Syncing…',
+  'Χρειάζεται προσοχή': 'Needs attention',
+  'Τελευταίος συγχρονισμός: {when}': 'Last synced: {when}',
+  'Συγχρονισμός τώρα': 'Sync now',
+  'Δεν υπάρχει συνδεδεμένος λογαριασμός iCloud. Συνδέσου από τις Ρυθμίσεις της συσκευής.': 'No iCloud account is signed in. Sign in from the device Settings.',
+  'Δεν υπάρχει σύνδεση με το iCloud αυτή τη στιγμή. Θα ξαναδοκιμάσω αυτόματα.': 'iCloud can’t be reached right now. I will try again automatically.',
+  'Ο χώρος σου στο iCloud γέμισε. Ελευθέρωσε χώρο από τις Ρυθμίσεις της συσκευής.': 'Your iCloud storage is full. Free up space from the device Settings.',
+  'Τα δεδομένα της εφαρμογής διαγράφηκαν από το iCloud. Ο συγχρονισμός έκλεισε· άνοιξέ τον ξανά για να ανέβουν από αυτή τη συσκευή.': 'The app’s data was deleted from iCloud. Sync was turned off; turn it on again to upload from this device.',
+  'Ο συγχρονισμός απέτυχε. Δοκίμασε ξανά σε λίγο.': 'Sync failed. Try again in a moment.',
+  '{n} αρχείο δεν συγχρονίζεται επειδή ξεπερνά τα 100 MB. Μένει μόνο σε αυτή τη συσκευή.': '{n} file is not synced because it is larger than 100 MB. It stays on this device only.',
+  '{n} αρχεία δεν συγχρονίζονται επειδή ξεπερνούν τα 100 MB. Μένουν μόνο σε αυτή τη συσκευή.': '{n} files are not synced because they are larger than 100 MB. They stay on this device only.',
+  'Σβήνει όλα τα προϊόντα και τα αρχεία από αυτή τη συσκευή και κλείνει τον συγχρονισμό. Ό,τι υπάρχει στο iCloud δεν σβήνεται. Δεν αναιρείται.': 'Removes every product and file from this device and turns sync off. Anything in iCloud is not deleted. This cannot be undone.',
 };
 export default EN;

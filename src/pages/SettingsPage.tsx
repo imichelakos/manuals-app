@@ -3,13 +3,14 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { exportBackup, importBackup, BackupError } from '@/data/backup';
 import { useItems, wipeAll } from '@/data/library';
 import { setSettings, useSettings, type Theme } from '@/data/settings';
-import { syncState } from '@/data/sync';
+import { resetSync } from '@/data/syncRuntime';
 import type { SearchEngine } from '@/domain/manualSearch';
 import { today } from '@/domain/dates';
 import { prettySize } from '@/services/files';
 import { saveFile } from '@/services/platform';
 import { getLang, setLang, t, tn, type Lang } from '@/i18n';
 import { FilePick } from '@/components/controls';
+import { SyncSettings } from '@/components/SyncSettings';
 import { toast } from '@/components/Toast';
 import { IconDownload, IconUpload } from '@/components/icons';
 
@@ -99,8 +100,8 @@ export default function SettingsPage() {
               <FilePick accept=".zip,application/zip" disabled={busy} onFiles={(f) => void doImport(f[0]!)} className="btn btn-plain"><IconUpload className="text-xl" />{t('Εισαγωγή')}</FilePick>
             </div>
           </Row>
-          <Row title={t('Συγχρονισμός συσκευών')} hint={syncState().kind === 'off' ? t('Ο αυτόματος συγχρονισμός iPhone–iPad δεν είναι ακόμη διαθέσιμος. Προς το παρόν η μεταφορά γίνεται με το αντίγραφο ασφαλείας.') : undefined}>
-            <span className="badge badge-mute">{t('Ανενεργός')}</span>
+          <Row title={t('Συγχρονισμός iCloud')} hint={t('Τα προϊόντα και τα αρχεία σου αποθηκεύονται στον ιδιωτικό χώρο iCloud του Apple ID σου και εμφανίζονται σε όλες τις συσκευές σου. Μετρούν στον αποθηκευτικό σου χώρο iCloud.')}>
+            <SyncSettings />
           </Row>
         </section>
 
@@ -113,11 +114,11 @@ export default function SettingsPage() {
             </p>
             {storage?.persisted === false && <p className="mt-2 text-[13px] leading-relaxed text-ink-2">{t('Ο browser μπορεί να σβήσει δεδομένα ιστοσελίδων που δεν χρησιμοποιούνται. Πρόσθεσε την εφαρμογή στην οθόνη Αφετηρίας και κράτα αντίγραφο ασφαλείας.')}</p>}
           </Row>
-          <Row title={t('Διαγραφή όλων των δεδομένων')} hint={t('Σβήνει όλα τα προϊόντα και τα αρχεία από αυτή τη συσκευή. Δεν αναιρείται.')}>
+          <Row title={t('Διαγραφή όλων των δεδομένων')} hint={t('Σβήνει όλα τα προϊόντα και τα αρχεία από αυτή τη συσκευή και κλείνει τον συγχρονισμό. Ό,τι υπάρχει στο iCloud δεν σβήνεται. Δεν αναιρείται.')}>
             {wipe ? (
               <div className="flex gap-2.5">
                 <button type="button" className="btn btn-plain flex-1" onClick={() => setWipe(false)}>{t('Άκυρο')}</button>
-                <button type="button" className="btn btn-danger flex-1" onClick={() => { void wipeAll().then(() => { setWipe(false); toast(t('Όλα τα δεδομένα διαγράφηκαν')); }); }}>{t('Ναι, διαγραφή όλων')}</button>
+                <button type="button" className="btn btn-danger flex-1" onClick={() => { void resetSync().then(wipeAll).then(() => { setWipe(false); toast(t('Όλα τα δεδομένα διαγράφηκαν')); }); }}>{t('Ναι, διαγραφή όλων')}</button>
               </div>
             ) : <button type="button" className="btn btn-danger" disabled={items.length === 0} onClick={() => setWipe(true)}>{t('Διαγραφή όλων')}</button>}
           </Row>

@@ -9,6 +9,7 @@ import './index.css';
 import App from './App';
 import { applyTheme } from '@/data/settings';
 import { loadLibrary } from '@/data/library';
+import { startSync } from '@/data/syncRuntime';
 
 applyTheme();
 // χωρίς περιεχόμενο χρήστη στην κονσόλα — μόνο ο τύπος του σφάλματος
@@ -25,4 +26,4 @@ const Router = import.meta.env.MODE === 'preview' ? MemoryRouter : HashRouter;
 const root = createRoot(document.getElementById('root')!);
 void loadLibrary()
   .catch(() => { /* η βάση δεν άνοιξε: η εφαρμογή ξεκινά άδεια αντί να μείνει λευκή οθόνη */ })
-  .then(() => root.render(<StrictMode><Router><App /></Router></StrictMode>));
+  .then(() => { root.render(<StrictMode><Router><App /></Router></StrictMode>); startSync(); });

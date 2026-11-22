@@ -8,7 +8,7 @@
 import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from 'fflate';
 import { z } from 'zod';
 import { itemSchema, type Item } from '@/domain/model';
-import { referencedBlobs, type MergeResult } from '@/domain/merge';
+import { blobMimes, referencedBlobs, type MergeResult } from '@/domain/merge';
 import { allItems, mergeIn } from './library';
 import { blobStore } from './blobs';
 
@@ -41,12 +41,6 @@ export async function exportBackup(): Promise<Blob> {
   return new Blob([zipSync(tree)], { type: 'application/zip' });
 }
 
-const mimeById = (items: Item[]) => {
-  const m = new Map<string, string>();
-  for (const i of items) for (const a of i.attachments) { m.set(a.blobId, a.mime); if (a.thumbId) m.set(a.thumbId, 'image/jpeg'); }
-  return m;
-};
-
 export interface ImportResult extends MergeResult { skipped: number }
 
 export async function importBackup(file: Blob): Promise<ImportResult> {
@@ -73,7 +67,7 @@ export async function importBackup(file: Blob): Promise<ImportResult> {
     items.push({ ...p.data, attachments });
   }
   // πρώτα τα αρχεία, μετά τα στοιχεία: ένα προϊόν δεν δείχνει ποτέ σε αρχείο που δεν έχει γραφτεί
-  const mimes = mimeById(items);
+  const mimes = blobMimes(items);
   for (const id of referencedBlobs(items)) {
     const bytes = entries[`files/${id}`];
     if (bytes) await blobStore.put(id, new Blob([bytes.slice().buffer], { type: mimes.get(id) ?? 'application/octet-stream' }));

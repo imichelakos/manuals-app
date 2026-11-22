@@ -5,6 +5,7 @@
  */
 import { Capacitor } from '@capacitor/core';
 import { hostSave } from './hostSave';
+import { toBase64 } from './base64';
 
 export const isNative = Capacitor.isNativePlatform();
 
@@ -16,13 +17,6 @@ export async function openInApp(url: string): Promise<void> {
   const { Browser } = await import('@capacitor/browser');
   await Browser.open({ url });
 }
-
-const toBase64 = async (blob: Blob) => {
-  const u = new Uint8Array(await blob.arrayBuffer());
-  let s = '';
-  for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000));
-  return btoa(s);
-};
 
 /**
  * Άνοιγμα ενός αποθηκευμένου αρχείου (PDF/εικόνα) έξω από την εφαρμογή.

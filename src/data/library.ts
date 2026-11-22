@@ -20,6 +20,8 @@ function set(next: Item[]) {
   listeners.forEach((l) => l());
 }
 const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
+/** Ειδοποίηση σε κάθε αλλαγή της βιβλιοθήκης (π.χ. για να ξεκινήσει συγχρονισμός). */
+export const onLibraryChange = subscribe;
 
 /** Φόρτωση από τον δίσκο (μία φορά, πριν εμφανιστεί η εφαρμογή). Εγγραφές που δεν περνούν το σχήμα αγνοούνται. */
 export async function loadLibrary(): Promise<void> {
