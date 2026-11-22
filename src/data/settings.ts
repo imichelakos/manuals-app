@@ -1,10 +1,11 @@
-/** Ρυθμίσεις αυτής της συσκευής (localStorage): θέμα, μηχανή αναζήτησης, προεπιλεγμένη διάρκεια εγγύησης. */
+/** Ρυθμίσεις αυτής της συσκευής (localStorage): θέμα, μηχανή αναζήτησης, προεπιλεγμένη διάρκεια εγγύησης, κλείδωμα. */
 import { useSyncExternalStore } from 'react';
 import type { SearchEngine } from '@/domain/manualSearch';
 
 export type Theme = 'auto' | 'light' | 'dark';
-export interface Settings { theme: Theme; engine: SearchEngine; warrantyMonths: number }
-const DEFAULTS: Settings = { theme: 'auto', engine: 'duckduckgo', warrantyMonths: 24 };
+/** lock: κλείδωμα με Face ID / κωδικό συσκευής (ισχύει μόνο όπου υποστηρίζεται, δηλ. στην εφαρμογή iOS) */
+export interface Settings { theme: Theme; engine: SearchEngine; warrantyMonths: number; lock: boolean }
+const DEFAULTS: Settings = { theme: 'auto', engine: 'duckduckgo', warrantyMonths: 24, lock: true };
 const KEY = 'manuals-settings-v1';
 
 function read(): Settings {
@@ -14,6 +15,7 @@ function read(): Settings {
       theme: v.theme === 'light' || v.theme === 'dark' ? v.theme : 'auto',
       engine: v.engine === 'google' ? 'google' : 'duckduckgo',
       warrantyMonths: Number.isInteger(v.warrantyMonths) && v.warrantyMonths! >= 0 && v.warrantyMonths! <= 600 ? v.warrantyMonths! : DEFAULTS.warrantyMonths,
+      lock: v.lock !== false,
     };
   } catch { return DEFAULTS; }
 }

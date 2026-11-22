@@ -4,6 +4,8 @@ import { exportBackup, importBackup, BackupError } from '@/data/backup';
 import { useItems, wipeAll } from '@/data/library';
 import { setSettings, useSettings, type Theme } from '@/data/settings';
 import { resetSync } from '@/data/syncRuntime';
+import { confirmIdentity } from '@/data/appLock';
+import { SecuritySettings } from '@/components/SecuritySettings';
 import type { SearchEngine } from '@/domain/manualSearch';
 import { today } from '@/domain/dates';
 import { prettySize } from '@/services/files';
@@ -53,12 +55,14 @@ export default function SettingsPage() {
   }, [items]);
 
   const doExport = async () => {
+    if (!(await confirmIdentity(t('Επιβεβαίωση για εξαγωγή αντιγράφου')))) return;
     setBusy(true);
     try { await saveFile(await exportBackup(), `manuals-backup-${today()}.zip`); }
     catch { toast(t('Το αντίγραφο δεν δημιουργήθηκε.'), 'error'); }
     setBusy(false);
   };
   const doImport = async (file: File) => {
+    if (!(await confirmIdentity(t('Επιβεβαίωση για εισαγωγή αντιγράφου')))) return;
     setBusy(true);
     try {
       const r = await importBackup(file);
@@ -80,6 +84,12 @@ export default function SettingsPage() {
           </Row>
           <Row title={t('Γλώσσα')}>
             <Segmented<Lang> label={t('Γλώσσα')} value={getLang()} onChange={setLang} options={[['el', 'Ελληνικά'], ['en', 'English']]} />
+          </Row>
+        </section>
+
+        <section className="card p-5">
+          <Row title={t('Ασφάλεια')}>
+            <SecuritySettings />
           </Row>
         </section>
 
@@ -106,7 +116,7 @@ export default function SettingsPage() {
         </section>
 
         <section className="card divide-y divide-line p-5">
-          <Row title={t('Αποθήκευση')} hint={t('Όλα τα δεδομένα βρίσκονται μόνο σε αυτή τη συσκευή.')}>
+          <Row title={t('Αποθήκευση')} hint={t('Τα δεδομένα αποθηκεύονται κρυπτογραφημένα σε αυτή τη συσκευή.')}>
             <p className="text-[15px] text-ink-2">
               {tn(items.length, '{n} προϊόν', '{n} προϊόντα')}{storage ? ` · ${prettySize(storage.used)}` : ''}
               {storage?.persisted === true && <span className="badge badge-ok ml-2">{t('Μόνιμη αποθήκευση')}</span>}
@@ -118,7 +128,12 @@ export default function SettingsPage() {
             {wipe ? (
               <div className="flex gap-2.5">
                 <button type="button" className="btn btn-plain flex-1" onClick={() => setWipe(false)}>{t('Άκυρο')}</button>
-                <button type="button" className="btn btn-danger flex-1" onClick={() => { void resetSync().then(wipeAll).then(() => { setWipe(false); toast(t('Όλα τα δεδομένα διαγράφηκαν')); }); }}>{t('Ναι, διαγραφή όλων')}</button>
+                <button type="button" className="btn btn-danger flex-1" onClick={() => void (async () => {
+                  if (!(await confirmIdentity(t('Επιβεβαίωση για διαγραφή όλων των δεδομένων')))) return;
+                  await resetSync();
+                  await wipeAll();
+                  location.reload(); // νέο κλειδί κρυπτογράφησης στην εκκίνηση
+                })()}>{t('Ναι, διαγραφή όλων')}</button>
               </div>
             ) : <button type="button" className="btn btn-danger" disabled={items.length === 0} onClick={() => setWipe(true)}>{t('Διαγραφή όλων')}</button>}
           </Row>

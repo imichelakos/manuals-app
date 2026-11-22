@@ -9,6 +9,8 @@ import './index.css';
 import App from './App';
 import { applyTheme } from '@/data/settings';
 import { loadLibrary } from '@/data/library';
+import { openVault } from '@/data/vault';
+import { VaultProblem } from '@/components/VaultProblem';
 import { startSync } from '@/data/syncRuntime';
 
 applyTheme();
@@ -24,6 +26,11 @@ void navigator.storage?.persist?.().catch(() => false);
 const Router = import.meta.env.MODE === 'preview' ? MemoryRouter : HashRouter;
 
 const root = createRoot(document.getElementById('root')!);
-void loadLibrary()
-  .catch(() => { /* η βάση δεν άνοιξε: η εφαρμογή ξεκινά άδεια αντί να μείνει λευκή οθόνη */ })
-  .then(() => { root.render(<StrictMode><Router><App /></Router></StrictMode>); startSync(); });
+void (async () => {
+  // πρώτα το κλειδί κρυπτογράφησης· χωρίς αυτό η εφαρμογή δεν διαβάζει ούτε γράφει τίποτα (fail-closed)
+  const status = await openVault().catch(() => 'no-key' as const);
+  if (status !== 'ready') { root.render(<StrictMode><VaultProblem status={status} /></StrictMode>); return; }
+  await loadLibrary().catch(() => { /* η βάση δεν άνοιξε: η εφαρμογή ξεκινά άδεια αντί να μείνει λευκή οθόνη */ });
+  root.render(<StrictMode><Router><App /></Router></StrictMode>);
+  startSync();
+})();

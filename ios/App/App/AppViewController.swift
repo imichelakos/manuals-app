@@ -6,5 +6,7 @@ class AppViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         super.capacitorDidLoad()
         bridge?.registerPluginInstance(ICloudSyncPlugin()) // συγχρονισμός μέσω iCloud (CloudKit)
+        bridge?.registerPluginInstance(SecureKeyPlugin())  // κλειδί κρυπτογράφησης στο Keychain
+        bridge?.registerPluginInstance(BiometricPlugin())  // Face ID / Touch ID
     }
 }
