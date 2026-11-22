@@ -3,7 +3,7 @@
 // αντίγραφο ασφαλείας (εξαγωγή, εισαγωγή σε «άλλη συσκευή»). Αποτυγχάνει και σε οποιοδήποτε σφάλμα κονσόλας (π.χ. CSP).
 // Χρήση: npm run build && npm run e2e   (χρειάζεται εγκατεστημένο το playwright με Chromium)
 import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import QRCode from 'qrcode';
@@ -116,6 +116,16 @@ try {
   await page.locator('#w-date').fill('2025-03-14');
   await page.getByRole('button', { name: '2 χρόνια' }).click();
   await page.getByText('Εγγύηση έως 14 Μαρ 2027').first().waitFor();
+  // «Άλλη»: διψήφιος αριθμός πληκτρολογημένος ψηφίο-ψηφίο (το πεδίο δεν πρέπει να αδειάζει στη μέση)
+  const other = page.getByLabel('Διάρκεια εγγύησης σε μήνες');
+  await other.pressSequentially('30');
+  assert.equal(await other.inputValue(), '30');
+  await page.getByText('Εγγύηση έως 14 Σεπ 2027').first().waitFor();
+  await other.blur();
+  assert.equal(await other.inputValue(), '30');
+  await page.getByRole('button', { name: '2 χρόνια' }).click();
+  await page.getByText('Εγγύηση έως 14 Μαρ 2027').first().waitFor();
+  assert.equal(await other.inputValue(), '');
   await page.locator('#w-store').fill('Ηλεκτρικά Παπαδόπουλος');
   await page.locator('#w-price').fill('499');
   await page.locator('#w-price').blur();
@@ -144,7 +154,9 @@ try {
   await page.locator('#d-name').fill('Ψυγειοκαταψύκτης');
   await page.locator('#d-brand').fill('Samsung');
   await page.locator('#d-model').fill('RB34T632ESA');
-  await page.locator('#d-cat').selectOption('kitchen');
+  await page.locator('#d-model').blur();
+  await page.getByRole('button', { name: 'Πρόταση: Κουζίνα' }).click(); // κατηγορία από το όνομα
+  await page.waitForFunction(() => document.querySelector('#d-cat').value === 'kitchen');
   await page.locator('#w-date').fill('2020-01-10');
   await page.getByRole('button', { name: '1 χρόνος' }).click();
   await page.locator('#d-model').blur();
@@ -171,6 +183,9 @@ try {
   await page.getByRole('button', { name: /^Χωρίς ψηφιακό/ }).click();
   await page.getByRole('button', { name: /^Φίλτρα/ }).click();
   await page.getByRole('heading', { name: 'Φίλτρα' }).waitFor();
+  await page.getByRole('button', { name: /^Samsung/ }).click();               // μάρκα
+  await page.getByRole('button', { name: 'Εμφάνιση 1 προϊόντος' }).waitFor();
+  await page.getByRole('button', { name: /^Samsung/ }).click();
   await page.getByRole('button', { name: /^Έχει λήξει/ }).click();
   await page.waitForTimeout(400);
   await shot('10-filters');
@@ -206,9 +221,24 @@ try {
   await page.getByRole('button', { name: 'Πίσω στη βιβλιοθήκη' }).click();
   await page.getByRole('link', { name: 'Ρυθμίσεις' }).click();
   await page.getByRole('radio', { name: 'Φωτεινή' }).click();
-  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Εξαγωγή' }).click()]);
-  const backup = path.join(OUT, 'backup.zip');
+  await page.getByRole('button', { name: 'Εξαγωγή' }).click();
+  const pw1 = page.getByLabel('Κωδικός', { exact: true }), pw2 = page.getByLabel('Ξανά ο κωδικός');
+  await pw1.fill('abc123');
+  await page.getByText('Τουλάχιστον 12 χαρακτήρες.').waitFor();             // αδύναμος κωδικός: όχι εξαγωγή
+  await pw1.fill('Πορτοκαλί-ποδήλατο 42');
+  await pw2.fill('Πορτοκαλί-ποδήλατο 4');
+  await page.getByText('Οι δύο κωδικοί δεν είναι ίδιοι.').waitFor();
+  assert.ok(await page.locator('button[form="backup-pw"]').isDisabled());
+  await pw2.fill('Πορτοκαλί-ποδήλατο 42');
+  await page.waitForTimeout(400); // τέλος της κίνησης του φύλλου
+  await shot('11b-backup-password');
+  const [download] = await Promise.all([page.waitForEvent('download'), page.locator('button[form="backup-pw"]').click()]);
+  assert.match(download.suggestedFilename(), /\.mbackup$/);
+  const backup = path.join(OUT, 'backup.mbackup');
   await download.saveAs(backup);
+  const raw = readFileSync(backup);
+  assert.equal(raw.subarray(0, 7).toString(), 'MNLSBAK');
+  for (const plain of ['manifest.json', 'Bosch', 'WAU28PH9BY', 'Παπαδόπουλος']) assert.equal(raw.includes(Buffer.from(plain)), false, `φαίνεται «${plain}» στο αντίγραφο`);
 
   // ---------- «άλλη συσκευή»: iPad, άδεια, εισαγωγή του αντιγράφου ----------
   step('iPad: εισαγωγή αντιγράφου σε άδεια συσκευή, δύο στήλες');
@@ -217,6 +247,11 @@ try {
   watch(tab);
   await tab.goto(`${BASE}#/settings`);
   await tab.locator('label:has-text("Εισαγωγή") input[type=file]').setInputFiles(backup);
+  await tab.getByLabel('Κωδικός', { exact: true }).fill('λάθος κωδικός');
+  await tab.locator('button[form="backup-pw"]').click();
+  await tab.getByText('Λάθος κωδικός — ή το αρχείο έχει αλλοιωθεί.').waitFor({ timeout: 30_000 });
+  await tab.getByLabel('Κωδικός', { exact: true }).fill('Πορτοκαλί-ποδήλατο 42');
+  await tab.locator('button[form="backup-pw"]').click();
   const tcards = tab.locator('aside ul > li a[href^="#/item/"]');
   await tcards.first().waitFor();
   assert.equal(await tcards.count(), 2);
@@ -229,7 +264,9 @@ try {
   // δεύτερη εισαγωγή του ίδιου αντιγράφου: καμία διπλή εγγραφή
   await tab.goto(`${BASE}#/settings`);
   await tab.locator('label:has-text("Εισαγωγή") input[type=file]').setInputFiles(backup);
-  await tab.getByText('0 νέα προϊόντα').waitFor();
+  await tab.getByLabel('Κωδικός', { exact: true }).fill('Πορτοκαλί-ποδήλατο 42');
+  await tab.locator('button[form="backup-pw"]').click();
+  await tab.getByText('0 νέα προϊόντα').waitFor({ timeout: 30_000 });
   assert.equal(await tcards.count(), 2);
   await shot('15-ipad-settings', tab);
 

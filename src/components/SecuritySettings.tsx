@@ -20,7 +20,7 @@ export function SecuritySettings() {
   return (
     <div className="space-y-3">
       <p className="text-[15px] leading-relaxed text-ink-2">
-        {t('Τα προϊόντα, οι σημειώσεις και τα αρχεία σου αποθηκεύονται κρυπτογραφημένα (AES-256). Το αντίγραφο ασφαλείας .zip δεν είναι κρυπτογραφημένο.')}
+        {t('Τα προϊόντα, οι σημειώσεις και τα αρχεία σου αποθηκεύονται κρυπτογραφημένα (AES-256). Το αντίγραφο ασφαλείας κρυπτογραφείται με τον κωδικό που διαλέγεις.')}
       </p>
       {lockSupported && (
         <div className="flex items-center gap-3">
