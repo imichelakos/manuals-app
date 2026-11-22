@@ -305,6 +305,41 @@ try {
   });
   assert.equal(after.itemKeys, 'ct,id,iv');
 
+  // ---------- κλειδί web → Keychain (εφαρμογή iOS όπου τα plugins Swift εμφανίζονται αργότερα) ----------
+  step('μετάβαση κλειδιού: δεδομένα με κλειδί web, μετά εμφανίζεται Keychain (προσομοίωση iOS)');
+  // προσομοίωση της γέφυρας iOS του Capacitor: πλατφόρμα «ios», plugin SecureKey με «Keychain» στο localStorage
+  await legacy.addInitScript(() => {
+    window.webkit = { messageHandlers: { bridge: { postMessage() {} } } };
+    window.Capacitor = {
+      PluginHeaders: [{ name: 'SecureKey', methods: [{ name: 'storageKey', rtype: 'promise' }, { name: 'deleteStorageKey', rtype: 'promise' }] }],
+      nativePromise: async (plugin, method, o) => {
+        if (plugin === 'SecureKey' && method === 'storageKey') {
+          let k = localStorage.getItem('mock-keychain');
+          if (!k && o.create) { k = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))); localStorage.setItem('mock-keychain', k); }
+          return { key: k };
+        }
+        throw new Error(`mock: ${plugin}.${method}`);
+      },
+    };
+  });
+  const webKeyCount = () => lp.evaluate(() => new Promise((res) => {
+    const r = indexedDB.open('manuals-keys', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('k');
+    r.onsuccess = () => { const c = r.result.transaction('k').objectStore('k').count(); c.onsuccess = () => { res(c.result); r.result.close(); }; };
+  }));
+  assert.equal(await webKeyCount(), 1); // τα δεδομένα είναι ακόμη με κλειδί web
+  await lp.goto(BASE);
+  await lp.getByText('Παλιό τοστιέρα').click();
+  await lp.getByText('old.pdf').waitFor();                    // ξανακρυπτογραφήθηκαν με το νέο κλειδί χωρίς απώλεια
+  assert.equal(await webKeyCount(), 0);                         // το κλειδί web σβήστηκε
+  assert.ok(await lp.evaluate(() => !!localStorage.getItem('mock-keychain')));
+  await lp.goto(`${BASE}#/settings`);
+  await lp.getByText('Keychain της συσκευής').waitFor();
+  await lp.reload();                                            // δεύτερη εκκίνηση: μόνο με το Keychain
+  await lp.goto(BASE);
+  await lp.getByText('Παλιό τοστιέρα').click();
+  await lp.getByText('old.pdf').click();                        // και το αρχείο ανοίγει
+
   // ---------- αγγλικά ----------
   step('αγγλικά');
   const en = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'en-GB' });
