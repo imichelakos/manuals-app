@@ -47,7 +47,7 @@
     "playwright": "1.65.1",
     "qrcode": "1.5.4",
     "tailwindcss": "4.3.5",
-    "typescript": "6.0.3",
+    "typescript": "7.0.2",
     "vite": "8.3.8"
   }
 }
