@@ -2,7 +2,9 @@
  * Κέλυφος της εφαρμογής. Κινητό: μία στήλη με μπάρα καρτελών κάτω. Πλατιά οθόνη (iPad, υπολογιστής): ράγα πλοήγησης,
  * η βιβλιοθήκη μόνιμα στα αριστερά και η τρέχουσα οθόνη (καρτέλα προϊόντος, σάρωση, ρυθμίσεις) δεξιά.
  */
-import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router';
+import { useEffect } from 'react';
+import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router';
+import { startReminders } from '@/data/reminderRuntime';
 import { useWide } from '@/hooks/useWide';
 import { t } from '@/i18n';
 import LibraryPanel from '@/pages/LibraryPanel';
@@ -14,9 +16,19 @@ import { LockScreen } from '@/components/LockScreen';
 import { useLocked } from '@/data/appLock';
 import { IconLibrary, IconScan, IconSettings } from '@/components/icons';
 
+let remindersStarted = false;
+function startRemindersOnce(open: (id: string) => void) {
+  if (remindersStarted) return;
+  remindersStarted = true;
+  startReminders(open);
+}
+
 export default function App() {
   const wide = useWide();
   const locked = useLocked();
+  const navigate = useNavigate();
+  // υπενθυμίσεις εγγύησης: πάτημα στην ειδοποίηση → καρτέλα του προϊόντος
+  useEffect(() => { startRemindersOnce((id) => navigate(`/item/${id}`)); }, [navigate]);
   const { pathname } = useLocation();
   // στη σάρωση η μπάρα καρτελών κρύβεται: μία δουλειά τη φορά
   const showTabs = !wide && !pathname.startsWith('/scan');

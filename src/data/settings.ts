@@ -4,8 +4,10 @@ import type { SearchEngine } from '@/domain/manualSearch';
 
 export type Theme = 'auto' | 'light' | 'dark';
 /** lock: κλείδωμα με Face ID / κωδικό συσκευής (ισχύει μόνο όπου υποστηρίζεται, δηλ. στην εφαρμογή iOS) */
-export interface Settings { theme: Theme; engine: SearchEngine; warrantyMonths: number; lock: boolean }
-const DEFAULTS: Settings = { theme: 'auto', engine: 'duckduckgo', warrantyMonths: 24, lock: true };
+/** reminders / reminderDays: ειδοποίηση πριν λήξει μια εγγύηση (στην εφαρμογή iOS), πόσες ημέρες πριν */
+export interface Settings { theme: Theme; engine: SearchEngine; warrantyMonths: number; lock: boolean; reminders: boolean; reminderDays: number }
+export const REMINDER_DAY_OPTIONS = [7, 30, 60] as const;
+const DEFAULTS: Settings = { theme: 'auto', engine: 'duckduckgo', warrantyMonths: 24, lock: true, reminders: false, reminderDays: 30 };
 const KEY = 'manuals-settings-v1';
 
 function read(): Settings {
@@ -16,6 +18,8 @@ function read(): Settings {
       engine: v.engine === 'google' ? 'google' : 'duckduckgo',
       warrantyMonths: Number.isInteger(v.warrantyMonths) && v.warrantyMonths! >= 0 && v.warrantyMonths! <= 600 ? v.warrantyMonths! : DEFAULTS.warrantyMonths,
       lock: v.lock !== false,
+      reminders: v.reminders === true,
+      reminderDays: (REMINDER_DAY_OPTIONS as readonly number[]).includes(v.reminderDays as number) ? v.reminderDays! : DEFAULTS.reminderDays,
     };
   } catch { return DEFAULTS; }
 }
