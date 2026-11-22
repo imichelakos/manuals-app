@@ -11,9 +11,9 @@ import { updateItem } from '@/data/library';
 import { useSettings } from '@/data/settings';
 import { downloadPdf, type DownloadFailure } from '@/services/download';
 import { storeFile } from '@/services/files';
-import { openExternal } from '@/services/platform';
 import { t } from '@/i18n';
 import { Sheet } from '@/components/Sheet';
+import { ExternalLink } from '@/components/ExternalLink';
 import { DOC_TYPES, FilePick, IMAGE_TYPES } from '@/components/controls';
 import { toast } from '@/components/Toast';
 import { addFiles } from './Documents';
@@ -87,7 +87,7 @@ export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => 
               <p className="mono truncate text-[13px] text-ink-2">{l.url.replace(/^https?:\/\//, '')}</p>
               <div className="mt-2 flex gap-2">
                 {l.kind === 'pdf' && <button type="button" className="btn btn-soft flex-1" disabled={busy} onClick={() => void fetchPdf(l.url)}><IconDownload className="text-lg" />{t('Κατέβασμα')}</button>}
-                <button type="button" className="btn btn-plain flex-1" onClick={() => void openExternal(l.url)}><IconExternal className="text-lg" />{t('Άνοιγμα')}</button>
+                <ExternalLink href={l.url} className="btn btn-plain flex-1"><IconExternal className="text-lg" />{t('Άνοιγμα')}</ExternalLink>
               </div>
             </div>
           ))}
@@ -100,9 +100,9 @@ export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => 
           : <>
             <div className="flex flex-col gap-2">
               {queries.map((q) => (
-                <button key={q.id} type="button" className="btn btn-soft justify-between text-left" onClick={() => void openExternal(q.url)}>
+                <ExternalLink key={q.id} href={q.url} className="btn btn-soft justify-between text-left">
                   <span>{labels[q.id]}</span><IconExternal className="shrink-0 text-lg" />
-                </button>
+                </ExternalLink>
               ))}
             </div>
             <p className="mt-2 text-[13px] leading-relaxed text-ink-3">{t('Ανοίγει στο {engine}. Προτίμησε τη σελίδα του κατασκευαστή. Αντίγραψε τη διεύθυνση του PDF και γύρνα εδώ.', { engine: engine === 'google' ? 'Google' : 'DuckDuckGo' })}</p>
@@ -117,7 +117,7 @@ export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => 
         {blocked && (
           <div className="mt-2.5 rounded-2xl bg-warn-soft p-3.5 text-[14px] leading-relaxed text-warn">
             <p>{t('Άνοιξε τη διεύθυνση, αποθήκευσε το PDF στα Αρχεία σου και μετά κάνε «Εισαγωγή αρχείου» από κάτω.')}</p>
-            <button type="button" className="btn mt-2 min-h-9 bg-surface px-3 py-1 text-sm text-ink" onClick={() => void openExternal(blocked)}><IconExternal className="text-base" />{t('Άνοιγμα')}</button>
+            <ExternalLink href={blocked} className="btn mt-2 min-h-9 bg-surface px-3 py-1 text-sm text-ink"><IconExternal className="text-base" />{t('Άνοιγμα')}</ExternalLink>
           </div>
         )}
       </Step>

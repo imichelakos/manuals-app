@@ -128,6 +128,7 @@ const EN: Record<string, string> = {
   'Παραστατικό': 'Receipt',
   'Εγχειρίδιο': 'Manual',
   'Το αρχείο δεν βρέθηκε σε αυτή τη συσκευή.': 'The file was not found on this device.',
+  'Το αρχείο δεν μπόρεσε να ανοίξει εδώ.': 'The file could not be opened here.',
   'Εικόνα': 'Image',
   'Διαγραφή αρχείου {name}': 'Delete file {name}',
   'Δεν έχεις ακόμη το ψηφιακό. Βρες το και κράτα το εδώ, για να μη χρειάζεσαι το χαρτί.': 'You don’t have the digital copy yet. Find it and keep it here, so you no longer need the paper.',

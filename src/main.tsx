@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { HashRouter } from 'react-router';
+import { HashRouter, MemoryRouter } from 'react-router';
 // γραμματοσειρές ενσωματωμένες στην εφαρμογή (ελληνικά + λατινικά)· καμία φόρτωση από τρίτους
 import '@fontsource-variable/manrope/wght.css';
 import '@fontsource/jetbrains-mono/400.css';
@@ -18,7 +18,11 @@ window.addEventListener('unhandledrejection', (e) => { console.error('unhandled'
 // μόνιμη αποθήκευση: χωρίς αυτήν ο browser μπορεί να σβήσει δεδομένα ιστοσελίδων που δεν χρησιμοποιούνται
 void navigator.storage?.persist?.().catch(() => false);
 
+// HashRouter παντού (η εφαρμογή σερβίρεται από αρχεία)· στη σελίδα προεπισκόπησης ο host δεν δέχεται διαδρομές #/…,
+// οπότε εκεί η πλοήγηση κρατιέται στη μνήμη (build με --mode preview)
+const Router = import.meta.env.MODE === 'preview' ? MemoryRouter : HashRouter;
+
 const root = createRoot(document.getElementById('root')!);
 void loadLibrary()
   .catch(() => { /* η βάση δεν άνοιξε: η εφαρμογή ξεκινά άδεια αντί να μείνει λευκή οθόνη */ })
-  .then(() => root.render(<StrictMode><HashRouter><App /></HashRouter></StrictMode>));
+  .then(() => root.render(<StrictMode><Router><App /></Router></StrictMode>));

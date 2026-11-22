@@ -30,10 +30,16 @@ export function setSettings(patch: Partial<Settings>) {
 }
 export const useSettings = () => useSyncExternalStore((l) => { listeners.add(l); return () => { listeners.delete(l); }; }, () => current);
 
-/** data-theme στο <html> (το theme.css αλλάζει τις μεταβλητές) + χρώμα της μπάρας του browser. */
+let themeSetByApp = false;
+/**
+ * data-theme στο <html> (το theme.css αλλάζει τις μεταβλητές) + χρώμα της μπάρας του browser. Στο «όπως η συσκευή» η
+ * εφαρμογή αφαιρεί μόνο τιμή που έβαλε η ίδια: σε σελίδα προεπισκόπησης το data-theme το ορίζει ο host.
+ */
 export function applyTheme() {
   const root = document.documentElement;
-  if (current.theme === 'auto') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', current.theme);
-  const dark = current.theme === 'dark' || (current.theme === 'auto' && window.matchMedia?.('(prefers-color-scheme: dark)').matches);
+  if (current.theme !== 'auto') { root.setAttribute('data-theme', current.theme); themeSetByApp = true; }
+  else if (themeSetByApp) { root.removeAttribute('data-theme'); themeSetByApp = false; }
+  const host = root.getAttribute('data-theme');
+  const dark = host ? host === 'dark' : window.matchMedia?.('(prefers-color-scheme: dark)').matches;
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0E1013' : '#F5F3EE');
 }

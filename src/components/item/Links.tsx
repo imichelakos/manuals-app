@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { newId, type Item, type LinkKind, type LinkRef } from '@/domain/model';
 import { linkKind, parseHttpUrl } from '@/domain/codes';
 import { updateItem } from '@/data/library';
-import { openExternal } from '@/services/platform';
+import { ExternalLink } from '@/components/ExternalLink';
 import { t } from '@/i18n';
 import { AutoField, ConfirmDelete } from '@/components/controls';
 import { toast } from '@/components/Toast';
@@ -52,7 +52,7 @@ export function LinksSection({ item }: { item: Item }) {
                 {hostOf(l.url)}
               </p>
             </div>
-            <button type="button" className="icon-btn" onClick={() => void openExternal(l.url)} aria-label={t('Άνοιγμα {host}', { host: hostOf(l.url) })}><IconExternal className="text-xl" /></button>
+            <ExternalLink href={l.url} className="icon-btn" label={t('Άνοιγμα {host}', { host: hostOf(l.url) })}><IconExternal className="text-xl" /></ExternalLink>
             <ConfirmDelete label={t('Διαγραφή συνδέσμου')} onConfirm={() => void updateItem(item.id, (c) => ({ ...c, links: c.links.filter((x) => x.id !== l.id) }))} />
           </li>
         ))}

@@ -46,7 +46,8 @@ function AttachmentRow({ itemId, a }: { itemId: string; a: Attachment }) {
   const open = async () => {
     if (a.mime.startsWith('image/')) { setView(true); return; }
     const b = await blobStore.get(a.blobId);
-    if (b) await openFile(b, a.name); else toast(t('Το αρχείο δεν βρέθηκε σε αυτή τη συσκευή.'), 'error');
+    if (!b) { toast(t('Το αρχείο δεν βρέθηκε σε αυτή τη συσκευή.'), 'error'); return; }
+    try { await openFile(b, a.name); } catch { toast(t('Το αρχείο δεν μπόρεσε να ανοίξει εδώ.'), 'error'); }
   };
   return (
     <li className="flex items-center gap-3 rounded-2xl bg-surface-2 p-2">

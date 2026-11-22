@@ -27,6 +27,7 @@ function get(first: OcrLang): Promise<Worker> {
     const base = new URL('ocr/', document.baseURI).href;
     const w = await createWorker(first, 1, {
       workerPath: `${base}worker.min.js`,
+      workerBlobURL: false, // ο worker ξεκινά κατευθείαν από το δικό μας αρχείο (όχι μέσω blob:)
       corePath: `${base}tesseract-core-simd-lstm.wasm.js`,
       langPath: `${base}lang`,
       gzip: true,

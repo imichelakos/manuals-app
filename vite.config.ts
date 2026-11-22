@@ -35,12 +35,14 @@ function csp(): Plugin {
 
 const pkg = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, 'package.json'), 'utf-8')) as { version: string };
 
-export default defineConfig({
+// `--mode preview`: build για σελίδα προεπισκόπησης μέσα σε host (claude.ai Artifact) — το CSP το ορίζει ο host, και οι
+// γραμματοσειρές ενσωματώνονται στο CSS (ο host δεν σερβίρει αρχεία γραμματοσειρών δίπλα στη σελίδα)
+export default defineConfig(({ mode }) => ({
   base: './',
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
-  plugins: [react(), tailwindcss(), csp()],
+  plugins: [react(), tailwindcss(), ...(mode === 'preview' ? [] : [csp()])],
   css: { postcss: { plugins: [] } },
-  build: { target: ['safari16.4', 'ios16.4', 'chrome111'], sourcemap: false },
+  build: { target: ['safari16.4', 'ios16.4', 'chrome111'], sourcemap: false, ...(mode === 'preview' ? { assetsInlineLimit: 200_000 } : {}) },
   server: { port: 3100 },
   resolve: { alias: { '@': path.resolve(import.meta.dirname, './src') } },
-});
+}));

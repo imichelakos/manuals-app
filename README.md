@@ -40,6 +40,10 @@ npm run lint
 npm run e2e        # σενάριο σε Chromium πάνω στο dist/ (θέλει εγκατεστημένο playwright)
 ```
 
+Σελίδα προεπισκόπησης (claude.ai Artifact): `npx vite build --mode preview --outDir <φάκελος>` και μετά
+`node scripts/pack-preview.mjs <φάκελος> .` — πλοήγηση στη μνήμη, γραμματοσειρές μέσα στο CSS, δεδομένα OCR ως κείμενο,
+αποθήκευση αρχείων μέσω του host (`src/services/hostSave.ts`).
+
 iOS (σε Mac με Xcode):
 
 ```bash
