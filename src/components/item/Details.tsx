@@ -7,6 +7,7 @@ import type { Item } from '@/domain/model';
 import { updateItem, useItems } from '@/data/library';
 import { t } from '@/i18n';
 import { AutoField } from '@/components/controls';
+import { GroupIcon } from '@/components/groupIcons';
 
 export function DetailsSection({ item }: { item: Item }) {
   const items = useItems();
@@ -51,7 +52,7 @@ export function DetailsSection({ item }: { item: Item }) {
         </div>
       </div>
       <div>
-        <label className="label" htmlFor="d-group">{t('Ομάδα')}</label>
+        <label className="label flex items-center gap-1.5" htmlFor="d-group">{t('Ομάδα')}{(item.group ?? autoGroup) && <GroupIcon id={(item.group ?? autoGroup)!} className="text-base text-ink-2" />}</label>
         <select id="d-group" className="input" value={item.group ?? ''} onChange={(e) => set({ group: (e.target.value || undefined) as GroupId | undefined })}>
           <option value="">{autoGroup ? t('Αυτόματα: {g}', { g: t(GROUP_LABELS[autoGroup]) }) : t('Αυτόματα: —')}</option>
           {GROUP_IDS.map((g) => <option key={g} value={g}>{t(GROUP_LABELS[g])}</option>)}

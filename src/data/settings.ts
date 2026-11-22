@@ -1,6 +1,5 @@
 /** Ρυθμίσεις αυτής της συσκευής (localStorage): θέμα, μηχανή αναζήτησης, προεπιλεγμένη διάρκεια εγγύησης, κλείδωμα. */
 import { useSyncExternalStore } from 'react';
-import type { RecyclingRegion } from '@/domain/recyclingTips';
 import { CURRENCY_CODE, DEFAULT_CURRENCY } from '@/domain/currency';
 import { isSearchEngine, type SearchEngine } from '@/domain/manualSearch';
 
@@ -8,12 +7,11 @@ export type Theme = 'auto' | 'light' | 'dark';
 /** lock: κλείδωμα με Face ID / κωδικό συσκευής (ισχύει μόνο όπου υποστηρίζεται, δηλ. στην εφαρμογή iOS) */
 /** reminders / reminderDays: ειδοποίηση πριν λήξει μια εγγύηση (στην εφαρμογή iOS), πόσες ημέρες πριν */
 /** currency: νόμισμα για νέες τιμές αγοράς — το τελευταίο που διάλεξε ο χρήστης */
-/** recyclingRegion: για τις συμβουλές ανακύκλωσης· 'auto' = από τη γλώσσα/περιοχή της συσκευής */
-export interface Settings { theme: Theme; engine: SearchEngine; warrantyMonths: number; lock: boolean; reminders: boolean; reminderDays: number; currency: string; recyclingRegion: 'auto' | RecyclingRegion }
+export interface Settings { theme: Theme; engine: SearchEngine; warrantyMonths: number; lock: boolean; reminders: boolean; reminderDays: number; currency: string }
 export const REMINDER_DAY_OPTIONS = [7, 30, 60] as const;
 /** «Άλλο»: οποιοσδήποτε αριθμός ημερών 1–99 */
 export const REMINDER_DAYS_MAX = 99;
-const DEFAULTS: Settings = { theme: 'auto', engine: 'duckduckgo', warrantyMonths: 24, lock: true, reminders: false, reminderDays: 30, currency: DEFAULT_CURRENCY, recyclingRegion: 'auto' };
+const DEFAULTS: Settings = { theme: 'auto', engine: 'duckduckgo', warrantyMonths: 24, lock: true, reminders: false, reminderDays: 30, currency: DEFAULT_CURRENCY };
 const KEY = 'manuals-settings-v1';
 
 function read(): Settings {
@@ -25,7 +23,6 @@ function read(): Settings {
       warrantyMonths: Number.isInteger(v.warrantyMonths) && v.warrantyMonths! >= 0 && v.warrantyMonths! <= 600 ? v.warrantyMonths! : DEFAULTS.warrantyMonths,
       lock: v.lock !== false,
       reminders: v.reminders === true,
-      recyclingRegion: v.recyclingRegion === 'gr' || v.recyclingRegion === 'eu' || v.recyclingRegion === 'world' ? v.recyclingRegion : 'auto',
       currency: typeof v.currency === 'string' && CURRENCY_CODE.test(v.currency) ? v.currency : DEFAULTS.currency,
       reminderDays: Number.isInteger(v.reminderDays) && v.reminderDays! >= 1 && v.reminderDays! <= REMINDER_DAYS_MAX ? v.reminderDays! : DEFAULTS.reminderDays,
     };

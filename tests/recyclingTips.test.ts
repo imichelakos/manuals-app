@@ -1,29 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { recyclingTips, regionFromLocales, sourceUrl } from '@/domain/recyclingTips';
+import { recyclingTips, sourceUrl } from '@/domain/recyclingTips';
 
-const ids = (...a: Parameters<typeof recyclingTips>) => recyclingTips(...a).map((t) => t.id);
+const ids = (name: string, group: Parameters<typeof recyclingTips>[0]['group']) => recyclingTips({ name, group }).map((t) => t.id);
 
-test('regionFromLocales: Ελλάδα / ΕΕ / υπόλοιπος κόσμος', () => {
-  assert.equal(regionFromLocales(['el-GR', 'en-GB']), 'gr');
-  assert.equal(regionFromLocales(['el']), 'gr');
-  assert.equal(regionFromLocales(['de-AT']), 'eu');
-  assert.equal(regionFromLocales(['en-US', 'el-GR']), 'world'); // η πρώτη περιοχή μετρά
-  assert.equal(regionFromLocales(['en']), 'world');
-});
-
-test('recyclingTips: ανά περιοχή, ομάδα και είδος', () => {
-  const fridge = { name: 'Ψυγειοκαταψύκτης', category: 'kitchen' as const, group: 'large' as const };
-  const gr = ids(fridge, 'gr');
-  assert.ok(gr.includes('cooling') && gr.includes('oneToOne') && gr.includes('grPoints') && gr.includes('grBatteries'));
-  assert.ok(!gr.includes('smallZeroToOne'));                // μεγάλη συσκευή: όχι ο κανόνας των 25 cm
-  const phone = ids({ name: 'Κινητό', category: 'computing', group: 'electronics' }, 'eu');
-  assert.ok(phone.includes('data') && phone.includes('smallZeroToOne') && !phone.includes('grPoints'));
-  const us = ids({ name: 'Laptop', category: 'computing', group: 'electronics' }, 'world');
-  assert.ok(us.includes('worldTakeBack') && !us.includes('oneToOne') && !us.includes('symbol'));
-  assert.deepEqual(ids({ name: 'Ντουλάπα', category: 'furniture', group: 'unpowered' }, 'gr'), ['reuse', 'unpowered']);
-  assert.ok(ids({ name: 'Λάμπα LED', category: 'other', group: 'small' }, 'eu').includes('lamps'));
-  // κάθε συμβουλή με ισχυρισμό για υποχρέωση έχει πηγή
-  for (const t of recyclingTips(fridge, 'gr')) if (t.id !== 'reuse') assert.ok(t.source, t.id);
-  assert.ok(sourceUrl('art5', 'en').includes('/EN/') && sourceUrl('art5', 'el').includes('/EL/'));
+test('recyclingTips: γενικές, ανά ομάδα και είδος', () => {
+  const fridge = ids('Ψυγειοκαταψύκτης', 'large');
+  assert.ok(fridge.includes('cooling') && fridge.includes('symbol') && fridge.includes('takeBack') && !fridge.includes('data'));
+  assert.ok(ids('Κινητό', 'electronics').includes('data'));
+  assert.ok(ids('Λάμπα LED', 'small').includes('lamps'));
+  assert.deepEqual(ids('Ντουλάπα', 'unpowered'), ['reuse', 'unpowered']);
+  // κάθε συμβουλή εκτός από τις γενικές «επαναχρησιμοποίηση/χωρίς ρεύμα» έχει πηγή
+  for (const t of recyclingTips({ name: 'Ψυγείο', group: 'large' })) assert.ok(t.source, t.id);
+  assert.ok(sourceUrl('annex7', 'en').includes('/EN/') && sourceUrl('annex7', 'el').includes('/EL/'));
 });

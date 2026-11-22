@@ -36,8 +36,8 @@ export function AutoField({ value, onCommit, multiline, className = 'input', ...
 
 /**
  * Πεδίο «Άλλο» δίπλα σε έτοιμες επιλογές (π.χ. 12/24/36 μήνες): δείχνει την τιμή μόνο όταν δεν είναι μία από αυτές.
- * Όσο ο χρήστης γράφει κρατά το δικό του πρόχειρο — αλλιώς, μόλις το «2» γινόταν τιμή, το πεδίο θα άδειαζε ή θα άλλαζε
- * κάτω από τα δάχτυλά του. Κενό πεδίο → onChange(undefined).
+ * Αποθηκεύει ΟΤΑΝ ΤΕΛΕΙΩΣΕΙ ο χρήστης (έξοδος από το πεδίο ή Enter), όχι σε κάθε ψηφίο: έτσι ο καλών μπορεί να κάνει την
+ * τιμή chip χωρίς το πεδίο να αδειάζει στη μέση της πληκτρολόγησης. Κενό πεδίο → onChange(undefined).
  */
 export function OtherNumber({ value, presets, min, max, onChange, label, placeholder, className }: {
   value: number | undefined; presets: readonly number[]; min: number; max: number;
@@ -45,18 +45,20 @@ export function OtherNumber({ value, presets, min, max, onChange, label, placeho
 }) {
   const shown = value !== undefined && !presets.includes(value) ? String(value) : '';
   const [draft, setDraft] = useState<string | null>(null); // null: δεν γράφει
+  const commit = () => {
+    if (draft === null) return;
+    const n = Number(draft);
+    if (!draft) { if (shown) onChange(undefined); } // άδειασε το πεδίο της δικής του τιμής
+    else if (Number.isInteger(n) && n >= min && n <= max && n !== value) onChange(n);
+    setDraft(null);
+  };
   return (
-    <input type="number" inputMode="numeric" min={min} max={max} aria-label={label} placeholder={placeholder} className={className}
+    <input type="number" inputMode="numeric" enterKeyHint="done" min={min} max={max} aria-label={label} placeholder={placeholder} className={className}
       value={draft ?? shown}
       onFocus={() => setDraft(shown)}
-      onBlur={() => setDraft(null)}
-      onChange={(e) => {
-        const raw = e.target.value.replace(/\D/g, '').slice(0, String(max).length);
-        setDraft(raw);
-        const n = Number(raw);
-        if (!raw) onChange(undefined);
-        else if (Number.isInteger(n) && n >= min && n <= max) onChange(n);
-      }} />
+      onBlur={commit}
+      onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+      onChange={(e) => setDraft(e.target.value.replace(/\D/g, '').slice(0, String(max).length))} />
   );
 }
 

@@ -15,12 +15,16 @@ import { t, tn } from '@/i18n';
 import { ItemCard } from '@/components/ItemCard';
 import { FilterSheet } from '@/components/FilterSheet';
 import { RecyclingCard, type RecyclingFilter } from '@/components/RecyclingCard';
-import { IconClose, IconFilter, IconPlus, IconRecycle, IconScan, IconSearch, IconShield, IconFile } from '@/components/icons';
+import { InboxSheet } from '@/components/InboxSheet';
+import { useInbox } from '@/data/inbox';
+import { IconBell, IconClose, IconFilter, IconPlus, IconRecycle, IconScan, IconSearch, IconShield, IconFile } from '@/components/icons';
 
 export default function LibraryPanel() {
   const items = useItems();
   const { query, filters, sort } = useViewState();
   const [sheet, setSheet] = useState(false);
+  const [inbox, setInbox] = useState(false);
+  const notices = useInbox().length;
   const selected = useMatch('/item/:id')?.params.id;
   const now = today();
 
@@ -62,6 +66,11 @@ export default function LibraryPanel() {
               : tn(items.length, '{n} προϊόν', '{n} προϊόντα')}
           </p>
         </div>
+        <button type="button" className="icon-btn relative mb-1 bg-surface shadow-card" onClick={() => setInbox(true)}
+          aria-label={notices ? t('Ειδοποιήσεις: {n}', { n: notices }) : t('Ειδοποιήσεις')}>
+          <IconBell className="text-xl" />
+          {notices > 0 && <span className="absolute -right-0.5 -top-0.5 flex min-w-5 items-center justify-center rounded-full bg-bad px-1 text-[11px] font-bold text-white" aria-hidden="true">{notices}</span>}
+        </button>
       </header>
 
       {items.length === 0 ? <Empty /> : (
@@ -113,6 +122,7 @@ export default function LibraryPanel() {
         </>
       )}
 
+      {inbox && <InboxSheet onClose={() => setInbox(false)} />}
       {sheet && <FilterSheet filters={filters} sort={sort} counts={counts} onChange={setFilters} onSort={(s) => setViewState({ sort: s })} onClose={() => setSheet(false)} />}
     </div>
   );

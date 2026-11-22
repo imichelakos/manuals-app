@@ -119,10 +119,11 @@ try {
   // «Άλλη»: διψήφιος αριθμός πληκτρολογημένος ψηφίο-ψηφίο (το πεδίο δεν πρέπει να αδειάζει στη μέση)
   const other = page.getByLabel('Διάρκεια εγγύησης σε μήνες');
   await other.pressSequentially('30');
-  assert.equal(await other.inputValue(), '30');
+  assert.equal(await other.inputValue(), '30');                       // δεν αδειάζει στη μέση της πληκτρολόγησης
+  await other.press('Enter');                                          // αποθήκευση → γίνεται chip
+  await page.getByRole('button', { name: '30 μήνες', pressed: true }).waitFor();
   await page.getByText('Εγγύηση έως 14 Σεπ 2027').first().waitFor();
-  await other.blur();
-  assert.equal(await other.inputValue(), '30');
+  assert.equal(await other.inputValue(), '');
   await page.getByRole('button', { name: '2 χρόνια' }).click();
   await page.getByText('Εγγύηση έως 14 Μαρ 2027').first().waitFor();
   assert.equal(await other.inputValue(), '');
@@ -143,12 +144,9 @@ try {
   await page.locator('#d-tags').fill('δώρο, εξοχικό');
   await page.locator('#d-tags').blur();
   await page.waitForTimeout(300);
-  // συμβουλές ανακύκλωσης της συσκευής (locale el-GR → Ελλάδα)
+  // γενικές συμβουλές ανακύκλωσης της συσκευής
   await page.getByText('Όταν δεν θα τη χρειάζεσαι').click();
-  await page.getByText(/Οι μπαταρίες πάνε στους κάδους της ΑΦΗΣ/).waitFor();
-  await page.getByRole('radio', { name: 'Άλλη χώρα' }).click();
   await page.getByText(/Πολλοί κατασκευαστές και καταστήματα/).waitFor();
-  await page.getByRole('radio', { name: 'Ελλάδα' }).click();
   await page.evaluate(() => window.scrollTo(0, 0));
   await shot('07-item');
   await page.screenshot({ path: path.join(OUT, '07b-item-full.png'), fullPage: true });
@@ -163,7 +161,7 @@ try {
   await page.locator('#d-model').blur();
   await page.getByRole('button', { name: 'Πρόταση: Κουζίνα' }).click(); // κατηγορία από το όνομα
   await page.waitForFunction(() => document.querySelector('#d-cat').value === 'kitchen');
-  await page.locator('#w-date').fill('2020-01-10');
+  await page.locator('#w-date').fill('2025-10-10'); // λήγει 10/10/2026: έληξε πριν από λίγο → ειδοποιήσεις στη λίστα
   await page.getByRole('button', { name: '1 χρόνος' }).click();
   await page.locator('#d-model').blur();
   await page.waitForTimeout(900);
@@ -202,6 +200,23 @@ try {
   assert.equal(await cards.count(), 1);
   await page.getByRole('button', { name: 'Καθαρισμός', exact: true }).click();
   assert.equal(await cards.count(), 2);
+
+  step('ειδοποιήσεις: κρατιούνται στη λίστα μέχρι να σβηστούν (σύρσιμο ή ×)');
+  await page.getByRole('button', { name: 'Ειδοποιήσεις: 1' }).click(); // έληξε: μένει μόνο η ειδοποίηση της ημέρας λήξης
+  await page.getByRole('heading', { name: 'Ειδοποιήσεις' }).waitFor();
+  await page.getByText('Η εγγύηση έληξε').first().waitFor();     // ο τίτλος λογαριάζεται από σήμερα
+  await page.waitForTimeout(400);
+  await shot('10b-inbox');
+  const first = page.locator('[role=dialog] li > div').first();
+  const box = await first.boundingBox();
+  await page.mouse.move(box.x + box.width - 40, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width - 120, box.y + box.height / 2, { steps: 6 });
+  await page.mouse.move(box.x + 20, box.y + box.height / 2, { steps: 6 });
+  await page.mouse.up();
+  await page.getByText('Δεν υπάρχουν ειδοποιήσεις.').waitFor();    // σβήστηκε με σύρσιμο
+  await page.getByRole('button', { name: 'Κλείσιμο' }).click();
+  await page.getByRole('button', { name: 'Ειδοποιήσεις', exact: true }).waitFor();
 
   step('κρυπτογράφηση: στον δίσκο δεν φαίνεται περιεχόμενο');
   const disk = await page.evaluate(async () => {

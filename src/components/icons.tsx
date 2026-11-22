@@ -36,3 +36,4 @@ export const IconSpark = (p: P) => <I {...p}><path d="M12 3v4M12 17v4M3 12h4M17 
 export const IconApp = (p: P) => <I {...p}><rect x="4" y="4" width="16" height="16" rx="4" /><path d="M9 15l3-6 3 6M10 13h4" /></I>;
 export const IconBox = (p: P) => <I {...p}><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z" /><path d="m4 7.5 8 4.5 8-4.5M12 12v9" /></I>;
 export const IconTag = (p: P) => <I {...p}><path d="M4 12V5a1 1 0 0 1 1-1h7l8 8-8 8z" /><circle cx="8.5" cy="8.5" r="1.2" /></I>;
+export const IconBell = (p: P) => <I {...p}><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z" /><path d="M10 20.5a2 2 0 0 0 4 0" /></I>;

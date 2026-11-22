@@ -46,3 +46,31 @@ export function planReminders(items: Item[], o: { today: IsoDate; daysBefore: nu
   }
   return out.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.id - b.id)).slice(0, o.limit);
 }
+
+/**
+ * Ειδοποιήσεις που έχουν ήδη «χτυπήσει» (ημερομηνία ≤ σήμερα), για τη λίστα ειδοποιήσεων της εφαρμογής: κρατιούνται μέχρι
+ * να τις σβήσει ο χρήστης, ακόμη κι αφού λήξει η εγγύηση (έως `lookbackDays` πίσω). Το κλειδί αλλάζει όταν αλλάξει η
+ * ημερομηνία λήξης, ώστε μια νέα λήξη να φέρει νέα ειδοποίηση. Νεότερες πρώτα.
+ */
+export interface DueReminder extends Reminder { key: string }
+
+export function dueReminders(items: Item[], o: { today: IsoDate; daysBefore: number; lookbackDays: number }): DueReminder[] {
+  const oldest = addDays(o.today, -o.lookbackDays);
+  if (!oldest) return [];
+  const out: DueReminder[] = [];
+  for (const i of items) {
+    if (i.deleted) continue;
+    const until = warrantyUntil(i);
+    if (!until) continue;
+    const name = displayName(i);
+    const before = o.daysBefore > 0 ? addDays(until, -o.daysBefore) : null;
+    const add = (kind: Reminder['kind'], date: IsoDate, daysLeft: number) => {
+      if (date > o.today || date < oldest) return;
+      out.push({ id: reminderId(i.id, kind), key: `${i.id}:${kind}:${until}`, itemId: i.id, kind, date, name, until, daysLeft });
+    };
+    // η «νωρίτερη» ειδοποίηση έχει νόημα μόνο μέχρι να λήξει η εγγύηση· μετά μένει μόνο αυτή της ημέρας λήξης
+    if (before && until > o.today) add('before', before, o.daysBefore);
+    add('day', until, 0);
+  }
+  return out.sort((a, b) => (a.date > b.date ? -1 : a.date < b.date ? 1 : a.id - b.id));
+}

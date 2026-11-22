@@ -5,7 +5,7 @@ import { today } from '@/domain/dates';
 import { updateItem } from '@/data/library';
 import { setSettings, useSettings } from '@/data/settings';
 import { COMMON_CURRENCIES, currencyOf } from '@/domain/currency';
-import { t } from '@/i18n';
+import { t, tn } from '@/i18n';
 import { AutoField, OtherNumber } from '@/components/controls';
 import { warrantyText } from '@/components/WarrantyBadge';
 import { IconShield } from '@/components/icons';
@@ -21,9 +21,9 @@ export function WarrantySection({ item }: { item: Item }) {
   // νόμισμα: της τιμής που υπάρχει ήδη· χωρίς τιμή, το τελευταίο που χρησιμοποίησε ο χρήστης
   const currency = item.purchase.price !== undefined || item.purchase.currency ? currencyOf(item.purchase) : lastCurrency;
   const currencies = [...new Set([currency, ...COMMON_CURRENCIES])];
-  const label = (m: number) => (m % 12 === 0 ? (m === 12 ? t('1 χρόνος') : t('{n} χρόνια', { n: m / 12 })) : t('{n} μήνες', { n: m }));
-  // έτοιμες επιλογές: οι συνηθισμένες + η προεπιλογή των Ρυθμίσεων· κάθε άλλη διάρκεια φαίνεται στο πεδίο «Άλλη»
-  const options = [...new Set([...MONTHS, warrantyMonths])].filter((m) => m > 0).sort((a, b) => a - b);
+  const label = (m: number) => (m % 12 === 0 ? (m === 12 ? t('1 χρόνος') : t('{n} χρόνια', { n: m / 12 })) : tn(m, '{n} μήνας', '{n} μήνες'));
+  // chips: οι συνηθισμένες + η προεπιλογή των Ρυθμίσεων + η διάρκεια του προϊόντος (μια «Άλλη» γίνεται chip μόλις αποθηκευτεί)
+  const options = [...new Set([...MONTHS, warrantyMonths, ...(months ? [months] : [])])].filter((m) => m > 0).sort((a, b) => a - b);
   const setMonths = (n: number | undefined) => patch((c) => ({ ...c, warranty: { ...c.warranty, months: n } }));
 
   return (

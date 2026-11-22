@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { planReminders, reminderId } from '@/domain/reminders';
+import { dueReminders, planReminders, reminderId } from '@/domain/reminders';
 import { addDays } from '@/domain/dates';
 import { emptyItem, type Item } from '@/domain/model';
 
@@ -44,4 +44,12 @@ test('reminders: σταθερά, θετικά, διαφορετικά id', () =>
   assert.equal(a, reminderId('abc', 'before'));
   assert.notEqual(a, b);
   for (const v of [a, b, reminderId('', 'day')]) assert.ok(Number.isInteger(v) && v >= 1 && v <= 0x7fffffff);
+});
+
+test('dueReminders: όσες «χτύπησαν», νεότερες πρώτα· μετά τη λήξη μόνο της ημέρας λήξης', () => {
+  const mk = (id: string, date: string, months: number): Item => ({ ...emptyItem(1), id, name: id, purchase: { date }, warranty: { months } });
+  const items = [mk('soon', '2025-12-01', 12), mk('gone', '2025-10-10', 12), mk('old', '2020-01-01', 12), mk('later', '2026-06-01', 12)];
+  const due = dueReminders(items, { today: '2026-11-22', daysBefore: 30, lookbackDays: 365 });
+  assert.deepEqual(due.map((r) => `${r.itemId}:${r.kind}`), ['soon:before', 'gone:day']); // «old»: πέρα από το όριο· «later»: όχι ακόμη
+  assert.equal(due[0]!.key, 'soon:before:2026-12-01');
 });
