@@ -1,0 +1,39 @@
+/* Χρώματα ως μεταβλητές: φωτεινό (προεπιλογή), σκοτεινό με τη ρύθμιση της συσκευής ή με data-theme από τις Ρυθμίσεις. */
+:root {
+  --bg: #F5F3EE;          /* χαρτί */
+  --surface: #FFFFFF;
+  --surface-2: #ECE9E1;
+  --ink: #15181C;
+  --ink-2: #474D55;
+  --ink-3: #5D646D;
+  --line: rgb(21 24 28 / 0.12);
+  --accent: #2743E0;      /* κοβάλτιο: ενέργειες */
+  --accent-ink: #FFFFFF;
+  --accent-soft: #E4E9FF;
+  --ok: #146C47;          /* πράσινο: ψηφιακό υπάρχει / ανακυκλώθηκε / εγγύηση ενεργή */
+  --ok-soft: #DAF2E5;
+  --warn: #8A4A00;
+  --warn-soft: #FBE7C6;
+  --bad: #A8271F;
+  --bad-soft: #FADFDC;
+  --shadow: 0 1px 2px rgb(21 24 28 / 0.05), 0 4px 16px -6px rgb(21 24 28 / 0.10);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #0E1013; --surface: #181B20; --surface-2: #22262D;
+    --ink: #F1F2F4; --ink-2: #BCC2CA; --ink-3: #939BA6; --line: rgb(255 255 255 / 0.13);
+    --accent: #92A2FF; --accent-ink: #0A0F2E; --accent-soft: #1F2757;
+    --ok: #5FD6A0; --ok-soft: #113322; --warn: #F3B765; --warn-soft: #3B2B10; --bad: #FF9087; --bad-soft: #401916;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 20px -8px rgb(0 0 0 / 0.6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --bg: #0E1013; --surface: #181B20; --surface-2: #22262D;
+  --ink: #F1F2F4; --ink-2: #BCC2CA; --ink-3: #939BA6; --line: rgb(255 255 255 / 0.13);
+  --accent: #92A2FF; --accent-ink: #0A0F2E; --accent-soft: #1F2757;
+  --ok: #5FD6A0; --ok-soft: #113322; --warn: #F3B765; --warn-soft: #3B2B10; --bad: #FF9087; --bad-soft: #401916;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 20px -8px rgb(0 0 0 / 0.6);
+  color-scheme: dark;
+}

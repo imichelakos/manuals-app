@@ -1,0 +1,15 @@
+node_modules
+dist
+.DS_Store
+*.local
+# αρχεία OCR / wasm: αντιγράφονται από τα node_modules στο build (scripts/copy-assets.mjs)
+public/ocr
+public/zxing
+# iOS build
+ios/App/App/public
+ios/App/Pods
+ios/DerivedData
+.env
+.env.*
+.test-build
+.e2e

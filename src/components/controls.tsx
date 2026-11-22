@@ -1,0 +1,59 @@
+/** Μικρά κοινά στοιχεία φόρμας: πεδίο κειμένου με αυτόματη αποθήκευση, επιλογή αρχείου, κουμπί διαγραφής με επιβεβαίωση. */
+import { useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
+import { useLatest } from '@/hooks/useLatest';
+import { t } from '@/i18n';
+import { IconTrash } from './icons';
+
+/**
+ * Πεδίο που αποθηκεύει μόνο του: στο blur ή λίγο αφότου σταματήσει η πληκτρολόγηση. Η τιμή από έξω (`value`) το
+ * ενημερώνει μόνο όταν ο χρήστης δεν γράφει εκείνη τη στιγμή.
+ */
+export function AutoField({ value, onCommit, multiline, className = 'input', ...rest }: {
+  value: string; onCommit: (v: string) => void; multiline?: boolean; className?: string;
+} & Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'>) {
+  const [draft, setDraft] = useState(value);
+  const [editing, setEditing] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const latest = useLatest({ value, onCommit });
+  // τιμή που άλλαξε από έξω (π.χ. πρόταση από την απόδειξη) αντικαθιστά το πρόχειρο — όχι όσο ο χρήστης γράφει
+  const [seen, setSeen] = useState(value);
+  if (seen !== value) { setSeen(value); if (!editing) setDraft(value); }
+  const commit = (v: string) => { clearTimeout(timer.current); const c = latest.current; if (v !== c.value) c.onCommit(v); };
+  const pending = useLatest(draft);
+  useEffect(() => () => { clearTimeout(timer.current); const c = latest.current; if (pending.current !== c.value) c.onCommit(pending.current); }, [latest, pending]); // αποθήκευση και όταν φύγει από την οθόνη
+  const props = {
+    value: draft,
+    className,
+    onFocus: () => setEditing(true),
+    onBlur: (e: { target: { value: string } }) => { setEditing(false); commit(e.target.value); },
+    onChange: (e: { target: { value: string } }) => { const v = e.target.value; setDraft(v); clearTimeout(timer.current); timer.current = setTimeout(() => commit(v), 700); },
+  };
+  return multiline
+    ? <textarea {...props} rows={4} placeholder={rest.placeholder} aria-label={rest['aria-label']} id={rest.id} />
+    : <input {...rest} {...props} />;
+}
+
+/** Κουμπί που ανοίγει την κάμερα ή τον επιλογέα αρχείων του συστήματος. */
+export function FilePick({ onFiles, accept, capture, multiple, className, children, disabled }: {
+  onFiles: (files: File[]) => void; accept: string; capture?: boolean; multiple?: boolean; className?: string; children: ReactNode; disabled?: boolean;
+}) {
+  return (
+    <label className={`${className ?? ''} ${disabled ? 'pointer-events-none opacity-40' : 'cursor-pointer'} focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent`}>
+      {children}
+      <input type="file" className="sr-only" accept={accept} multiple={multiple} disabled={disabled}
+        {...(capture ? { capture: 'environment' as const } : {})}
+        onChange={(e) => { const f = [...(e.target.files ?? [])]; e.target.value = ''; if (f.length) onFiles(f); }} />
+    </label>
+  );
+}
+export const IMAGE_TYPES = 'image/*';
+export const DOC_TYPES = 'application/pdf,image/*';
+
+/** Διαγραφή σε δύο πατήματα: το πρώτο ζητά επιβεβαίωση («Σίγουρα;») για λίγα δευτερόλεπτα. */
+export function ConfirmDelete({ onConfirm, label, className = 'icon-btn' }: { onConfirm: () => void; label: string; className?: string }) {
+  const [armed, setArmed] = useState(false);
+  useEffect(() => { if (!armed) return; const id = setTimeout(() => setArmed(false), 3500); return () => clearTimeout(id); }, [armed]);
+  return armed
+    ? <button type="button" className="btn btn-danger min-h-9 px-3 py-1 text-sm" onClick={() => { setArmed(false); onConfirm(); }}>{t('Σίγουρα;')}</button>
+    : <button type="button" className={className} aria-label={label} onClick={() => setArmed(true)}><IconTrash className="text-xl" /></button>;
+}
