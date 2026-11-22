@@ -18,12 +18,17 @@ export interface Filters {
   manual: YesNo;
   receipt: YesNo;
   paper: 'any' | 'kept' | 'recycled';
+  /** μάρκες ως brandKey (χωρίς κεφαλαία/κενά: «BOSCH» και «Bosch» είναι η ίδια) */
+  brands: string[];
   rooms: string[];
   tags: string[];
 }
-export const NO_FILTERS: Filters = { categories: [], warranty: [], manual: 'any', receipt: 'any', paper: 'any', rooms: [], tags: [] };
+
+/** Κλειδί μάρκας για φίλτρα και ομαδοποίηση. */
+export const brandKey = (brand: string): string => brand.trim().toLocaleLowerCase('el').replace(/\s+/g, ' ');
+export const NO_FILTERS: Filters = { categories: [], warranty: [], manual: 'any', receipt: 'any', paper: 'any', brands: [], rooms: [], tags: [] };
 export const activeFilterCount = (f: Filters): number =>
-  f.categories.length + f.warranty.length + f.rooms.length + f.tags.length + +(f.manual !== 'any') + +(f.receipt !== 'any') + +(f.paper !== 'any');
+  f.categories.length + f.warranty.length + f.brands.length + f.rooms.length + f.tags.length + +(f.manual !== 'any') + +(f.receipt !== 'any') + +(f.paper !== 'any');
 
 export type Sort = 'relevance' | 'recent' | 'name' | 'warranty';
 
@@ -96,6 +101,7 @@ function passes(i: Item, f: Filters, todayIso: IsoDate, skip?: keyof Filters): b
   if (skip !== 'manual' && !yesNo(f.manual, hasDigitalManual(i))) return false;
   if (skip !== 'receipt' && !yesNo(f.receipt, hasReceipt(i))) return false;
   if (skip !== 'paper' && f.paper !== 'any' && i.paper !== f.paper) return false;
+  if (skip !== 'brands' && f.brands.length && !f.brands.includes(brandKey(i.brand))) return false;
   if (skip !== 'rooms' && f.rooms.length && !f.rooms.includes(i.room)) return false;
   if (skip !== 'tags' && f.tags.length && !f.tags.some((t) => i.tags.includes(t))) return false;
   return true;
@@ -136,6 +142,8 @@ export interface Facets {
   manual: { yes: number; no: number };
   receipt: { yes: number; no: number };
   paper: { kept: number; recycled: number };
+  /** brandKey → πλήθος και η πιο συχνή γραφή της μάρκας για την οθόνη */
+  brands: Map<string, { label: string; n: number }>;
   rooms: Map<string, number>;
   tags: Map<string, number>;
 }
@@ -148,13 +156,22 @@ export function facets(index: SearchIndex, p: Omit<SearchParams, 'sort'>): Facet
   const out: Facets = {
     total: items.filter((i) => passes(i, p.filters, p.today)).length,
     categories: new Map(), warranty: new Map(), manual: { yes: 0, no: 0 }, receipt: { yes: 0, no: 0 },
-    paper: { kept: 0, recycled: 0 }, rooms: new Map(), tags: new Map(),
+    paper: { kept: 0, recycled: 0 }, brands: new Map(), rooms: new Map(), tags: new Map(),
   };
   for (const i of only('categories')) inc(out.categories, i.category);
   for (const i of only('warranty')) inc(out.warranty, warrantyInfo(i, p.today).state);
   for (const i of only('manual')) out.manual[hasDigitalManual(i) ? 'yes' : 'no']++;
   for (const i of only('receipt')) out.receipt[hasReceipt(i) ? 'yes' : 'no']++;
   for (const i of only('paper')) out.paper[i.paper]++;
+  const spellings = new Map<string, Map<string, number>>();
+  for (const i of only('brands')) {
+    const k = brandKey(i.brand);
+    if (!k) continue;
+    const b = out.brands.get(k) ?? { label: '', n: 0 };
+    out.brands.set(k, { ...b, n: b.n + 1 });
+    inc(spellings.get(k) ?? spellings.set(k, new Map()).get(k)!, i.brand.trim());
+  }
+  for (const [k, m] of spellings) out.brands.get(k)!.label = [...m.entries()].sort((a, b) => b[1] - a[1])[0]![0];
   for (const i of only('rooms')) if (i.room) inc(out.rooms, i.room);
   for (const i of only('tags')) for (const t of i.tags) inc(out.tags, t);
   return out;

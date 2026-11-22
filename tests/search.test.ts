@@ -62,8 +62,20 @@ test('facets: πλήθη ανά επιλογή, αγνοώντας τη δική
   assert.equal(f.categories.get('laundry'), 1); // η ομάδα «κατηγορία» δείχνει και τις άλλες επιλογές
   assert.deepEqual(f.manual, { yes: 1, no: 0 }); // οι άλλες ομάδες μετρούν μέσα στην Κουζίνα
   assert.equal(f.rooms.get('Κουζίνα'), 1);
+
   assert.equal(f.rooms.get('Μπάνιο'), undefined);
   const q = facets(idx, { query: 'bosch', filters: NO_FILTERS, today: TODAY });
   assert.equal(q.total, 1);
   assert.equal(q.warranty.get('expiring'), 1);
+});
+
+test('search: φίλτρο μάρκας χωρίς διάκριση κεφαλαίων, με την πιο συχνή γραφή', () => {
+  const extra = mk({ name: 'Πλυντήριο πιάτων', brand: 'BOSCH ', model: 'SMS4', category: 'kitchen' }, 500);
+  const extra2 = mk({ name: 'Φούρνος', brand: 'Bosch', model: 'HBA5', category: 'kitchen' }, 400);
+  const i2 = buildIndex([fridge, washer, drill, extra, extra2]);
+  const f = facets(i2, { query: '', filters: NO_FILTERS, today: TODAY });
+  assert.deepEqual(f.brands.get('bosch'), { label: 'Bosch', n: 3 });
+  const r = search(i2, { query: '', filters: { ...NO_FILTERS, brands: ['bosch', 'makita'] }, sort: 'name', today: TODAY }).map((i) => i.model);
+  assert.deepEqual(r.sort(), ['DHP485', 'HBA5', 'SMS4', 'WAU-28 PH9']);
+  assert.equal(activeFilterCount({ ...NO_FILTERS, brands: ['bosch'] }), 1);
 });
