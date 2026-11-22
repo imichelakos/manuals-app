@@ -8,7 +8,7 @@
  * Η εξαγωγή είναι πάντα κρυπτογραφημένη με κωδικό του χρήστη (data/backupCrypto): το .zip μπαίνει ολόκληρο μέσα σε ένα
  * αρχείο .mbackup. Η εισαγωγή δέχεται και τα παλιά, μη κρυπτογραφημένα .zip.
  */
-import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from 'fflate';
+import type { Zippable } from 'fflate';
 import { z } from 'zod';
 import { itemSchema, type Item } from '@/domain/model';
 import { blobMimes, referencedBlobs, type MergeResult } from '@/domain/merge';
@@ -39,6 +39,7 @@ export async function exportBackup(password: string): Promise<Blob> {
 }
 
 async function zipLibrary(): Promise<Uint8Array<ArrayBuffer>> {
+  const { strToU8, zipSync } = await import('fflate'); // μόνο όταν χρειαστεί: όχι στο αρχείο εκκίνησης
   const items = allItems();
   const tree: Zippable = {
     'manifest.json': strToU8(JSON.stringify({ format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: Date.now(), items })),
@@ -67,6 +68,7 @@ export async function importBackup(file: Blob, password?: string): Promise<Impor
       throw new BackupError(e instanceof BackupCryptoError && e.code === 'unsupported' ? 'newer-version' : 'bad-password');
     }
   }
+  const { strFromU8, unzipSync } = await import('fflate');
   let entries: Record<string, Uint8Array>;
   try { entries = unzipSync(bytes); } catch { throw new BackupError('not-backup'); }
   const raw = entries['manifest.json'];

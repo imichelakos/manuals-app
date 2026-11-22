@@ -10,7 +10,7 @@ import type { CodePayload } from '@/domain/codes';
 import { suggestCategory } from '@/domain/categorySuggest';
 import { saveItem, useItems } from '@/data/library';
 import { blobStore } from '@/data/blobs';
-import { scanCover, type ScanResult, type ScanStep } from '@/services/scan';
+import { scanCover, warmScan, type ScanResult, type ScanStep } from '@/services/scan';
 import { t } from '@/i18n';
 import { FilePick, IMAGE_TYPES } from '@/components/controls';
 import { linkLabel, LinkIcon } from '@/components/item/Links';
@@ -46,6 +46,9 @@ export default function ScanPage() {
       toast(t('Δεν μπόρεσα να ανοίξω αυτή τη φωτογραφία. Δοκίμασε άλλη.'), 'error');
     }
   }
+
+  // προθέρμανση μόλις ανοίξει η σάρωση: OCR και κωδικοί είναι έτοιμοι όταν έρθει η φωτογραφία
+  useEffect(() => { if (!manual) warmScan(); }, [manual]);
 
   if (manual) return null;
   return (

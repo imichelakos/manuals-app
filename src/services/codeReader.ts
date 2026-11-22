@@ -15,6 +15,9 @@ function get() {
   }));
 }
 
+/** Φόρτωση της μηχανής από πριν (σελίδα σάρωσης), ώστε η πρώτη ανάγνωση να μην την περιμένει. */
+export function warmCodeReader(): void { void get().catch(() => { detector = null; }); }
+
 /** Όλοι οι κωδικοί της εικόνας, χωρίς διπλούς, ήδη ταξινομημένοι σε σύνδεσμο / barcode / κείμενο. */
 export async function readCodes(image: Source): Promise<CodePayload[]> {
   try {

@@ -2,15 +2,16 @@
  * Κέλυφος της εφαρμογής. Κινητό: μία στήλη με μπάρα καρτελών κάτω. Πλατιά οθόνη (iPad, υπολογιστής): ράγα πλοήγησης,
  * η βιβλιοθήκη μόνιμα στα αριστερά και η τρέχουσα οθόνη (καρτέλα προϊόντος, σάρωση, ρυθμίσεις) δεξιά.
  */
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { startReminders } from '@/data/reminderRuntime';
 import { useWide } from '@/hooks/useWide';
 import { t } from '@/i18n';
 import LibraryPanel from '@/pages/LibraryPanel';
-import ItemPage from '@/pages/ItemPage';
-import ScanPage from '@/pages/ScanPage';
-import SettingsPage from '@/pages/SettingsPage';
+// η βιβλιοθήκη φορτώνεται αμέσως (πρώτη οθόνη)· οι υπόλοιπες οθόνες όταν ανοίξουν — μικρότερο αρχείο στην εκκίνηση
+const ItemPage = lazy(() => import('@/pages/ItemPage'));
+const ScanPage = lazy(() => import('@/pages/ScanPage'));
+const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 import { Toasts } from '@/components/Toast';
 import { LockScreen } from '@/components/LockScreen';
 import { useLocked } from '@/data/appLock';
@@ -37,6 +38,7 @@ export default function App() {
       {wide && <Rail />}
       {wide && <aside className="h-dvh overflow-y-auto border-r border-line" aria-label={t('Βιβλιοθήκη')}><LibraryPanel /></aside>}
       <main className={wide ? 'h-dvh min-w-0 overflow-y-auto' : `min-h-dvh ${showTabs ? 'pb-[calc(5.25rem+env(safe-area-inset-bottom))]' : ''}`}>
+        <Suspense fallback={null}>
         <Routes>
           <Route path="/" element={wide ? <Welcome /> : <LibraryPanel />} />
           <Route path="/item/:id" element={<ItemPage />} />
@@ -44,6 +46,7 @@ export default function App() {
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
       </main>
       {showTabs && <Tabs />}
       <Toasts />
