@@ -76,3 +76,9 @@
 Διάγνωση) και αργότερα το Keychain γίνει διαθέσιμο, το `openVault` ξανακρυπτογραφεί κάθε εγγραφή με νέο κλειδί
 Keychain και σβήνει το κλειδί web μόνο στο τέλος. Η διαδικασία είναι επαναλήψιμη: αν διακοπεί, συνεχίζει στην
 επόμενη εκκίνηση. Καλύπτεται από το e2e με προσομοίωση της γέφυρας iOS.
+
+## Σφάλμα που βρέθηκε στη συσκευή (22/11/2026)
+
+Το `SceneDelegate.swift` του προτύπου Capacitor έφτιαχνε `CAPBridgeViewController()` και παρέκαμπτε το storyboard, άρα ο
+`AppViewController` (και τα plugins SecureKey, Biometric, ICloudSync) δεν φορτώνονταν: κλειδί στον browser, χωρίς Face ID.
+Διόρθωση: `AppViewController()` στο `SceneDelegate`. Τα δεδομένα περνούν μόνα τους στο Keychain (μετάβαση κλειδιού).

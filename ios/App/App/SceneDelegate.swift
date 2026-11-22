@@ -8,7 +8,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         window = UIWindow(windowScene: windowScene)
-        window?.rootViewController = CAPBridgeViewController()
+        // ΠΡΕΠΕΙ να είναι ο δικός μας AppViewController (όχι σκέτο CAPBridgeViewController): εκεί καταχωρίζονται τα plugins
+        // Keychain, Face ID και iCloud. Το πρότυπο του Capacitor έβαζε CAPBridgeViewController και παρέκαμπτε το storyboard.
+        window?.rootViewController = AppViewController()
         window?.makeKeyAndVisible()
 
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
