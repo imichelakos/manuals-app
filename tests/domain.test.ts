@@ -7,6 +7,7 @@ import { classifyCode, eanOk, parseHttpUrl } from '@/domain/codes';
 import { identify } from '@/domain/identify';
 import { localManualLanguage, manualQueries } from '@/domain/manualSearch';
 import { suggestCategory } from '@/domain/categorySuggest';
+import { recyclingStats } from '@/domain/recycling';
 import { mergeItems, referencedBlobs } from '@/domain/merge';
 import { extractDates } from '@/domain/receiptHints';
 import { emptyItem, itemSchema, newId, displayName, type Item } from '@/domain/model';
@@ -151,4 +152,14 @@ test('model: νόμισμα τιμής ISO 4217, προαιρετικό', () => 
   assert.ok(itemSchema.safeParse({ ...base, purchase: { price: 10, currency: 'USD' } }).success);
   assert.ok(!itemSchema.safeParse({ ...base, purchase: { price: 10, currency: 'usd' } }).success);
   assert.ok(!itemSchema.safeParse({ ...base, purchase: { price: 10, currency: '€' } }).success);
+});
+
+test('recyclingStats: ανακυκλωμένα / έτοιμα / χωρίς ψηφιακό, ποσοστά', () => {
+  const manual = { id: 'm', kind: 'manual' as const, name: 'm.pdf', mime: 'application/pdf', size: 1, blobId: 'b', addedAt: 1, origin: 'import' as const };
+  const a: Item = { ...emptyItem(1), paper: 'recycled', attachments: [manual] };
+  const b: Item = { ...emptyItem(2), attachments: [manual] };
+  const c: Item = { ...emptyItem(3) };
+  const d: Item = { ...emptyItem(4), deleted: true };
+  assert.deepEqual(recyclingStats([a, b, c, d]), { total: 3, recycled: 1, ready: 1, waiting: 1, recycledPct: 33, digitalPct: 67 });
+  assert.equal(recyclingStats([]).recycledPct, 0);
 });
