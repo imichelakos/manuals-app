@@ -143,6 +143,12 @@ try {
   await page.locator('#d-tags').fill('δώρο, εξοχικό');
   await page.locator('#d-tags').blur();
   await page.waitForTimeout(300);
+  // συμβουλές ανακύκλωσης της συσκευής (locale el-GR → Ελλάδα)
+  await page.getByText('Όταν δεν θα τη χρειάζεσαι').click();
+  await page.getByText(/Οι μπαταρίες πάνε στους κάδους της ΑΦΗΣ/).waitFor();
+  await page.getByRole('radio', { name: 'Άλλη χώρα' }).click();
+  await page.getByText(/Πολλοί κατασκευαστές και καταστήματα/).waitFor();
+  await page.getByRole('radio', { name: 'Ελλάδα' }).click();
   await page.evaluate(() => window.scrollTo(0, 0));
   await shot('07-item');
   await page.screenshot({ path: path.join(OUT, '07b-item-full.png'), fullPage: true });
