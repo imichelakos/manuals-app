@@ -144,3 +144,11 @@ test('suggestCategory: όνομα → βιβλιοθήκη (σειρά μοντ�
   assert.equal(suggestCategory({ name: '', brand: 'Acme', model: '', ocrText: 'Air conditioner user guide' }, lib), 'climate');
   assert.equal(suggestCategory({ id: 'c', name: '', brand: 'Dyson', model: 'V15' }, [lib[2]!]), null); // όχι από τον εαυτό του
 });
+
+test('model: νόμισμα τιμής ISO 4217, προαιρετικό', () => {
+  const base = { ...emptyItem(1), purchase: { price: 10 } };
+  assert.ok(itemSchema.safeParse(base).success);                                            // παλιά εγγραφή: ευρώ
+  assert.ok(itemSchema.safeParse({ ...base, purchase: { price: 10, currency: 'USD' } }).success);
+  assert.ok(!itemSchema.safeParse({ ...base, purchase: { price: 10, currency: 'usd' } }).success);
+  assert.ok(!itemSchema.safeParse({ ...base, purchase: { price: 10, currency: '€' } }).success);
+});

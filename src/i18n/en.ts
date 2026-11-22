@@ -99,7 +99,6 @@ const EN: Record<string, string> = {
   'Διάρκεια εγγύησης σε μήνες': 'Warranty length in months',
   'μήνες': 'months',
   'Κατάστημα': 'Shop',
-  'Τιμή (€)': 'Price (€)',
   'Σημείωση εγγύησης': 'Warranty note',
   'π.χ. επέκταση 5 ετών στον συμπιεστή': 'e.g. 5-year extension on the compressor',
 
@@ -282,6 +281,8 @@ const EN: Record<string, string> = {
   'Keychain της συσκευής': 'Device Keychain',
   'αποθήκη του browser': 'browser storage',
   'Κλείδωμα': 'Lock',
+  'Τιμή': 'Price',
+  'Νόμισμα': 'Currency',
   'Πρόταση: {label}': 'Suggested: {label}',
   'PDF του εγχειριδίου (αγγλικά)': 'Manual PDF (English)',
   'Σελίδα υποστήριξης (αγγλικά)': 'Support page (English)',

@@ -4,6 +4,7 @@
  * χωρίς να περάσει από εδώ.
  */
 import { z } from 'zod';
+import { CURRENCY_CODE } from './currency';
 import { CATEGORY_IDS } from './categories';
 
 /** Ημερομηνία ημερολογίου «ΕΕΕΕ-ΜΜ-ΗΗ» (χωρίς ώρα/ζώνη: η εγγύηση μετρά ημέρες, όχι στιγμές). */
@@ -63,6 +64,8 @@ export const itemSchema = z.object({
     date: isoDate.optional(),
     store: short.optional(),
     price: z.number().nonnegative().max(10_000_000).optional(),
+    /** ISO 4217· λείπει → ευρώ (domain/currency) */
+    currency: z.string().regex(CURRENCY_CODE).optional(),
   }),
   warranty: z.object({
     /** διάρκεια σε μήνες από την ημερομηνία αγοράς */

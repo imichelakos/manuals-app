@@ -3,7 +3,8 @@ import type { Item } from '@/domain/model';
 import { warrantyInfo } from '@/domain/warranty';
 import { today } from '@/domain/dates';
 import { updateItem } from '@/data/library';
-import { useSettings } from '@/data/settings';
+import { setSettings, useSettings } from '@/data/settings';
+import { COMMON_CURRENCIES, currencyOf } from '@/domain/currency';
 import { t } from '@/i18n';
 import { AutoField, OtherNumber } from '@/components/controls';
 import { warrantyText } from '@/components/WarrantyBadge';
@@ -12,11 +13,14 @@ import { IconShield } from '@/components/icons';
 const MONTHS = [12, 24, 36, 60];
 
 export function WarrantySection({ item }: { item: Item }) {
-  const { warrantyMonths } = useSettings();
+  const { warrantyMonths, currency: lastCurrency } = useSettings();
   const w = warrantyInfo(item, today());
   const patch = (fn: (c: Item) => Item) => void updateItem(item.id, fn);
   const tone = w.state === 'active' ? 'bg-ok-soft text-ok' : w.state === 'expiring' ? 'bg-warn-soft text-warn' : w.state === 'expired' ? 'bg-bad-soft text-bad' : 'bg-surface-2 text-ink-2';
   const months = item.warranty.months;
+  // νόμισμα: της τιμής που υπάρχει ήδη· χωρίς τιμή, το τελευταίο που χρησιμοποίησε ο χρήστης
+  const currency = item.purchase.price !== undefined || item.purchase.currency ? currencyOf(item.purchase) : lastCurrency;
+  const currencies = [...new Set([currency, ...COMMON_CURRENCIES])];
   const label = (m: number) => (m % 12 === 0 ? (m === 12 ? t('1 χρόνος') : t('{n} χρόνια', { n: m / 12 })) : t('{n} μήνες', { n: m }));
   // έτοιμες επιλογές: οι συνηθισμένες + η προεπιλογή των Ρυθμίσεων· κάθε άλλη διάρκεια φαίνεται στο πεδίο «Άλλη»
   const options = [...new Set([...MONTHS, warrantyMonths])].filter((m) => m > 0).sort((a, b) => a - b);
@@ -59,15 +63,21 @@ export function WarrantySection({ item }: { item: Item }) {
         </div>
       </fieldset>
 
-      <div className="mt-3 grid grid-cols-[1fr_7.5rem] gap-3">
+      <div className="mt-3 grid grid-cols-[1fr_10.5rem] gap-3">
         <div>
           <label className="label" htmlFor="w-store">{t('Κατάστημα')}</label>
           <AutoField id="w-store" value={item.purchase.store ?? ''} onCommit={(v) => patch((c) => ({ ...c, purchase: { ...c.purchase, store: v.trim() || undefined } }))} />
         </div>
         <div>
-          <label className="label" htmlFor="w-price">{t('Τιμή (€)')}</label>
-          <AutoField id="w-price" inputMode="decimal" value={item.purchase.price?.toString().replace('.', ',') ?? ''}
-            onCommit={(v) => { const n = Number(v.replace(',', '.').replace(/[^\d.]/g, '')); patch((c) => ({ ...c, purchase: { ...c.purchase, price: v.trim() && Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : undefined } })); }} />
+          <label className="label" htmlFor="w-price">{t('Τιμή')}</label>
+          <div className="flex gap-1.5">
+            <AutoField id="w-price" inputMode="decimal" className="input min-w-0" value={item.purchase.price?.toString().replace('.', ',') ?? ''}
+              onCommit={(v) => { const n = Number(v.replace(',', '.').replace(/[^\d.]/g, '')); const price = v.trim() && Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : undefined; patch((c) => ({ ...c, purchase: { ...c.purchase, price, currency: price === undefined ? undefined : currency } })); }} />
+            <select aria-label={t('Νόμισμα')} className="input w-[4.75rem] shrink-0 px-2" value={currency}
+              onChange={(e) => { const cur = e.target.value; setSettings({ currency: cur }); patch((c) => ({ ...c, purchase: { ...c.purchase, currency: c.purchase.price !== undefined ? cur : undefined } })); }}>
+              {currencies.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
         </div>
       </div>
       <div className="mt-3">

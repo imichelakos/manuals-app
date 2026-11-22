@@ -44,7 +44,7 @@ export function fmtDate(iso: string): string {
   if (!y || !m || !d) return iso;
   return new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(y, m - 1, d)));
 }
-export const fmtMoney = (v: number) => new Intl.NumberFormat(locale(), { style: 'currency', currency: 'EUR' }).format(v);
+export const fmtMoney = (v: number, currency = 'EUR') => new Intl.NumberFormat(locale(), { style: 'currency', currency }).format(v);
 
 /** Οι γλώσσες του χρήστη κατά σειρά προτίμησης: της συσκευής, και στο τέλος της εφαρμογής. */
 export function userLanguages(): string[] {
