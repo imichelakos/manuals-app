@@ -25,9 +25,11 @@ const Biometric = registerPlugin<BiometricPlugin>('Biometric');
  * Διάγνωση για τις Ρυθμίσεις: πλατφόρμα κατά το Capacitor και τα native plugins που δήλωσε η εφαρμογή iOS στη σελίδα
  * (window.Capacitor.PluginHeaders). Αν λείπουν τα SecureKey/Biometric, δεν φτάνουν στη σελίδα τα δικά μας plugins Swift.
  */
-export function nativeDiagnostics(): { platform: string; plugins: string[] } {
-  const headers = (globalThis as { Capacitor?: { PluginHeaders?: { name: string }[] } }).Capacitor?.PluginHeaders ?? [];
-  return { platform: Capacitor.getPlatform(), plugins: headers.map((h) => h.name).sort() };
+export function nativeDiagnostics(): { platform: string; plugins: string[]; native: string } {
+  const g = globalThis as { Capacitor?: { PluginHeaders?: { name: string }[] }; __manualsNative?: { vc: string; bridge: boolean; built: string } };
+  const n = g.__manualsNative;
+  // native: σήμανση από το AppViewController.swift (λείπει → δεν τρέχει ο δικός μας view controller ή το build είναι παλιό)
+  return { platform: Capacitor.getPlatform(), plugins: (g.Capacitor?.PluginHeaders ?? []).map((h) => h.name).sort(), native: n ? `${n.vc}${n.bridge ? '' : ' (χωρίς bridge)'} · ${n.built}` : '—' };
 }
 
 /** Υπάρχει Keychain (εφαρμογή iOS με το plugin); */

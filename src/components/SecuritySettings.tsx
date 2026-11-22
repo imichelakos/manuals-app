@@ -44,7 +44,7 @@ export function SecuritySettings() {
         <dt className="text-ink-2">{t('Κλείδωμα')}</dt>
         <dd className="font-semibold">{!lockSupported ? t('δεν υποστηρίζεται εδώ') : available ? t('{label} διαθέσιμο', { label }) : t('χωρίς Face ID / κωδικό')}</dd>
         <dt className="text-ink-2">{t('Διάγνωση')}</dt>
-        <dd className="mono break-all text-[12px]">{diag.platform} · {diag.plugins.join(', ') || '—'}</dd>
+        <dd className="mono break-all text-[12px]">{diag.platform} · {diag.plugins.join(', ') || '—'}<br />native: {diag.native}</dd>
       </dl>
     </div>
   );
