@@ -171,6 +171,7 @@ try {
   const cards = page.locator('ul > li a[href^="#/item/"]');
   await cards.first().waitFor();
   assert.equal(await cards.count(), 2);
+  await cards.filter({ hasText: 'Samsung' }).getByText('Κουζίνα').waitFor(); // κατηγορία με εικονίδιο στην κάρτα
   await page.getByText('σελίδες σε ψηφιακή μορφή').waitFor();          // 3 σελίδες στο PDF → 2 φύλλα → ≈ 5 g
   await page.getByText('≈ 5 g').waitFor();
   await shot('08-library');

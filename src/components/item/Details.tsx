@@ -7,7 +7,7 @@ import type { Item } from '@/domain/model';
 import { updateItem, useItems } from '@/data/library';
 import { t } from '@/i18n';
 import { AutoField } from '@/components/controls';
-import { GroupIcon } from '@/components/groupIcons';
+import { CategoryIcon } from '@/components/categoryIcons';
 
 export function DetailsSection({ item }: { item: Item }) {
   const items = useItems();
@@ -35,7 +35,7 @@ export function DetailsSection({ item }: { item: Item }) {
       {field('serial', t('Σειριακός αριθμός'), { mono: true })}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="label" htmlFor="d-cat">{t('Κατηγορία')}</label>
+          <label className="label flex items-center gap-1.5" htmlFor="d-cat">{t('Κατηγορία')}<CategoryIcon id={item.category} className="text-base text-ink-2" /></label>
           <select id="d-cat" className="input" value={item.category} onChange={(e) => set({ category: e.target.value as CategoryId })}>
             {CATEGORIES.map((c) => <option key={c.id} value={c.id}>{t(c.label)}</option>)}
           </select>
@@ -52,7 +52,7 @@ export function DetailsSection({ item }: { item: Item }) {
         </div>
       </div>
       <div>
-        <label className="label flex items-center gap-1.5" htmlFor="d-group">{t('Ομάδα')}{(item.group ?? autoGroup) && <GroupIcon id={(item.group ?? autoGroup)!} className="text-base text-ink-2" />}</label>
+        <label className="label" htmlFor="d-group">{t('Ομάδα')}</label>
         <select id="d-group" className="input" value={item.group ?? ''} onChange={(e) => set({ group: (e.target.value || undefined) as GroupId | undefined })}>
           <option value="">{autoGroup ? t('Αυτόματα: {g}', { g: t(GROUP_LABELS[autoGroup]) }) : t('Αυτόματα: —')}</option>
           {GROUP_IDS.map((g) => <option key={g} value={g}>{t(GROUP_LABELS[g])}</option>)}
