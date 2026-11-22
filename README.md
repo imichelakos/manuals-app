@@ -34,10 +34,13 @@
 
 Χρειάζονται Git και Node 26 (η έκδοση είναι στο `.nvmrc`). Για την εφαρμογή iOS, Mac με Xcode.
 
+Node σε Mac με Apple Silicon: `brew install node` από το Homebrew στο `/opt/homebrew` (όχι παλιό Homebrew για Intel στο
+`/usr/local`, που δεν έχει πια έτοιμα πακέτα και προσπαθεί να χτίσει το Node από τον πηγαίο κώδικα). Έλεγχος με
+`which node && node -v`· αν δείχνει παλιά έκδοση αμέσως μετά την εγκατάσταση, `hash -r`. Με `nvm`: `nvm install && nvm use`.
+
 ```bash
 git clone https://github.com/imichelakos/manuals-app.git
 cd manuals-app
-nvm install && nvm use              # Node από το .nvmrc (ή εγκατάσταση Node 26 με άλλο τρόπο)
 git config core.hooksPath .githooks # σάρωση μυστικών πριν από κάθε commit
 npm ci
 npm run dev                         # http://localhost:3100
