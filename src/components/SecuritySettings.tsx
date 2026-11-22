@@ -2,12 +2,13 @@
 import { useEffect, useState } from 'react';
 import { confirmIdentity, lockSupported } from '@/data/appLock';
 import { setSettings, useSettings } from '@/data/settings';
-import { biometricInfo, keychainAvailable } from '@/services/deviceSecurity';
+import { biometricInfo, keychainAvailable, nativeDiagnostics } from '@/services/deviceSecurity';
 import { t } from '@/i18n';
 
 export function SecuritySettings() {
   const { lock } = useSettings();
   const [label, setLabel] = useState('Face ID');
+  const diag = nativeDiagnostics();
   const [available, setAvailable] = useState(lockSupported);
   useEffect(() => { void biometricInfo().then((i) => { setAvailable(i.available); if (i.label) setLabel(i.label); }); }, []);
 
@@ -42,6 +43,8 @@ export function SecuritySettings() {
         <dd className="font-semibold">{keychainAvailable ? t('Keychain της συσκευής') : t('αποθήκη του browser')}</dd>
         <dt className="text-ink-2">{t('Κλείδωμα')}</dt>
         <dd className="font-semibold">{!lockSupported ? t('δεν υποστηρίζεται εδώ') : available ? t('{label} διαθέσιμο', { label }) : t('χωρίς Face ID / κωδικό')}</dd>
+        <dt className="text-ink-2">{t('Διάγνωση')}</dt>
+        <dd className="mono break-all text-[12px]">{diag.platform} · {diag.plugins.join(', ') || '—'}</dd>
       </dl>
     </div>
   );

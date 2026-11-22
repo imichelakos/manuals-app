@@ -21,6 +21,15 @@ interface BiometricPlugin {
 const SecureKey = registerPlugin<SecureKeyPlugin>('SecureKey');
 const Biometric = registerPlugin<BiometricPlugin>('Biometric');
 
+/**
+ * Διάγνωση για τις Ρυθμίσεις: πλατφόρμα κατά το Capacitor και τα native plugins που δήλωσε η εφαρμογή iOS στη σελίδα
+ * (window.Capacitor.PluginHeaders). Αν λείπουν τα SecureKey/Biometric, δεν φτάνουν στη σελίδα τα δικά μας plugins Swift.
+ */
+export function nativeDiagnostics(): { platform: string; plugins: string[] } {
+  const headers = (globalThis as { Capacitor?: { PluginHeaders?: { name: string }[] } }).Capacitor?.PluginHeaders ?? [];
+  return { platform: Capacitor.getPlatform(), plugins: headers.map((h) => h.name).sort() };
+}
+
 /** Υπάρχει Keychain (εφαρμογή iOS με το plugin); */
 export const keychainAvailable = onIos && Capacitor.isPluginAvailable('SecureKey');
 

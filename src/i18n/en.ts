@@ -278,6 +278,7 @@ const EN: Record<string, string> = {
   'Keychain της συσκευής': 'Device Keychain',
   'αποθήκη του browser': 'browser storage',
   'Κλείδωμα': 'Lock',
+  'Διάγνωση': 'Diagnostics',
   'Τουλάχιστον {n} χαρακτήρες.': 'At least {n} characters.',
   'Βάλε 3 από τα 4: πεζά, κεφαλαία, αριθμούς, σύμβολα — ή μια φράση {n}+ χαρακτήρων.': 'Use 3 of 4: lowercase, uppercase, digits, symbols — or a passphrase of {n}+ characters.',
   'Όχι τον ίδιο χαρακτήρα ξανά και ξανά.': 'Not the same character over and over.',
