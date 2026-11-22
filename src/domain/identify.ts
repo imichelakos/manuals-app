@@ -70,7 +70,7 @@ function findModels(text: string): string[] {
   return [...scores.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([t]) => t);
 }
 
-function findCategory(text: string): { category: CategoryId; productWord: string } {
+export function findCategory(text: string): { category: CategoryId; productWord: string } {
   const n = norm(text);
   let best: { category: CategoryId; hits: number; word: string; at: number } | null = null;
   for (const c of CATEGORIES) {

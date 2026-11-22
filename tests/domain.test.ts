@@ -5,7 +5,8 @@ import { warrantyInfo } from '@/domain/warranty';
 import { latin, norm, within1 } from '@/domain/text';
 import { classifyCode, eanOk, parseHttpUrl } from '@/domain/codes';
 import { identify } from '@/domain/identify';
-import { manualQueries } from '@/domain/manualSearch';
+import { localManualLanguage, manualQueries } from '@/domain/manualSearch';
+import { suggestCategory } from '@/domain/categorySuggest';
 import { mergeItems, referencedBlobs } from '@/domain/merge';
 import { extractDates } from '@/domain/receiptHints';
 import { emptyItem, itemSchema, newId, displayName, type Item } from '@/domain/model';
@@ -81,12 +82,22 @@ test('identify: μάρκα, μοντέλο, κατηγορία από κείμε
   assert.deepEqual(only('').models, []);
 });
 
-test('manualQueries: ερωτήσεις αναζήτησης', () => {
-  const q = manualQueries({ brand: 'Bosch', model: 'WAU28PH9BY', name: '' }, 'duckduckgo');
+test('manualQueries: πρώτα αγγλικά, μετά η γλώσσα του χρήστη', () => {
+  const q = manualQueries({ brand: 'Bosch', model: 'WAU28PH9BY', name: '' }, 'duckduckgo', 'el');
+  assert.deepEqual(q.map((x) => [x.id, x.lang]), [['pdf', 'en'], ['support', 'en'], ['local', 'el']]);
   assert.equal(q[0]!.query, 'Bosch "WAU28PH9BY" user manual filetype:pdf');
-  assert.ok(q[0]!.url.startsWith('https://duckduckgo.com/?q=Bosch%20%22WAU28PH9BY%22'));
-  assert.ok(manualQueries({ brand: '', model: '', name: 'Τοστιέρα' }, 'google')[0]!.url.startsWith('https://www.google.com/search?q='));
-  assert.deepEqual(manualQueries({ brand: '', model: '', name: '' }, 'google'), []);
+  assert.ok(q[2]!.query.includes('εγχειρίδιο χρήσης'));
+  assert.ok(manualQueries({ brand: '', model: '', name: 'Τοστιέρα' }, 'google', null)[0]!.url.startsWith('https://www.google.com/search?q='));
+  assert.ok(manualQueries({ brand: 'Miele', model: 'X1', name: '' }, 'qwant', 'de')[2]!.url.startsWith('https://www.qwant.com/?q=Miele'));
+  assert.equal(manualQueries({ brand: 'Miele', model: 'X1', name: '' }, 'brave', null).length, 2);
+  assert.deepEqual(manualQueries({ brand: '', model: '', name: '' }, 'google', 'el'), []);
+});
+
+test('localManualLanguage: πρώτη γνωστή μη αγγλική γλώσσα', () => {
+  assert.equal(localManualLanguage(['en-GB', 'el-GR']), 'el');
+  assert.equal(localManualLanguage(['de-AT', 'el']), 'de');
+  assert.equal(localManualLanguage(['en-US', 'en']), null);
+  assert.equal(localManualLanguage(['xx', 'fr-CA']), 'fr');
 });
 
 test('merge: κερδίζει η νεότερη αλλαγή, οι διαγραφές μένουν', () => {
@@ -121,4 +132,15 @@ test('model: σχήμα και εμφάνιση', () => {
   assert.equal(displayName({ name: '', brand: 'Bosch', model: 'WAU28' }), 'Bosch WAU28');
   assert.equal(displayName({ name: 'Πλυντήριο', brand: 'Bosch', model: 'WAU28' }), 'Πλυντήριο');
   assert.match(newId(), /^[A-Za-z0-9_-]{22}$/);
+});
+
+test('suggestCategory: όνομα → βιβλιοθήκη (σειρά μοντέλου, μάρκα) → κείμενο', () => {
+  const mk = (id: string, brand: string, model: string, category: Item['category']): Item => ({ ...emptyItem(1), id, brand, model, category });
+  const lib = [mk('a', 'Bosch', 'WAU28PH9BY', 'laundry'), mk('b', 'Bosch', 'SMS4HVI33E', 'kitchen'), mk('c', 'Dyson', 'V15', 'laundry'), mk('d', 'Dyson', 'V8', 'laundry')];
+  assert.equal(suggestCategory({ name: 'Πλυντήριο πιάτων', brand: 'Bosch', model: '' }, lib), 'kitchen');
+  assert.equal(suggestCategory({ name: '', brand: 'bosch', model: 'WAU24PH0GR' }, lib), 'laundry');
+  assert.equal(suggestCategory({ name: '', brand: 'Bosch', model: 'XYZ1' }, lib), null); // Bosch μοιρασμένη: καμία πρόταση
+  assert.equal(suggestCategory({ name: '', brand: 'Dyson', model: 'Gen5' }, lib), 'laundry');
+  assert.equal(suggestCategory({ name: '', brand: 'Acme', model: '', ocrText: 'Air conditioner user guide' }, lib), 'climate');
+  assert.equal(suggestCategory({ id: 'c', name: '', brand: 'Dyson', model: 'V15' }, [lib[2]!]), null); // όχι από τον εαυτό του
 });

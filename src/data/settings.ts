@@ -1,6 +1,6 @@
 /** Ρυθμίσεις αυτής της συσκευής (localStorage): θέμα, μηχανή αναζήτησης, προεπιλεγμένη διάρκεια εγγύησης, κλείδωμα. */
 import { useSyncExternalStore } from 'react';
-import type { SearchEngine } from '@/domain/manualSearch';
+import { isSearchEngine, type SearchEngine } from '@/domain/manualSearch';
 
 export type Theme = 'auto' | 'light' | 'dark';
 /** lock: κλείδωμα με Face ID / κωδικό συσκευής (ισχύει μόνο όπου υποστηρίζεται, δηλ. στην εφαρμογή iOS) */
@@ -17,7 +17,7 @@ function read(): Settings {
     const v = JSON.parse(localStorage.getItem(KEY) ?? '{}') as Partial<Settings>;
     return {
       theme: v.theme === 'light' || v.theme === 'dark' ? v.theme : 'auto',
-      engine: v.engine === 'google' ? 'google' : 'duckduckgo',
+      engine: isSearchEngine(v.engine) ? v.engine : DEFAULTS.engine,
       warrantyMonths: Number.isInteger(v.warrantyMonths) && v.warrantyMonths! >= 0 && v.warrantyMonths! <= 600 ? v.warrantyMonths! : DEFAULTS.warrantyMonths,
       lock: v.lock !== false,
       reminders: v.reminders === true,

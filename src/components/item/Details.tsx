@@ -1,6 +1,7 @@
 /** Στοιχεία προϊόντος (όνομα, μάρκα, μοντέλο, σειριακός, κατηγορία, χώρος, ετικέτες) και ελεύθερες σημειώσεις. */
 import { useId } from 'react';
-import { CATEGORIES, type CategoryId } from '@/domain/categories';
+import { CATEGORIES, categoryById, type CategoryId } from '@/domain/categories';
+import { suggestCategory } from '@/domain/categorySuggest';
 import type { Item } from '@/domain/model';
 import { updateItem, useItems } from '@/data/library';
 import { t } from '@/i18n';
@@ -10,6 +11,8 @@ export function DetailsSection({ item }: { item: Item }) {
   const items = useItems();
   const rooms = [...new Set(items.map((i) => i.room).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el'));
   const listId = useId();
+  // πρόταση μόνο όταν δεν έχει μπει κατηγορία («Άλλο»): δεν αλλάζει ποτέ μόνη της κάτι που διάλεξε ο χρήστης
+  const suggested = item.category === 'other' ? suggestCategory(item, items) : null;
   const set = (patch: Partial<Item>) => void updateItem(item.id, (c) => ({ ...c, ...patch }));
   const field = (key: 'name' | 'brand' | 'model' | 'serial', label: string, extra?: { mono?: boolean; placeholder?: string }) => (
     <div>
@@ -33,6 +36,11 @@ export function DetailsSection({ item }: { item: Item }) {
           <select id="d-cat" className="input" value={item.category} onChange={(e) => set({ category: e.target.value as CategoryId })}>
             {CATEGORIES.map((c) => <option key={c.id} value={c.id}>{t(c.label)}</option>)}
           </select>
+          {suggested && (
+            <button type="button" className="chip mt-2 max-w-full" onClick={() => set({ category: suggested })}>
+              <span className="truncate">{t('Πρόταση: {label}', { label: t(categoryById(suggested).label) })}</span>
+            </button>
+          )}
         </div>
         <div>
           <label className="label" htmlFor="d-room">{t('Χώρος')}</label>

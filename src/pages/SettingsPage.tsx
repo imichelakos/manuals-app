@@ -8,7 +8,7 @@ import { confirmIdentity } from '@/data/appLock';
 import { SecuritySettings } from '@/components/SecuritySettings';
 import { ReminderSettings } from '@/components/ReminderSettings';
 import { cancelAllScheduled } from '@/services/notifications';
-import type { SearchEngine } from '@/domain/manualSearch';
+import { ENGINES, SEARCH_ENGINES, type SearchEngine } from '@/domain/manualSearch';
 import { today } from '@/domain/dates';
 import { prettySize } from '@/services/files';
 import { saveFile } from '@/services/platform';
@@ -100,7 +100,7 @@ export default function SettingsPage() {
 
         <section className="card divide-y divide-line p-5">
           <Row title={t('Μηχανή αναζήτησης')} hint={t('Όταν ψάχνεις το ψηφιακό εγχειρίδιο, η αναζήτηση ανοίγει εδώ.')}>
-            <Segmented<SearchEngine> label={t('Μηχανή αναζήτησης')} value={s.engine} onChange={(engine) => setSettings({ engine })} options={[['duckduckgo', 'DuckDuckGo'], ['google', 'Google']]} />
+            <Segmented<SearchEngine> label={t('Μηχανή αναζήτησης')} value={s.engine} onChange={(engine) => setSettings({ engine })} options={SEARCH_ENGINES.map((e) => [e, ENGINES[e].name])} />
           </Row>
           <Row title={t('Συνήθης διάρκεια εγγύησης')} hint={t('Εμφανίζεται ως γρήγορη επιλογή στην καρτέλα κάθε προϊόντος.')}>
             <Segmented label={t('Συνήθης διάρκεια εγγύησης')} value={String(s.warrantyMonths)} onChange={(v) => setSettings({ warrantyMonths: Number(v) })}
