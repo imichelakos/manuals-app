@@ -1,0 +1,70 @@
+# Checks on every push / PR, plus weekly for new advisories in unchanged dependencies.
+# GitHub-owned actions only, pinned to commit SHA (same pins as imichelakos/gf-smart-choice-site); read-only token.
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 5 * * 1"
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Secrets (all tracked files)
+        run: node scripts/secret-scan.mjs
+      - name: Install (no third-party install scripts)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Production dependency advisories
+        run: npm audit --omit=dev --audit-level=moderate
+      - name: Typecheck
+        run: npm run -s typecheck
+      - name: Lint
+        run: npm run -s lint
+      - name: Unit tests (domain logic, sync engine)
+        run: npm run -s tests
+      - name: Translations (every Greek string has an English one)
+        run: npm run -s test:i18n
+      - name: Build
+        run: npm run -s build
+      - name: Build output sanity (CSP present, no source maps, no .env)
+        run: |
+          test -f dist/index.html
+          grep -q 'Content-Security-Policy' dist/index.html
+          ! find dist -name '*.map' | grep -q .
+          ! find dist -name '.env*' | grep -q .
+  browser:
+    # End-to-end scenario on the production build, in Chromium at phone and iPad sizes (scripts/e2e.mjs):
+    # scan with OCR + QR, PDF download, warranty, receipt, search and filters, backup export/import.
+    # Chromium only: Safari / iOS are not covered here.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install (no third-party install scripts)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Build
+        run: npm run -s build
+      - name: End-to-end scenario
+        run: npm run -s e2e

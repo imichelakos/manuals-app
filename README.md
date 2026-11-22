@@ -38,7 +38,7 @@ npm run build      # αντιγράφει OCR/wasm στο public/, έλεγχο�
 npm run tests      # τεστ λογικής (domain)
 npm run test:i18n  # κάθε ελληνικό κείμενο έχει αγγλική μετάφραση
 npm run lint
-npm run e2e        # σενάριο σε Chromium πάνω στο dist/ (θέλει εγκατεστημένο playwright)
+npm run e2e        # σενάριο σε Chromium πάνω στο dist/ (μία φορά πριν: npx playwright install chromium)
 ```
 
 Σελίδα προεπισκόπησης (claude.ai Artifact): `npx vite build --mode preview --outDir <φάκελος>` και μετά
@@ -52,6 +52,15 @@ npm run build
 npx cap sync ios
 npx cap open ios
 ```
+
+## Έλεγχοι
+
+- **CI** (`.github/workflows/ci.yml`, Node από το `.nvmrc`, σε κάθε push/PR και εβδομαδιαία): σάρωση μυστικών,
+  `npm ci --ignore-scripts`, `npm audit` παραγωγής, έλεγχος τύπων, lint, τεστ λογικής, πληρότητα μεταφράσεων, build, έλεγχος
+  του build (CSP, χωρίς source maps, χωρίς `.env`), και το σενάριο browser (`npm run e2e`) σε Chromium.
+- **Σάρωση μυστικών πριν από commit**: μία φορά ανά clone, `git config core.hooksPath .githooks`.
+- **Dependabot**: εβδομαδιαίες ομαδοποιημένες ενημερώσεις npm και GitHub Actions.
+- Δεν καλύπτονται: Safari / iOS και ο κώδικας Swift (θέλουν Mac με Xcode).
 
 ## Δομή
 
