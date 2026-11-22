@@ -2,11 +2,14 @@
  * Η βιβλιοθήκη: όλα τα προϊόντα στη μνήμη (για άμεση αναζήτηση) + μόνιμη αποθήκευση στο IndexedDB.
  * Μοναδικό σημείο που αλλάζει προϊόντα: κάθε αλλαγή παίρνει νέο updatedAt (η βάση της συγχώνευσης/συγχρονισμού) και
  * ειδοποιεί την οθόνη. Τα διαγραμμένα μένουν ως «ταφόπλακες» χωρίς περιεχόμενο.
+ * Στον δίσκο κάθε προϊόν είναι κρυπτογραφημένο (data/codec)· στη μνήμη υπάρχει αποκρυπτογραφημένο.
  */
 import { useSyncExternalStore } from 'react';
 import { emptyItem, itemSchema, type Item } from '@/domain/model';
 import { mergeItems, referencedBlobs, type MergeResult } from '@/domain/merge';
 import * as idb from './idb';
+import { isSealed, openItem, sealItem, type SealedItem } from './codec';
+import { destroyLocalData, vaultKey } from './vault';
 import { blobStore } from './blobs';
 
 let all: Item[] = [];
@@ -23,10 +26,25 @@ const subscribe = (l: () => void) => { listeners.add(l); return () => { listener
 /** Ειδοποίηση σε κάθε αλλαγή της βιβλιοθήκης (π.χ. για να ξεκινήσει συγχρονισμός). */
 export const onLibraryChange = subscribe;
 
-/** Φόρτωση από τον δίσκο (μία φορά, πριν εμφανιστεί η εφαρμογή). Εγγραφές που δεν περνούν το σχήμα αγνοούνται. */
+const seal = (i: Item) => sealItem(vaultKey(), i.id, i);
+
+/**
+ * Φόρτωση από τον δίσκο (μία φορά, μετά το openVault, πριν εμφανιστεί η εφαρμογή). Εγγραφές που δεν ανοίγουν ή δεν
+ * περνούν το σχήμα αγνοούνται. Παλιές απλές εγγραφές (από πριν την κρυπτογράφηση) ξαναγράφονται κρυπτογραφημένες.
+ */
 export async function loadLibrary(): Promise<void> {
   const raw = await idb.getAll<unknown>('items');
-  set(raw.flatMap((r) => { const p = itemSchema.safeParse(r); return p.success ? [p.data] : []; }));
+  const items: Item[] = [], plain: Item[] = [];
+  for (const r of raw) {
+    let value: unknown;
+    try { value = isSealed(r) ? await openItem(vaultKey(), r as SealedItem) : r; } catch { continue; }
+    const p = itemSchema.safeParse(value);
+    if (!p.success) continue;
+    items.push(p.data);
+    if (!isSealed(r)) plain.push(p.data);
+  }
+  if (plain.length) await idb.write('items', { put: await Promise.all(plain.map(async (i) => ({ value: await seal(i) }))) });
+  set(items);
   ready = true;
 }
 export const isReady = () => ready;
@@ -40,7 +58,7 @@ export const allItems = (): Item[] => all;
 /** Αποθήκευση νέου ή αλλαγμένου προϊόντος. */
 export async function saveItem(item: Item): Promise<Item> {
   const next = itemSchema.parse({ ...item, updatedAt: Date.now() });
-  await idb.write('items', { put: [{ value: next }] });
+  await idb.write('items', { put: [{ value: await seal(next) }] });
   set(all.some((i) => i.id === next.id) ? all.map((i) => (i.id === next.id ? next : i)) : [...all, next]);
   return next;
 }
@@ -56,7 +74,7 @@ export async function deleteItem(id: string): Promise<void> {
   const cur = getItem(id);
   if (!cur) return;
   const tomb: Item = { ...emptyItem(cur.createdAt), id: cur.id, deleted: true, updatedAt: Date.now() };
-  await idb.write('items', { put: [{ value: tomb }] });
+  await idb.write('items', { put: [{ value: await seal(tomb) }] });
   set(all.map((i) => (i.id === id ? tomb : i)));
   await blobStore.remove(cur.attachments.flatMap((a) => (a.thumbId ? [a.blobId, a.thumbId] : [a.blobId])));
 }
@@ -65,7 +83,7 @@ export async function deleteItem(id: string): Promise<void> {
 export async function mergeIn(incoming: Item[]): Promise<MergeResult> {
   const r = mergeItems(all, incoming);
   const changed = r.items.filter((i) => all.find((x) => x.id === i.id) !== i);
-  await idb.write('items', { put: changed.map((value) => ({ value })) });
+  await idb.write('items', { put: await Promise.all(changed.map(async (i) => ({ value: await seal(i) }))) });
   set(r.items);
   await pruneBlobs();
   return r;
@@ -78,7 +96,8 @@ export async function pruneBlobs(): Promise<void> {
 }
 
 /** Διαγραφή ΟΛΩΝ των δεδομένων της εφαρμογής από αυτή τη συσκευή. */
+/** Διαγραφή ΟΛΩΝ των δεδομένων αυτής της συσκευής, μαζί με το κλειδί κρυπτογράφησης. Μετά χρειάζεται επανεκκίνηση. */
 export async function wipeAll(): Promise<void> {
-  await Promise.all([idb.clear('items'), idb.clear('blobs')]);
+  await destroyLocalData();
   set([]);
 }

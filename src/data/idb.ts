@@ -1,8 +1,8 @@
 /**
  * Λεπτό περιτύλιγμα του IndexedDB (υποσχέσεις αντί για events). Τρία «συρτάρια»:
- *  - items: τα προϊόντα (κλειδί: id)
- *  - blobs: τα bytes των αρχείων (κλειδί: blobId) — ως ArrayBuffer + τύπος, που αποθηκεύεται αξιόπιστα παντού
- *  - meta:  μικρές τιμές της συσκευής (π.χ. αναγνωριστικό συσκευής για τον συγχρονισμό)
+ *  - items: τα προϊόντα (κλειδί: id), κρυπτογραφημένα (data/codec)
+ *  - blobs: τα bytes των αρχείων (κλειδί: blobId), κρυπτογραφημένα μαζί με τον τύπο τους
+ *  - meta:  μικρές τιμές της συσκευής (σημάδια του συγχρονισμού — χωρίς περιεχόμενο χρήστη)
  */
 const NAME = 'manuals-v1';
 export type StoreName = 'items' | 'blobs' | 'meta';
@@ -29,6 +29,11 @@ export async function getAll<T>(store: StoreName): Promise<T[]> {
 }
 export async function getOne<T>(store: StoreName, key: string): Promise<T | undefined> {
   return req((await db()).transaction(store).objectStore(store).get(key) as IDBRequest<T | undefined>);
+}
+/** Η πρώτη εγγραφή ενός συρταριού (κλειδί + τιμή) ή null αν είναι άδειο. */
+export async function firstEntry<T>(store: StoreName): Promise<{ key: string; value: T } | null> {
+  const c = await req((await db()).transaction(store).objectStore(store).openCursor());
+  return c ? { key: String(c.key), value: c.value as T } : null;
 }
 export async function allKeys(store: StoreName): Promise<string[]> {
   return (await req((await db()).transaction(store).objectStore(store).getAllKeys())).map(String);

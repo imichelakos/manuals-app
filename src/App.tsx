@@ -10,10 +10,13 @@ import ItemPage from '@/pages/ItemPage';
 import ScanPage from '@/pages/ScanPage';
 import SettingsPage from '@/pages/SettingsPage';
 import { Toasts } from '@/components/Toast';
+import { LockScreen } from '@/components/LockScreen';
+import { useLocked } from '@/data/appLock';
 import { IconLibrary, IconScan, IconSettings } from '@/components/icons';
 
 export default function App() {
   const wide = useWide();
+  const locked = useLocked();
   const { pathname } = useLocation();
   // στη σάρωση η μπάρα καρτελών κρύβεται: μία δουλειά τη φορά
   const showTabs = !wide && !pathname.startsWith('/scan');
@@ -32,6 +35,7 @@ export default function App() {
       </main>
       {showTabs && <Tabs />}
       <Toasts />
+      {locked && <LockScreen />}
     </div>
   );
 }

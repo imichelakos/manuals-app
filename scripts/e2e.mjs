@@ -32,6 +32,7 @@ const watch = (page) => {
   const benign = /Parameter not found: language_model_ngram_on|Estimating resolution as/;
   page.on('console', (m) => { if (m.type() === 'error' && !benign.test(m.text())) errors.push(m.text()); });
   page.on('pageerror', (e) => errors.push(String(e)));
+  page.on('response', (r) => { if (r.status() >= 400) errors.push(`HTTP ${r.status()} ${r.url()}`); });
 };
 const step = (name) => console.log(`• ${name}`);
 
@@ -178,6 +179,19 @@ try {
   await page.getByRole('button', { name: 'Καθαρισμός', exact: true }).click();
   assert.equal(await cards.count(), 2);
 
+  step('κρυπτογράφηση: στον δίσκο δεν φαίνεται περιεχόμενο');
+  const disk = await page.evaluate(async () => {
+    const db = await new Promise((res, rej) => { const r = indexedDB.open('manuals-v1'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+    const all = (store) => new Promise((res) => { const r = db.transaction(store).objectStore(store).getAll(); r.onsuccess = () => res(r.result); });
+    const td = new TextDecoder();
+    const view = (rec) => ({ keys: Object.keys(rec).sort().join(','), text: rec.ct instanceof ArrayBuffer ? td.decode(rec.ct) : JSON.stringify(rec) });
+    return { items: (await all('items')).map(view), blobs: (await all('blobs')).map(view) };
+  });
+  assert.ok(disk.items.length >= 2 && disk.blobs.length >= 3, 'υπάρχουν εγγραφές');
+  for (const r of disk.items) assert.equal(r.keys, 'ct,id,iv');
+  for (const r of disk.blobs) assert.equal(r.keys, 'ct,iv');
+  for (const r of [...disk.items, ...disk.blobs]) for (const secret of ['WAU28', 'Bosch', 'Παπαδόπουλος', 'φίλτρου', '%PDF', 'application/pdf']) assert.ok(!r.text.includes(secret), `στον δίσκο φαίνεται «${secret}»`);
+
   step('ρυθμίσεις, σκοτεινή εμφάνιση, αντίγραφο ασφαλείας');
   await page.getByRole('link', { name: 'Ρυθμίσεις' }).click();
   await shot('11-settings');
@@ -218,6 +232,41 @@ try {
   await tab.getByText('0 νέα προϊόντα').waitFor();
   assert.equal(await tcards.count(), 2);
   await shot('15-ipad-settings', tab);
+
+  // ---------- παλιά απλά δεδομένα (από πριν την κρυπτογράφηση) ----------
+  step('μετάβαση: παλιές απλές εγγραφές διαβάζονται και ξαναγράφονται κρυπτογραφημένες');
+  const legacy = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'el-GR' });
+  const lp = await legacy.newPage();
+  watch(lp);
+  // ο browser ζητά /favicon.ico για σελίδα που δεν είναι HTML: απάντηση χωρίς περιεχόμενο, όχι 404
+  await legacy.route('**/favicon.ico', (r) => r.fulfill({ status: 204 }));
+  await lp.goto(BASE + 'manifest.webmanifest'); // ίδιο origin, χωρίς να ξεκινήσει η εφαρμογή
+  await lp.evaluate(async () => {
+    const db = await new Promise((res, rej) => {
+      const r = indexedDB.open('manuals-v1', 1);
+      r.onupgradeneeded = () => { r.result.createObjectStore('items', { keyPath: 'id' }); r.result.createObjectStore('blobs'); r.result.createObjectStore('meta'); };
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    });
+    const now = Date.now();
+    const item = { id: 'legacyItem000000000001', createdAt: now, updatedAt: now, name: 'Παλιό τοστιέρα', brand: 'Izzy', model: 'T100', serial: '', category: 'kitchen', room: '', tags: [], notes: 'παλιά σημείωση', purchase: {}, warranty: {},
+      attachments: [{ id: 'legacyAtt0000000000001', kind: 'manual', name: 'old.pdf', mime: 'application/pdf', size: 8, blobId: 'legacyBlob00000000001', addedAt: now, origin: 'import' }], links: [], paper: 'kept' };
+    const tx = db.transaction(['items', 'blobs'], 'readwrite');
+    tx.objectStore('items').put(item);
+    tx.objectStore('blobs').put({ mime: 'application/pdf', data: new TextEncoder().encode('%PDF-1.4').buffer }, 'legacyBlob00000000001');
+    await new Promise((res) => { tx.oncomplete = res; });
+    db.close();
+  });
+  await lp.goto(BASE);
+  await lp.getByText('Παλιό τοστιέρα').waitFor();
+  await lp.getByText('Παλιό τοστιέρα').click();
+  await lp.getByText('old.pdf').waitFor();
+  const after = await lp.evaluate(async () => {
+    const db = await new Promise((res) => { const r = indexedDB.open('manuals-v1'); r.onsuccess = () => res(r.result); });
+    const get = (store, key) => new Promise((res) => { const r = db.transaction(store).objectStore(store).get(key); r.onsuccess = () => res(r.result); });
+    const it = await get('items', 'legacyItem000000000001');
+    return { itemKeys: Object.keys(it).sort().join(',') };
+  });
+  assert.equal(after.itemKeys, 'ct,id,iv');
 
   // ---------- αγγλικά ----------
   step('αγγλικά');

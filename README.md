@@ -18,6 +18,7 @@
 - **Αναζήτηση και φίλτρα**: χωρίς τόνους, με λατινικούς χαρακτήρες, με ανοχή σε ένα λάθος, κωδικοί χωρίς παύλες· φίλτρα με πλήθη.
 - **Αντίγραφο ασφαλείας** σε ένα `.zip` (εξαγωγή / εισαγωγή με συγχώνευση).
 - **Συγχρονισμός iCloud** (μόνο στην εφαρμογή iOS, κλειστός μέχρι να τον ανοίξει ο χρήστης) — βλ. `docs/icloud-sync.md`.
+- **Κρυπτογράφηση στη συσκευή** (AES-256-GCM, κλειδί στο Keychain) και **κλείδωμα με Face ID** — βλ. `docs/security.md`.
 - Ελληνικά και αγγλικά, φωτεινή και σκοτεινή εμφάνιση, δύο στήλες σε iPad.
 
 ## Τι ΔΕΝ υπάρχει ακόμη
@@ -26,26 +27,36 @@
   μεταγλωττιστεί ούτε τρέξει, και χρειάζεται το capability iCloud στο Xcode. Βλ. `docs/icloud-sync.md`.
 - **Αυτόματη εύρεση του εγχειριδίου με AI** (φωτογραφία → αναζήτηση → PDF). Θέλει server και API key.
 - **Δοκιμή σε πραγματική συσκευή / Safari.** Όλες οι δοκιμές έγιναν σε Chromium. Οι κλάδοι «native» του
-  `src/services/platform.ts` (άνοιγμα σελίδας, κοινοποίηση αρχείου) και το iOS project δεν έχουν τρέξει ποτέ.
-- Κρυπτογράφηση των δεδομένων στη συσκευή και του αντιγράφου ασφαλείας, κλείδωμα με Face ID, ειδοποιήσεις λήξης εγγύησης.
+  `src/services/platform.ts`, τα plugins Swift (iCloud, Keychain, Face ID) και το iOS project δεν έχουν τρέξει ποτέ.
+- Κρυπτογράφηση του αντιγράφου ασφαλείας `.zip`, ειδοποιήσεις λήξης εγγύησης.
 
-## Εντολές
+## Ξεκίνημα
+
+Χρειάζονται Git και Node 26 (η έκδοση είναι στο `.nvmrc`). Για την εφαρμογή iOS, Mac με Xcode.
 
 ```bash
-npm install
-npm run dev        # http://localhost:3100
-npm run build      # αντιγράφει OCR/wasm στο public/, έλεγχος τύπων, build στο dist/
-npm run tests      # τεστ λογικής (domain)
-npm run test:i18n  # κάθε ελληνικό κείμενο έχει αγγλική μετάφραση
-npm run lint
-npm run e2e        # σενάριο σε Chromium πάνω στο dist/ (μία φορά πριν: npx playwright install chromium)
+git clone https://github.com/imichelakos/manuals-app.git
+cd manuals-app
+nvm install && nvm use              # Node από το .nvmrc (ή εγκατάσταση Node 26 με άλλο τρόπο)
+git config core.hooksPath .githooks # σάρωση μυστικών πριν από κάθε commit
+npm ci
+npm run dev                         # http://localhost:3100
 ```
 
-Σελίδα προεπισκόπησης (claude.ai Artifact): `npx vite build --mode preview --outDir <φάκελος>` και μετά
-`node scripts/pack-preview.mjs <φάκελος> .` — πλοήγηση στη μνήμη, γραμματοσειρές μέσα στο CSS, δεδομένα OCR ως κείμενο,
-αποθήκευση αρχείων μέσω του host (`src/services/hostSave.ts`).
+### Εντολές
 
-iOS (σε Mac με Xcode):
+```bash
+npm run build      # αντιγράφει OCR/wasm στο public/, έλεγχος τύπων, build στο dist/
+npm run tests      # τεστ λογικής
+npm run test:i18n  # κάθε ελληνικό κείμενο έχει αγγλική μετάφραση
+npm run lint
+npx playwright install chromium   # μία φορά
+npm run e2e        # σενάριο σε Chromium (διαστάσεις iPhone και iPad) πάνω στο dist/
+```
+
+### iPhone και iPad (Mac με Xcode)
+
+Το Xcode project βρίσκει τα plugins μέσα στο `node_modules`, άρα πρώτα `npm ci` και build:
 
 ```bash
 npm run build
@@ -53,12 +64,29 @@ npx cap sync ios
 npx cap open ios
 ```
 
+Στο Xcode, στόχος **App** → *Signing & Capabilities*: *Automatically manage signing* και η ομάδα ανάπτυξης.
+
+- **Simulator:** διάλεξε έναν iPhone και έναν iPad simulator από τη λίστα συσκευών και ▶. Η εφαρμογή υποστηρίζει και τα
+  δύο· έλεγξε και τις δύο διατάξεις (μία στήλη στο iPhone, δύο στο iPad οριζόντια). Στον simulator το Face ID
+  ενεργοποιείται από το μενού *Features → Face ID → Enrolled* και δοκιμάζεται με *Matching Face* / *Non-matching Face*.
+- **Συσκευή:** σύνδεσε το iPhone ή το iPad, ξεκλείδωσέ το, διάλεξέ το ως προορισμό και ▶. Την πρώτη φορά η συσκευή ζητά
+  να εμπιστευτείς τον προγραμματιστή (*Ρυθμίσεις → Γενικά → VPN και διαχείριση συσκευών*) και να ενεργοποιήσεις τη
+  *Λειτουργία προγραμματιστή*.
+- **iCloud:** για τον συγχρονισμό χρειάζεται επιπλέον το capability iCloud → CloudKit — βλ. `docs/icloud-sync.md`.
+
+Μετά από κάθε αλλαγή στον κώδικα web: `npm run build && npx cap sync ios` και ξανά ▶.
+
+### Σελίδα προεπισκόπησης
+
+`npx vite build --mode preview --outDir <φάκελος>` και μετά `node scripts/pack-preview.mjs <φάκελος> .` — πλοήγηση στη
+μνήμη, γραμματοσειρές μέσα στο CSS, δεδομένα OCR ως κείμενο, αποθήκευση αρχείων μέσω του host (`src/services/hostSave.ts`).
+
 ## Έλεγχοι
 
 - **CI** (`.github/workflows/ci.yml`, Node από το `.nvmrc`, σε κάθε push/PR και εβδομαδιαία): σάρωση μυστικών,
   `npm ci --ignore-scripts`, `npm audit` παραγωγής, έλεγχος τύπων, lint, τεστ λογικής, πληρότητα μεταφράσεων, build, έλεγχος
   του build (CSP, χωρίς source maps, χωρίς `.env`), και το σενάριο browser (`npm run e2e`) σε Chromium.
-- **Σάρωση μυστικών πριν από commit**: μία φορά ανά clone, `git config core.hooksPath .githooks`.
+- **Σάρωση μυστικών πριν από commit**: μία φορά ανά clone (βλ. «Ξεκίνημα»).
 - **Dependabot**: εβδομαδιαίες ομαδοποιημένες ενημερώσεις npm και GitHub Actions.
 - Δεν καλύπτονται: Safari / iOS και ο κώδικας Swift (θέλουν Mac με Xcode).
 
@@ -80,7 +108,7 @@ npx cap open ios
   `connect-src https:`.
 - Ό,τι έρχεται από έξω (αντίγραφο ασφαλείας, QR, αρχεία) ελέγχεται πριν χρησιμοποιηθεί: σχήματα zod, έλεγχος περιεχομένου
   αρχείων, όρια μεγέθους.
-- Τα δεδομένα στο IndexedDB και το αντίγραφο `.zip` δεν είναι κρυπτογραφημένα.
+- Τα δεδομένα στη συσκευή είναι κρυπτογραφημένα (`docs/security.md`). Το αντίγραφο `.zip` δεν είναι.
 
 ## Σημειώσεις OCR
 
