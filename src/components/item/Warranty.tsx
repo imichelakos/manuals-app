@@ -5,7 +5,7 @@ import { today } from '@/domain/dates';
 import { updateItem } from '@/data/library';
 import { useSettings } from '@/data/settings';
 import { t } from '@/i18n';
-import { AutoField } from '@/components/controls';
+import { AutoField, OtherNumber } from '@/components/controls';
 import { warrantyText } from '@/components/WarrantyBadge';
 import { IconShield } from '@/components/icons';
 
@@ -18,7 +18,9 @@ export function WarrantySection({ item }: { item: Item }) {
   const tone = w.state === 'active' ? 'bg-ok-soft text-ok' : w.state === 'expiring' ? 'bg-warn-soft text-warn' : w.state === 'expired' ? 'bg-bad-soft text-bad' : 'bg-surface-2 text-ink-2';
   const months = item.warranty.months;
   const label = (m: number) => (m % 12 === 0 ? (m === 12 ? t('1 χρόνος') : t('{n} χρόνια', { n: m / 12 })) : t('{n} μήνες', { n: m }));
-  const options = [...new Set([...MONTHS, warrantyMonths, ...(months ? [months] : [])])].filter((m) => m > 0).sort((a, b) => a - b);
+  // έτοιμες επιλογές: οι συνηθισμένες + η προεπιλογή των Ρυθμίσεων· κάθε άλλη διάρκεια φαίνεται στο πεδίο «Άλλη»
+  const options = [...new Set([...MONTHS, warrantyMonths])].filter((m) => m > 0).sort((a, b) => a - b);
+  const setMonths = (n: number | undefined) => patch((c) => ({ ...c, warranty: { ...c.warranty, months: n } }));
 
   return (
     <section className="card p-5">
@@ -46,13 +48,13 @@ export function WarrantySection({ item }: { item: Item }) {
         <div className="flex flex-wrap gap-2">
           {options.map((m) => (
             <button key={m} type="button" aria-pressed={months === m} className={`chip ${months === m ? 'chip-on' : ''}`}
-              onClick={() => patch((c) => ({ ...c, warranty: { ...c.warranty, months: months === m ? undefined : m } }))}>{label(m)}</button>
+              onClick={() => setMonths(months === m ? undefined : m)}>{label(m)}</button>
           ))}
           <label className="chip gap-2 pr-2">
             <span>{t('Άλλη')}</span>
-            <input type="number" inputMode="numeric" min={1} max={600} className="w-[4.5rem] rounded-lg bg-surface-2 px-2 py-1 text-center text-base text-ink outline-hidden"
-              aria-label={t('Διάρκεια εγγύησης σε μήνες')} placeholder={t('μήνες')} value={months && !options.includes(months) ? months : ''}
-              onChange={(e) => { const n = Math.round(Number(e.target.value)); patch((c) => ({ ...c, warranty: { ...c.warranty, months: n >= 1 && n <= 600 ? n : undefined } })); }} />
+            <OtherNumber value={months} presets={options} min={1} max={600} onChange={setMonths}
+              className="w-[4.5rem] rounded-lg bg-surface-2 px-2 py-1 text-center text-base text-ink outline-hidden"
+              label={t('Διάρκεια εγγύησης σε μήνες')} placeholder={t('μήνες')} />
           </label>
         </div>
       </fieldset>

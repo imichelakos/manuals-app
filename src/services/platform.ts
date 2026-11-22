@@ -6,6 +6,7 @@
 import { Capacitor } from '@capacitor/core';
 import { hostSave } from './hostSave';
 import { toBase64 } from './base64';
+import { expectAppSwitch } from './appSwitch';
 
 export const isNative = Capacitor.isNativePlatform();
 
@@ -14,6 +15,7 @@ export const isNative = Capacitor.isNativePlatform();
  * πραγματικοί σύνδεσμοι (components/ExternalLink) — ο browser τις ανοίγει μόνος του σε νέα καρτέλα.
  */
 export async function openInApp(url: string): Promise<void> {
+  expectAppSwitch();
   const { Browser } = await import('@capacitor/browser');
   await Browser.open({ url });
 }
@@ -25,6 +27,7 @@ export async function openInApp(url: string): Promise<void> {
  */
 export async function openFile(blob: Blob, name: string): Promise<void> {
   if (isNative) {
+    expectAppSwitch();
     const [{ Filesystem, Directory }, { Share }] = await Promise.all([import('@capacitor/filesystem'), import('@capacitor/share')]);
     const { uri } = await Filesystem.writeFile({ path: `share/${name}`, data: await toBase64(blob), directory: Directory.Cache, recursive: true });
     await Share.share({ files: [uri] }).catch(() => {}); // ακύρωση από τον χρήστη: όχι σφάλμα

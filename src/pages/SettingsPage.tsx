@@ -17,6 +17,7 @@ import { FilePick } from '@/components/controls';
 import { SyncSettings } from '@/components/SyncSettings';
 import { toast } from '@/components/Toast';
 import { IconDownload, IconUpload } from '@/components/icons';
+import { usePrefersDark } from '@/hooks/usePrefersDark';
 
 declare const __APP_VERSION__: string;
 
@@ -43,6 +44,7 @@ function Segmented<T extends string>({ value, options, onChange, label }: { valu
 
 export default function SettingsPage() {
   const s = useSettings();
+  const prefersDark = usePrefersDark();
   const items = useItems();
   const [busy, setBusy] = useState(false);
   const [storage, setStorage] = useState<{ used: number; persisted: boolean | null } | null>(null);
@@ -83,6 +85,7 @@ export default function SettingsPage() {
         <section className="card divide-y divide-line p-5">
           <Row title={t('Εμφάνιση')}>
             <Segmented<Theme> label={t('Εμφάνιση')} value={s.theme} onChange={(theme) => setSettings({ theme })} options={[['auto', t('Όπως η συσκευή')], ['light', t('Φωτεινή')], ['dark', t('Σκοτεινή')]]} />
+            {s.theme === 'auto' && <p className="mt-2 text-[13px] text-ink-2">{prefersDark ? t('Η συσκευή είναι τώρα σε σκοτεινή εμφάνιση.') : t('Η συσκευή είναι τώρα σε φωτεινή εμφάνιση.')}</p>}
           </Row>
           <Row title={t('Γλώσσα')}>
             <Segmented<Lang> label={t('Γλώσσα')} value={getLang()} onChange={setLang} options={[['el', 'Ελληνικά'], ['en', 'English']]} />

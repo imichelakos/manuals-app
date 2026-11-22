@@ -7,6 +7,8 @@ export type Theme = 'auto' | 'light' | 'dark';
 /** reminders / reminderDays: ειδοποίηση πριν λήξει μια εγγύηση (στην εφαρμογή iOS), πόσες ημέρες πριν */
 export interface Settings { theme: Theme; engine: SearchEngine; warrantyMonths: number; lock: boolean; reminders: boolean; reminderDays: number }
 export const REMINDER_DAY_OPTIONS = [7, 30, 60] as const;
+/** «Άλλο»: οποιοσδήποτε αριθμός ημερών 1–99 */
+export const REMINDER_DAYS_MAX = 99;
 const DEFAULTS: Settings = { theme: 'auto', engine: 'duckduckgo', warrantyMonths: 24, lock: true, reminders: false, reminderDays: 30 };
 const KEY = 'manuals-settings-v1';
 
@@ -19,7 +21,7 @@ function read(): Settings {
       warrantyMonths: Number.isInteger(v.warrantyMonths) && v.warrantyMonths! >= 0 && v.warrantyMonths! <= 600 ? v.warrantyMonths! : DEFAULTS.warrantyMonths,
       lock: v.lock !== false,
       reminders: v.reminders === true,
-      reminderDays: (REMINDER_DAY_OPTIONS as readonly number[]).includes(v.reminderDays as number) ? v.reminderDays! : DEFAULTS.reminderDays,
+      reminderDays: Number.isInteger(v.reminderDays) && v.reminderDays! >= 1 && v.reminderDays! <= REMINDER_DAYS_MAX ? v.reminderDays! : DEFAULTS.reminderDays,
     };
   } catch { return DEFAULTS; }
 }
@@ -37,6 +39,8 @@ export function setSettings(patch: Partial<Settings>) {
 export const useSettings = () => useSyncExternalStore((l) => { listeners.add(l); return () => { listeners.delete(l); }; }, () => current);
 
 let themeSetByApp = false;
+// στο «όπως η συσκευή» το χρώμα της μπάρας ακολουθεί κι όταν η συσκευή αλλάζει εμφάνιση με την εφαρμογή ανοιχτή
+if (typeof window !== 'undefined') window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme());
 /**
  * data-theme στο <html> (το theme.css αλλάζει τις μεταβλητές) + χρώμα της μπάρας του browser. Στο «όπως η συσκευή» η
  * εφαρμογή αφαιρεί μόνο τιμή που έβαλε η ίδια: σε σελίδα προεπισκόπησης το data-theme το ορίζει ο host.
