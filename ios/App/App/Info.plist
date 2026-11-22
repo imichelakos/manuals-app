@@ -26,6 +26,8 @@
 	<string>Το Face ID κλειδώνει την εφαρμογή και επιβεβαιώνει την εξαγωγή αντιγράφων και τη διαγραφή δεδομένων. Τα βιομετρικά δεδομένα δεν φτάνουν ποτέ στην εφαρμογή.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Η κάμερα χρησιμοποιείται για να φωτογραφίζεις εγχειρίδια και αποδείξεις. Οι εικόνες μένουν μόνο στη συσκευή σου.</string>
+	<key>ManualsICloudSyncEnabled</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

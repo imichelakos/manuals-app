@@ -278,6 +278,7 @@ const EN: Record<string, string> = {
   'Keychain της συσκευής': 'Device Keychain',
   'αποθήκη του browser': 'browser storage',
   'Κλείδωμα': 'Lock',
+  'Ο συγχρονισμός με iCloud δεν έχει ενεργοποιηθεί ακόμη σε αυτή την έκδοση. Μέχρι τότε η μεταφορά γίνεται με το αντίγραφο ασφαλείας.': 'iCloud sync is not enabled in this version yet. Until then, use the backup to move your data.',
   'Ομάδα': 'Group',
   'Μεγάλες συσκευές': 'Large appliances',
   'Μικρές συσκευές': 'Small appliances',

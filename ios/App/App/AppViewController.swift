@@ -6,7 +6,11 @@ import Capacitor
 class AppViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         super.capacitorDidLoad()
-        bridge?.registerPluginInstance(ICloudSyncPlugin()) // συγχρονισμός μέσω iCloud (CloudKit)
+        // συγχρονισμός iCloud: ΜΟΝΟ όταν έχει ενεργοποιηθεί το capability iCloud/CloudKit (Info.plist: ManualsICloudSyncEnabled).
+        // Χωρίς το entitlement, το CKContainer.default() τερματίζει την εφαρμογή αντί να επιστρέψει σφάλμα.
+        if Bundle.main.object(forInfoDictionaryKey: "ManualsICloudSyncEnabled") as? Bool == true {
+            bridge?.registerPluginInstance(ICloudSyncPlugin())
+        }
         bridge?.registerPluginInstance(SecureKeyPlugin())  // κλειδί κρυπτογράφησης στο Keychain
         bridge?.registerPluginInstance(BiometricPlugin())  // Face ID / Touch ID
         exportBuildInfo()
