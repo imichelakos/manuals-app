@@ -12,6 +12,7 @@ import { loadLibrary } from '@/data/library';
 import { openVault } from '@/data/vault';
 import { VaultProblem } from '@/components/VaultProblem';
 import { startSync } from '@/data/syncRuntime';
+import { startPagesBackfill } from '@/data/pagesBackfill';
 
 applyTheme();
 // χωρίς περιεχόμενο χρήστη στην κονσόλα — μόνο ο τύπος του σφάλματος
@@ -33,4 +34,5 @@ void (async () => {
   await loadLibrary().catch(() => { /* η βάση δεν άνοιξε: η εφαρμογή ξεκινά άδεια αντί να μείνει λευκή οθόνη */ });
   root.render(<StrictMode><Router><App /></Router></StrictMode>);
   startSync();
+  startPagesBackfill();
 })();

@@ -5,6 +5,7 @@
 import { newId, type Attachment, type AttachmentKind } from '@/domain/model';
 import { blobStore } from '@/data/blobs';
 import { prepareImage } from './image';
+import { pdfPageCount } from './pdfPages';
 
 export const MAX_FILE_BYTES = 200 * 1024 ** 2; // 200 MB ανά αρχείο
 export class FileError extends Error {
@@ -25,14 +26,14 @@ export async function storeFile(file: Blob, o: { kind: AttachmentKind; name: str
   const base = { id: newId(), kind: o.kind, addedAt: Date.now(), origin: o.origin, sourceUrl: o.sourceUrl, blobId: newId() };
   if (await isPdf(file)) {
     await blobStore.put(base.blobId, new Blob([file], { type: 'application/pdf' }));
-    return { ...base, name: withExt(o.name, 'pdf'), mime: 'application/pdf', size: file.size };
+    return { ...base, name: withExt(o.name, 'pdf'), mime: 'application/pdf', size: file.size, pages: await pdfPageCount(file) };
   }
   let img;
   try { img = await prepareImage(file); } catch { throw new FileError('unsupported'); }
   const thumbId = newId();
   await blobStore.put(base.blobId, img.full);
   await blobStore.put(thumbId, img.thumb);
-  return { ...base, name: withExt(o.name, 'jpg'), mime: 'image/jpeg', size: img.full.size, thumbId };
+  return { ...base, name: withExt(o.name, 'jpg'), mime: 'image/jpeg', size: img.full.size, thumbId, pages: 1 };
 }
 
 const withExt = (name: string, ext: string) => {

@@ -18,7 +18,7 @@ mkdirSync(OUT, { recursive: true });
 
 const PDF_URL = 'https://example.com/manuals/WAU28PH9BY.pdf';
 const VIDEO_URL = 'https://youtu.be/abc123xyz';
-const PDF_BYTES = Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[]/Count 0>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n');
+const PDF_BYTES = Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[]/Count 3>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n');
 
 const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore' });
 const stop = () => server.kill();
@@ -167,6 +167,8 @@ try {
   const cards = page.locator('ul > li a[href^="#/item/"]');
   await cards.first().waitFor();
   assert.equal(await cards.count(), 2);
+  await page.getByText('σελίδες σε ψηφιακή μορφή').waitFor();          // 3 σελίδες στο PDF → 2 φύλλα → ≈ 5 g
+  await page.getByText('≈ 5 g').waitFor();
   await shot('08-library');
   const search = page.getByRole('searchbox');
   for (const [q, n] of [['πλυντ', 1], ['psyg', 1], ['wau28', 1], ['samsnug', 1], ['φιλτρο', 1], ['εξοχικο', 1], ['παπαδοπουλος', 1], ['zzz', 0], ['', 2]]) {
@@ -186,6 +188,7 @@ try {
   await page.getByRole('button', { name: /^Samsung/ }).click();               // μάρκα
   await page.getByRole('button', { name: 'Εμφάνιση 1 προϊόντος' }).waitFor();
   await page.getByRole('button', { name: /^Samsung/ }).click();
+  await page.getByRole('button', { name: /^Μεγάλες συσκευές 2/ }).waitFor();   // ψυγειοκαταψύκτης + πλυντήριο ρούχων: ομάδα από το όνομα
   await page.getByRole('button', { name: /^Έχει λήξει/ }).click();
   await page.waitForTimeout(400);
   await shot('10-filters');

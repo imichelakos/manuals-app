@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import { CURRENCY_CODE } from './currency';
 import { CATEGORY_IDS } from './categories';
+import { GROUP_IDS } from './groups';
 
 /** Ημερομηνία ημερολογίου «ΕΕΕΕ-ΜΜ-ΗΗ» (χωρίς ώρα/ζώνη: η εγγύηση μετρά ημέρες, όχι στιγμές). */
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -29,6 +30,8 @@ export const attachmentSchema = z.object({
   /** από πού ήρθε: σάρωση με κάμερα, εισαγωγή αρχείου ή κατέβασμα από διεύθυνση */
   origin: z.enum(['scan', 'import', 'download']),
   sourceUrl: z.string().max(2000).optional(),
+  /** σελίδες: του PDF (μετρημένες κατά την αποθήκευση) ή 1 για φωτογραφία σελίδας */
+  pages: z.number().int().min(1).max(100_000).optional(),
 });
 export type Attachment = z.infer<typeof attachmentSchema>;
 
@@ -57,6 +60,8 @@ export const itemSchema = z.object({
   model: short,
   serial: short,
   category: z.enum(CATEGORY_IDS),
+  /** ομάδα που διάλεξε ο χρήστης· λείπει → προτείνεται από όνομα/κατηγορία (domain/groups) */
+  group: z.enum(GROUP_IDS).optional(),
   room: short,
   tags: z.array(z.string().max(40)).max(30),
   notes: z.string().max(20_000),

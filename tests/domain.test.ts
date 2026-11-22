@@ -160,6 +160,6 @@ test('recyclingStats: ανακυκλωμένα / έτοιμα / χωρίς ψη�
   const b: Item = { ...emptyItem(2), attachments: [manual] };
   const c: Item = { ...emptyItem(3) };
   const d: Item = { ...emptyItem(4), deleted: true };
-  assert.deepEqual(recyclingStats([a, b, c, d]), { total: 3, recycled: 1, ready: 1, waiting: 1, recycledPct: 33, digitalPct: 67 });
+  assert.deepEqual(recyclingStats([a, b, c, d]), { total: 3, recycled: 1, ready: 1, waiting: 1, recycledPct: 33, digitalPct: 67, pagesDigital: 0, paperGrams: 0, paperUnknown: 1 });
   assert.equal(recyclingStats([]).recycledPct, 0);
 });

@@ -37,7 +37,7 @@ export function t(el: string, vars?: Record<string, string | number>): string {
 /** Ενικός/πληθυντικός: tn(n, '{n} προϊόν', '{n} προϊόντα'). */
 export const tn = (n: number, one: string, many: string) => t(n === 1 ? one : many, { n });
 
-const locale = () => (lang === 'en' ? 'en-GB' : 'el-GR');
+export const locale = () => (lang === 'en' ? 'en-GB' : 'el-GR');
 /** «ΕΕΕΕ-ΜΜ-ΗΗ» → «14 Μαρ 2025». */
 export function fmtDate(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number);

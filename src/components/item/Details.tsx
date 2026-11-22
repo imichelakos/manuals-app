@@ -2,6 +2,7 @@
 import { useId } from 'react';
 import { CATEGORIES, categoryById, type CategoryId } from '@/domain/categories';
 import { suggestCategory } from '@/domain/categorySuggest';
+import { GROUP_IDS, GROUP_LABELS, suggestGroup, type GroupId } from '@/domain/groups';
 import type { Item } from '@/domain/model';
 import { updateItem, useItems } from '@/data/library';
 import { t } from '@/i18n';
@@ -13,6 +14,7 @@ export function DetailsSection({ item }: { item: Item }) {
   const listId = useId();
   // πρόταση μόνο όταν δεν έχει μπει κατηγορία («Άλλο»): δεν αλλάζει ποτέ μόνη της κάτι που διάλεξε ο χρήστης
   const suggested = item.category === 'other' ? suggestCategory(item, items) : null;
+  const autoGroup = suggestGroup(item);
   const set = (patch: Partial<Item>) => void updateItem(item.id, (c) => ({ ...c, ...patch }));
   const field = (key: 'name' | 'brand' | 'model' | 'serial', label: string, extra?: { mono?: boolean; placeholder?: string }) => (
     <div>
@@ -47,6 +49,13 @@ export function DetailsSection({ item }: { item: Item }) {
           <AutoField id="d-room" value={item.room} list={listId} placeholder={t('π.χ. Κουζίνα')} onCommit={(v) => set({ room: v.trim() })} />
           <datalist id={listId}>{rooms.map((r) => <option key={r} value={r} />)}</datalist>
         </div>
+      </div>
+      <div>
+        <label className="label" htmlFor="d-group">{t('Ομάδα')}</label>
+        <select id="d-group" className="input" value={item.group ?? ''} onChange={(e) => set({ group: (e.target.value || undefined) as GroupId | undefined })}>
+          <option value="">{autoGroup ? t('Αυτόματα: {g}', { g: t(GROUP_LABELS[autoGroup]) }) : t('Αυτόματα: —')}</option>
+          {GROUP_IDS.map((g) => <option key={g} value={g}>{t(GROUP_LABELS[g])}</option>)}
+        </select>
       </div>
       <div>
         <label className="label" htmlFor="d-tags">{t('Ετικέτες')} <span className="font-normal text-ink-3">({t('χωρισμένες με κόμμα')})</span></label>

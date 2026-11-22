@@ -1,7 +1,10 @@
 /** Βιβλιοθήκη → κάρτα ανακύκλωσης: μπάρα προόδου και τρία πλήθη· κάθε πλήθος είναι και γρήγορο φίλτρο. */
 import type { RecyclingStats } from '@/domain/recycling';
-import { t, tn } from '@/i18n';
+import { locale, t, tn } from '@/i18n';
 import { IconRecycle } from './icons';
+
+/** 840 → «840 g», 1250 → «1,3 kg» */
+const grams = (g: number) => (g < 1000 ? `${Math.round(g).toLocaleString(locale())} g` : `${(g / 1000).toLocaleString(locale(), { maximumFractionDigits: 1 })} kg`);
 
 export type RecyclingFilter = 'recycled' | 'ready' | 'waiting';
 
@@ -33,7 +36,22 @@ export function RecyclingCard({ stats: s, active, onPick }: { stats: RecyclingSt
           </button>
         ))}
       </div>
-      <p className="mt-2 text-[12px] text-ink-3">{t('Ψηφιακό εγχειρίδιο: {p}% των προϊόντων', { p: s.digitalPct })}</p>
+      {s.pagesDigital > 0 && <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="rounded-2xl bg-surface-2 px-3 py-2.5">
+          <p className="text-lg font-extrabold leading-tight">{s.pagesDigital.toLocaleString(locale())}</p>
+          <p className="text-[12px] leading-snug text-ink-2">{t('σελίδες σε ψηφιακή μορφή')}</p>
+        </div>
+        <div className="rounded-2xl bg-surface-2 px-3 py-2.5">
+          <p className="text-lg font-extrabold leading-tight">≈ {grams(s.paperGrams)}</p>
+          <p className="text-[12px] leading-snug text-ink-2">{t('χαρτί ανακυκλώθηκε (εκτίμηση)')}</p>
+        </div>
+      </div>}
+      <details className="mt-2 text-[12px] leading-relaxed text-ink-3">
+        <summary className="cursor-pointer font-semibold">{t('Πώς υπολογίζεται')}</summary>
+        <p className="mt-1">{t('Σελίδες: του PDF κάθε εγχειριδίου, ή όσες σελίδες φωτογράφισες. Βάρος: υποθέτουμε ότι το έντυπο είχε όσες σελίδες και το PDF, τυπωμένες και στις δύο όψεις σε χαρτί A5 80 g/m² (≈ 2,5 g το φύλλο).')}</p>
+        {s.paperUnknown > 0 && <p className="mt-1">{tn(s.paperUnknown, '{n} ανακυκλωμένο έντυπο δεν μετρά: δεν ξέρουμε τις σελίδες του.', '{n} ανακυκλωμένα έντυπα δεν μετρούν: δεν ξέρουμε τις σελίδες τους.')}</p>}
+        <p className="mt-1">{t('Ψηφιακό εγχειρίδιο: {p}% των προϊόντων', { p: s.digitalPct })}</p>
+      </details>
     </section>
   );
 }

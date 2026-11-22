@@ -1,4 +1,5 @@
 /** Όλα τα φίλτρα και η ταξινόμηση. Δίπλα σε κάθε επιλογή, πόσα προϊόντα θα έδινε· επιλογές με 0 δεν πατιούνται. */
+import { GROUP_IDS, GROUP_LABELS, type GroupId } from '@/domain/groups';
 import type { ReactNode } from 'react';
 import { CATEGORIES, type CategoryId } from '@/domain/categories';
 import { NO_FILTERS, type Facets, type Filters, type Sort, type YesNo } from '@/domain/search';
@@ -62,6 +63,13 @@ export function FilterSheet({ filters: f, sort, counts, onChange, onSort, onClos
         <Opt on={f.receipt === 'yes'} n={counts.receipt.yes} onClick={() => yn('receipt', 'yes')}>{t('Υπάρχει')}</Opt>
         <Opt on={f.receipt === 'no'} n={counts.receipt.no} onClick={() => yn('receipt', 'no')}>{t('Λείπει')}</Opt>
       </Group>
+      {GROUP_IDS.some((g) => counts.groups.has(g) || f.groups.includes(g)) && (
+        <Group title={t('Ομάδα')}>
+          {GROUP_IDS.filter((g) => counts.groups.has(g) || f.groups.includes(g)).map((g) => (
+            <Opt key={g} on={f.groups.includes(g)} n={counts.groups.get(g) ?? 0} onClick={() => onChange({ ...f, groups: toggle<GroupId>(f.groups, g) })}>{t(GROUP_LABELS[g])}</Opt>
+          ))}
+        </Group>
+      )}
       {cats.length > 0 && (
         <Group title={t('Κατηγορία')}>
           {cats.map((c) => <Opt key={c.id} on={f.categories.includes(c.id)} n={counts.categories.get(c.id) ?? 0} onClick={() => onChange({ ...f, categories: toggle<CategoryId>(f.categories, c.id) })}>{t(c.label)}</Opt>)}
