@@ -8,7 +8,7 @@ import { COMMON_CURRENCIES, currencyOf } from '@/domain/currency';
 import { t, tn } from '@/i18n';
 import { AutoField, OtherNumber } from '@/components/controls';
 import { warrantyText } from '@/components/WarrantyBadge';
-import { IconShield } from '@/components/icons';
+import { IconClose, IconShield } from '@/components/icons';
 
 const MONTHS = [12, 24, 36, 60];
 
@@ -49,17 +49,19 @@ export function WarrantySection({ item }: { item: Item }) {
 
       <fieldset className="mt-3">
         <legend className="label">{t('Διάρκεια εγγύησης')}</legend>
+        {/* με επιλεγμένη διάρκεια μένει μόνο αυτή· νέο πάτημα την καταργεί και ξαναφέρνει τις επιλογές */}
         <div className="flex flex-wrap gap-2">
-          {options.map((m) => (
+          {(months ? [months] : options).map((m) => (
             <button key={m} type="button" aria-pressed={months === m} className={`chip ${months === m ? 'chip-on' : ''}`}
-              onClick={() => setMonths(months === m ? undefined : m)}>{label(m)}</button>
+              aria-label={months === m ? t('{d} — πάτησε για αλλαγή', { d: label(m) }) : undefined}
+              onClick={() => setMonths(months === m ? undefined : m)}>{label(m)}{months === m && <IconClose className="text-sm opacity-70" />}</button>
           ))}
-          <label className="chip gap-2 pr-2">
+          {!months && <label className="chip gap-2 pr-2">
             <span>{t('Άλλη')}</span>
             <OtherNumber value={months} presets={options} min={1} max={600} onChange={setMonths}
               className="w-[4.5rem] rounded-lg bg-surface-2 px-2 py-1 text-center text-base text-ink outline-hidden"
               label={t('Διάρκεια εγγύησης σε μήνες')} placeholder={t('μήνες')} />
-          </label>
+          </label>}
         </div>
       </fieldset>
 

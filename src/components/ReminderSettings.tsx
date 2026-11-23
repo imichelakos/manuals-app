@@ -21,7 +21,6 @@ export function ReminderSettings() {
           className={`relative h-8 w-14 shrink-0 rounded-full transition ${reminders ? 'bg-ok' : 'bg-surface-2'}`}>
           <span className={`absolute top-1 size-6 rounded-full bg-surface shadow-card transition-all ${reminders ? 'left-7' : 'left-1'}`} />
         </button>
-        <p className="text-[15px] font-semibold">{reminders ? t('Ανοιχτές') : t('Κλειστές')}</p>
       </div>
       {denied && <p className="rounded-2xl bg-warn-soft p-3 text-[14px] leading-relaxed text-warn">{t('Οι ειδοποιήσεις δεν επιτρέπονται για την εφαρμογή. Άνοιξέ τες από τις Ρυθμίσεις της συσκευής → Ειδοποιήσεις.')}</p>}
       {reminders && (
