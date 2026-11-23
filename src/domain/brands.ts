@@ -1,5 +1,5 @@
 /**
- * Γνωστές μάρκες (οικιακές συσκευές, ηλεκτρονικά, εργαλεία) για την αναγνώριση από το κείμενο του εντύπου.
+ * Γνωστές μάρκες (οικιακές συσκευές, ηλεκτρονικά, εργαλεία, οχήματα) για την αναγνώριση από το κείμενο του εντύπου.
  * Η λίστα είναι βοήθημα, όχι περιορισμός: ο χρήστης γράφει ελεύθερα οποιαδήποτε μάρκα.
  * Πολύ σύντομα ή κοινά ονόματα (π.χ. «LG», «HP», «Candy») ταιριάζουν μόνο ως ολόκληρη λέξη — βλ. identify.ts.
  */
@@ -15,4 +15,10 @@ export const BRANDS: string[] = [
   'Sencor', 'Sennheiser', 'Severin', 'Sharp', 'Siemens', 'Singer', 'Smeg', 'Sony', 'Stihl', 'TCL', 'Tefal', 'Teka',
   'Thomson', 'Toshiba', 'Toyotomi', 'TP-Link', 'Turbo-X', 'Ubiquiti', 'Vestel', 'Vivo', 'Whirlpool', 'Xiaomi',
   'Yamaha', 'Zanussi', 'Zyxel',
+  // οχήματα, μοτοσυκλέτες, πατίνια, ποδήλατα. Παραλείπονται ονόματα που είναι και συχνές λέξεις στα εγχειρίδια
+  // αυτοκινήτων (π.χ. «Seat», «Smart», «Mini»): θα έβγαιναν λάθος μάρκες από επικεφαλίδες όπως «Seat belts».
+  'Alfa Romeo', 'Audi', 'BMW', 'BYD', 'Citroën', 'Cupra', 'Dacia', 'Ducati', 'Fiat', 'Ford', 'Honda', 'Jaguar', 'Jeep',
+  'Kawasaki', 'Kia', 'KTM', 'Lancia', 'Land Rover', 'Lexus', 'Mazda', 'Mercedes-Benz', 'Nissan', 'Opel', 'Peugeot',
+  'Piaggio', 'Polestar', 'Porsche', 'Renault', 'Segway', 'Skoda', 'Specialized', 'Subaru', 'Suzuki', 'Tesla', 'Toyota',
+  'Trek', 'Vespa', 'Volkswagen', 'Volvo',
 ];

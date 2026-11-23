@@ -119,18 +119,35 @@ try {
   assert.equal(await page.getByRole('button', { name: '1 χρόνος' }).count(), 0); // με επιλεγμένη διάρκεια οι άλλες κρύβονται
   await page.getByRole('button', { name: /^2 χρόνια/ }).click();                 // νέο πάτημα: ξανά όλες οι επιλογές
   await page.getByRole('button', { name: '1 χρόνος' }).waitFor();
-  // «Άλλη»: διψήφιος αριθμός πληκτρολογημένος ψηφίο-ψηφίο (το πεδίο δεν πρέπει να αδειάζει στη μέση)
+  // «Άλλη» σε χρόνια (προεπιλογή): 8 → 96 μήνες, chip «8 χρόνια»
+  const otherYears = page.getByLabel('Διάρκεια εγγύησης σε χρόνια');
+  await otherYears.pressSequentially('8');
+  await otherYears.press('Enter');
+  await page.getByRole('button', { name: /^8 χρόνια/, pressed: true }).waitFor();
+  await page.getByText('Εγγύηση έως 14 Μαρ 2033').first().waitFor();
+  await page.getByRole('button', { name: /^8 χρόνια/ }).click();
+  // «Άλλη» σε μήνες: διψήφιος αριθμός πληκτρολογημένος ψηφίο-ψηφίο (το πεδίο δεν πρέπει να αδειάζει στη μέση)
+  await page.getByLabel('Μονάδα').selectOption('months');
   const other = page.getByLabel('Διάρκεια εγγύησης σε μήνες');
   await other.pressSequentially('30');
-  assert.equal(await other.inputValue(), '30');                       // δεν αδειάζει στη μέση της πληκτρολόγησης
+  assert.equal(await other.inputValue(), '30');
   await other.press('Enter');                                          // αποθήκευση → γίνεται chip
   await page.getByRole('button', { name: /^30 μήνες/, pressed: true }).waitFor();
   await page.getByText('Εγγύηση έως 14 Σεπ 2027').first().waitFor();
-  assert.equal(await other.count(), 0);                                            // «Άλλη» κρύβεται όσο υπάρχει διάρκεια
+  assert.equal(await other.count(), 0);                                // «Άλλη» κρύβεται όσο υπάρχει διάρκεια
   await page.getByRole('button', { name: /^30 μήνες/ }).click();
   await page.getByRole('button', { name: '2 χρόνια' }).click();
   await page.getByText('Εγγύηση έως 14 Μαρ 2027').first().waitFor();
-  assert.equal(await other.count(), 0);
+  // συγκεκριμένη ημερομηνία λήξης: κρυφή μέχρι να ζητηθεί, υπερισχύει, καταργείται
+  assert.equal(await page.locator('#w-until').count(), 0);
+  await page.getByRole('button', { name: 'Λήγει σε άλλη ημερομηνία;' }).click();
+  await page.locator('#w-until').fill('2027-06-30');
+  await page.locator('#w-until').scrollIntoViewIfNeeded();
+  await shot('06b-warranty', page);
+  await page.getByText('Εγγύηση έως 30 Ιουν 2027').first().waitFor();
+  await page.getByRole('button', { name: 'Κατάργηση ημερομηνίας λήξης' }).click();
+  await page.getByText('Εγγύηση έως 14 Μαρ 2027').first().waitFor();
+  assert.equal(await page.locator('#w-until').count(), 0);
   await page.locator('#w-store').fill('Ηλεκτρικά Παπαδόπουλος');
   await page.locator('#w-price').fill('499');
   await page.locator('#w-price').blur();

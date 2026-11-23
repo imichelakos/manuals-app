@@ -1,4 +1,8 @@
-/** Αγορά και εγγύηση: ημερομηνία αγοράς + διάρκεια → λήξη (ή ρητή λήξη), κατάστημα, τιμή, σημείωση. */
+/**
+ * Αγορά και εγγύηση: ημερομηνία αγοράς + διάρκεια (μήνες ή χρόνια) → λήξη· προαιρετικά συγκεκριμένη ημερομηνία λήξης
+ * που υπερισχύει (π.χ. όταν η εγγύηση μετρά από την παράδοση/εγκατάσταση). Κατάστημα, τιμή, σημείωση.
+ */
+import { useState } from 'react';
 import type { Item } from '@/domain/model';
 import { warrantyInfo } from '@/domain/warranty';
 import { today } from '@/domain/dates';
@@ -25,6 +29,12 @@ export function WarrantySection({ item }: { item: Item }) {
   // chips: οι συνηθισμένες + η προεπιλογή των Ρυθμίσεων + η διάρκεια του προϊόντος (μια «Άλλη» γίνεται chip μόλις αποθηκευτεί)
   const options = [...new Set([...MONTHS, warrantyMonths, ...(months ? [months] : [])])].filter((m) => m > 0).sort((a, b) => a - b);
   const setMonths = (n: number | undefined) => patch((c) => ({ ...c, warranty: { ...c.warranty, months: n } }));
+  // «Άλλη» διάρκεια: σε χρόνια (8 → 96 μήνες) ή σε μήνες· αποθηκεύεται πάντα σε μήνες
+  const [unit, setUnit] = useState<'years' | 'months'>('years');
+  // συγκεκριμένη ημερομηνία λήξης: κρυμμένη μέχρι να τη ζητήσει ο χρήστης (ή αν έχει ήδη τιμή)
+  const [untilOpen, setUntilOpen] = useState(false);
+  const showUntil = untilOpen || !!item.warranty.until;
+  const setUntil = (v: string | undefined) => patch((c) => ({ ...c, warranty: { ...c.warranty, until: v || undefined } }));
 
   return (
     <section className="card p-5">
@@ -34,17 +44,10 @@ export function WarrantySection({ item }: { item: Item }) {
         <p className="text-[15px] font-bold">{w.state === 'none' ? t('Βάλε ημερομηνία αγοράς και διάρκεια για να βλέπεις πότε λήγει') : warrantyText(w)}</p>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <div>
-          <label className="label" htmlFor="w-date">{t('Ημερομηνία αγοράς')}</label>
-          <input id="w-date" type="date" className="input" max={today()} value={item.purchase.date ?? ''}
-            onChange={(e) => patch((c) => ({ ...c, purchase: { ...c.purchase, date: e.target.value || undefined } }))} />
-        </div>
-        <div>
-          <label className="label" htmlFor="w-until">{t('Λήξη (αν διαφέρει)')}</label>
-          <input id="w-until" type="date" className="input" value={item.warranty.until ?? ''}
-            onChange={(e) => patch((c) => ({ ...c, warranty: { ...c.warranty, until: e.target.value || undefined } }))} />
-        </div>
+      <div className="mt-4">
+        <label className="label" htmlFor="w-date">{t('Ημερομηνία αγοράς')}</label>
+        <input id="w-date" type="date" className="input" max={today()} value={item.purchase.date ?? ''}
+          onChange={(e) => patch((c) => ({ ...c, purchase: { ...c.purchase, date: e.target.value || undefined } }))} />
       </div>
 
       <fieldset className="mt-3">
@@ -58,12 +61,33 @@ export function WarrantySection({ item }: { item: Item }) {
           ))}
           {!months && <label className="chip gap-2 pr-2">
             <span>{t('Άλλη')}</span>
-            <OtherNumber value={months} presets={options} min={1} max={600} onChange={setMonths}
-              className="w-[4.5rem] rounded-lg bg-surface-2 px-2 py-1 text-center text-base text-ink outline-hidden"
-              label={t('Διάρκεια εγγύησης σε μήνες')} placeholder={t('μήνες')} />
+            <OtherNumber value={undefined} presets={options} min={1} max={unit === 'years' ? 50 : 600}
+              onChange={(n) => { if (n) setMonths(unit === 'years' ? n * 12 : n); }}
+              className="w-[3.75rem] rounded-lg bg-surface-2 px-2 py-1 text-center text-base text-ink outline-hidden"
+              label={unit === 'years' ? t('Διάρκεια εγγύησης σε χρόνια') : t('Διάρκεια εγγύησης σε μήνες')} placeholder="—" />
+            <select aria-label={t('Μονάδα')} value={unit} onChange={(e) => setUnit(e.target.value as 'years' | 'months')}
+              className="rounded-lg bg-surface-2 py-1 pl-2 pr-1 text-sm text-ink outline-hidden">
+              <option value="years">{t('χρόνια')}</option>
+              <option value="months">{t('μήνες')}</option>
+            </select>
           </label>}
         </div>
       </fieldset>
+
+      {showUntil ? (
+        <div className="mt-3 rounded-2xl bg-surface-2 p-3.5">
+          <div className="flex items-center justify-between gap-2">
+            <label className="label mb-0" htmlFor="w-until">{t('Συγκεκριμένη ημερομηνία λήξης')}</label>
+            <button type="button" className="icon-btn size-8" aria-label={t('Κατάργηση ημερομηνίας λήξης')} onClick={() => { setUntil(undefined); setUntilOpen(false); }}><IconClose className="text-base" /></button>
+          </div>
+          <input id="w-until" type="date" className="input mt-1.5" value={item.warranty.until ?? ''} onChange={(e) => setUntil(e.target.value)} />
+          <p className="mt-1.5 text-[13px] leading-snug text-ink-2">{t('Υπερισχύει της «αγορά + διάρκεια». Για εγγύηση που μετρά από την παράδοση ή την εγκατάσταση, ή για επέκταση εγγύησης.')}</p>
+        </div>
+      ) : (
+        <button type="button" className="mt-3 text-[14px] font-semibold text-accent" onClick={() => setUntilOpen(true)}>
+          {t('Λήγει σε άλλη ημερομηνία;')}
+        </button>
+      )}
 
       <div className="mt-3 grid grid-cols-[1fr_10.5rem] gap-3">
         <div>
