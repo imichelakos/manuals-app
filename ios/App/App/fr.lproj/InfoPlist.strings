@@ -1,0 +1,3 @@
+/* Μηνύματα αδειών του iOS (fr). Ίδια κλειδιά με το Info.plist· όλες οι γλώσσες: src/i18n/languages.ts. */
+"NSFaceIDUsageDescription" = "Face ID verrouille l’app et confirme l’exportation des sauvegardes et la suppression des données. Les données biométriques ne parviennent jamais à l’app.";
+"NSCameraUsageDescription" = "L’appareil photo sert à photographier les manuels et les reçus. Les images restent uniquement sur votre appareil.";
