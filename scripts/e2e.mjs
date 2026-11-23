@@ -282,7 +282,7 @@ try {
   step('ρυθμίσεις, σκοτεινή εμφάνιση, αντίγραφο ασφαλείας');
   await page.getByRole('link', { name: 'Ρυθμίσεις' }).click();
   await shot('11-settings');
-  await page.getByRole('radio', { name: 'Σκοτεινή' }).click();
+  await page.getByLabel('Εμφάνιση', { exact: true }).selectOption('dark');
   await page.getByRole('link', { name: 'Βιβλιοθήκη' }).click();
   await cards.first().waitFor();
   await shot('12-library-dark');
@@ -292,7 +292,7 @@ try {
   await shot('13-item-dark');
   await page.getByRole('button', { name: 'Πίσω στη βιβλιοθήκη' }).click();
   await page.getByRole('link', { name: 'Ρυθμίσεις' }).click();
-  await page.getByRole('radio', { name: 'Φωτεινή' }).click();
+  await page.getByLabel('Εμφάνιση', { exact: true }).selectOption('light');
   await page.getByRole('button', { name: 'Εξαγωγή' }).click();
   const pw1 = page.getByLabel('Κωδικός', { exact: true }), pw2 = page.getByLabel('Ξανά ο κωδικός');
   await pw1.fill('abc123');
@@ -428,6 +428,7 @@ try {
   assert.equal(await webKeyCount(), 0);                         // το κλειδί web σβήστηκε
   assert.ok(await lp.evaluate(() => !!localStorage.getItem('mock-keychain')));
   await lp.goto(`${BASE}#/settings`);
+  await lp.getByText('Τεχνικά στοιχεία').click();
   await lp.getByText('Keychain της συσκευής').waitFor();
   await lp.reload();                                            // δεύτερη εκκίνηση: μόνο με το Keychain
   await lp.goto(BASE);
