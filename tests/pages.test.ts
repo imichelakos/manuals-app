@@ -55,3 +55,12 @@ test('identifyPdf: μάρκα/μοντέλο από την πρώτη σελίδ
   assert.equal(fallback.brands[0], 'SEAT');
   assert.equal(identifyPdf([''], 'Bosch-WAU28PH9BY.pdf', []).models[0], 'WAU28PH9BY');           // και από το όνομα αρχείου
 });
+
+test('identifyPdf: πραγματικό εγχειρίδιο (Nissan Micra) — η μάρκα μόνο στο όνομα του αρχείου, όχι στο κείμενο', () => {
+  // αρχή του κειμένου όπως τη δίνει το PDF (η μάρκα είναι λογότυπο-εικόνα· στο κείμενο μόνο κωδικοί και ελληνικά)
+  const page1 = 'NU 1678-3 B1322\nBIBΛIO OΔHΓIΩN XPHΣHΣΣ\nΚαλώς ήρθατε στο καινούργιο σας ηλεκτρικό αυτοκίνητο';
+  const r = identifyPdf([page1], 'Nissan Micra INFO.pdf', []);
+  assert.equal(r.brands[0], 'Nissan');
+  assert.equal(r.models[0], 'Micra');
+  assert.equal(r.category, 'vehicle');
+});
