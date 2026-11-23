@@ -12,6 +12,7 @@ import { COMMON_CURRENCIES, currencyOf } from '@/domain/currency';
 import { t, tn } from '@/i18n';
 import { AutoField, OtherNumber } from '@/components/controls';
 import { warrantyText } from '@/components/WarrantyBadge';
+import { PartWarranties } from './PartWarranties';
 import { IconClose, IconShield } from '@/components/icons';
 
 const MONTHS = [12, 24, 36, 60];
@@ -88,6 +89,8 @@ export function WarrantySection({ item }: { item: Item }) {
           {t('Λήγει σε άλλη ημερομηνία;')}
         </button>
       )}
+
+      <PartWarranties item={item} />
 
       <div className="mt-3 grid grid-cols-[1fr_10.5rem] gap-3">
         <div>

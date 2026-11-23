@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { dueReminders, normalizeOffsets, planReminders, reminderId } from '@/domain/reminders';
 import { addDays } from '@/domain/dates';
 import { emptyItem, type Item } from '@/domain/model';
+import { coveredParts, partUntil, warrantyInfo } from '@/domain/warranty';
 
 const mk = (p: Partial<Item>): Item => ({ ...emptyItem(1), ...p });
 const TODAY = '2026-11-22';
@@ -65,4 +66,23 @@ test('reminders: πολλές «πριν» (έως 5), ξεχωριστά id· �
   const soon = mk({ id: 'p2', name: 'Ψυγείο', warranty: { until: '2026-12-01' } });
   const due = dueReminders([soon], { today: TODAY, daysBefore: [60, 30, 7], lookbackDays: 365 });
   assert.deepEqual(due.map((x) => x.key), ['p2:before:30:2026-12-01']);
+});
+
+test('εγγυήσεις μερών: λήξη, κάλυψη, δικές τους υπενθυμίσεις (η κύρια κρατά τα ίδια id)', () => {
+  const item = mk({ id: 'fr', name: 'Ψυγείο', purchase: { date: '2024-01-10' }, warranty: { months: 24, parts: [
+    { id: 'pc', name: 'Συμπιεστής', months: 120 },
+    { id: 'pd', name: 'Πόρτα', until: '2026-12-15' },
+    { id: 'px', name: 'Χωρίς στοιχεία' },
+  ] } });
+  assert.equal(partUntil(item, item.warranty.parts![0]!), '2034-01-10');
+  assert.equal(warrantyInfo(item, TODAY).state, 'expired');                       // κύρια: 2026-01-10
+  assert.deepEqual(coveredParts(item, TODAY).map((p) => p.name), ['Συμπιεστής', 'Πόρτα']);
+  const r = planReminders([item], { today: TODAY, daysBefore: [30], limit: 50 });
+  assert.deepEqual(r.map((x) => [x.part, x.kind, x.date]), [['Πόρτα', 'day', '2026-12-15'], ['Συμπιεστής', 'before', '2033-12-11'], ['Συμπιεστής', 'day', '2034-01-10']]);
+  assert.equal(r[0]!.name, 'Πόρτα — Ψυγείο');
+  assert.equal(new Set(r.map((x) => x.id)).size, 3);
+  assert.equal(reminderId('fr', 'day'), reminderId('fr', 'day', 0, undefined));    // η κύρια εγγύηση: ίδιο id με πριν
+  assert.notEqual(reminderId('fr', 'day'), reminderId('fr', 'day', 0, 'pc'));
+  const due = dueReminders([item], { today: TODAY, daysBefore: [30], lookbackDays: 365 });
+  assert.deepEqual(due.map((x) => x.key), ['fr:part:pd:before:30:2026-12-15', 'fr:day:2026-01-10']);
 });

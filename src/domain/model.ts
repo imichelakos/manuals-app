@@ -78,6 +78,14 @@ export const itemSchema = z.object({
     /** ρητή λήξη (υπερισχύει της διάρκειας), π.χ. επέκταση εγγύησης */
     until: isoDate.optional(),
     note: short.optional(),
+    /** εγγυήσεις για συγκεκριμένα μέρη (π.χ. συμπιεστής 10 χρόνια), με δική τους διάρκεια ή λήξη */
+    parts: z.array(z.object({
+      id,
+      name: short,
+      months: z.number().int().min(1).max(600).optional(),
+      until: isoDate.optional(),
+      note: short.optional(),
+    })).max(20).optional(),
   }),
   attachments: z.array(attachmentSchema).max(200),
   links: z.array(linkSchema).max(200),
@@ -113,3 +121,5 @@ export const displayName = (i: Pick<Item, 'name' | 'brand' | 'model'>): string =
 export const hasDigitalManual = (i: Item): boolean => i.attachments.some((a) => a.kind === 'manual');
 export const hasReceipt = (i: Item): boolean => i.attachments.some((a) => a.kind === 'receipt');
 export const coverOf = (i: Item): Attachment | undefined => i.attachments.find((a) => a.kind === 'cover');
+
+export type WarrantyPart = NonNullable<Item['warranty']['parts']>[number];

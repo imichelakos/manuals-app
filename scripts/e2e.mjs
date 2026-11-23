@@ -184,6 +184,15 @@ try {
   await page.waitForFunction(() => document.querySelector('#d-cat').value === 'kitchen');
   await page.locator('#w-date').fill('2025-10-10'); // λήγει 10/10/2026: έληξε πριν από λίγο → ειδοποιήσεις στη λίστα
   await page.getByRole('button', { name: '1 χρόνος' }).click();
+  // εγγύηση μέρους: η κύρια έχει λήξει, ο συμπιεστής καλύπτεται 10 χρόνια
+  await page.getByRole('button', { name: 'Εγγύηση για μέρος' }).click();
+  await page.getByLabel('Μέρος').fill('Συμπιεστής');
+  await page.getByLabel('Μέρος').blur();
+  await page.getByLabel('Διάρκεια', { exact: true }).fill('10');
+  await page.getByLabel('Διάρκεια', { exact: true }).blur();
+  await page.getByText('Εγγύηση έως 10 Οκτ 2035').waitFor();
+  await page.getByLabel('Μέρος').scrollIntoViewIfNeeded();
+  await shot('07c-part-warranty', page);
   await page.locator('#d-model').blur();
   await page.waitForTimeout(900);
   await page.getByRole('button', { name: 'Πίσω στη βιβλιοθήκη' }).click();
@@ -193,6 +202,7 @@ try {
   await cards.first().waitFor();
   assert.equal(await cards.count(), 2);
   await cards.filter({ hasText: 'Samsung' }).getByText('Κουζίνα').waitFor(); // κατηγορία με εικονίδιο στην κάρτα
+  await cards.filter({ hasText: 'Samsung' }).getByText('+1 μέρος σε εγγύηση').waitFor();
   await page.getByText('σελίδες σε ψηφιακή μορφή').waitFor();          // 3 σελίδες στο PDF → 2 φύλλα → ≈ 5 g
   await page.getByText('≈ 5 g').waitFor();
   await shot('08-library');
