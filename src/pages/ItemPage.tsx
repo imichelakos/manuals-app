@@ -10,7 +10,7 @@ import { t } from '@/i18n';
 import { CategoryIcon } from '@/components/categoryIcons';
 import { ConfirmDelete } from '@/components/controls';
 import { WarrantyBadge } from '@/components/WarrantyBadge';
-import { ManualSection, ReceiptSection } from '@/components/item/Documents';
+import { ManualSection, OtherDocsSection, ReceiptSection } from '@/components/item/Documents';
 import { FindManualSheet } from '@/components/item/FindManualSheet';
 import { LinksSection } from '@/components/item/Links';
 import { WarrantySection } from '@/components/item/Warranty';
@@ -28,6 +28,8 @@ export default function ItemPage() {
   const [params, setParams] = useSearchParams();
   // μετά τη σάρωση (?find=1) ανοίγει κατευθείαν η εύρεση του ψηφιακού
   const [find, setFind] = useState(() => params.get('find') === '1');
+  // νέο προϊόν χωρίς σάρωση (?edit=1): τα στοιχεία ανοίγουν κατευθείαν σε επεξεργασία
+  const [startEditing] = useState(() => params.get('edit') === '1');
   const cover = item ? coverOf(item) : undefined;
   const coverUrl = useBlobUrl(cover?.blobId);
 
@@ -68,12 +70,14 @@ export default function ItemPage() {
       </header>
 
       <div className="flex flex-col gap-4">
+        {/* διάταξη «Ταυτότητα πρώτα» (23/11/2026) */}
+        <DetailsSection item={item} startEditing={startEditing || (!item.name && !item.brand && !item.model)} />
         <ManualSection item={item} onFind={() => setFind(true)} />
-        <LinksSection item={item} />
         <WarrantySection item={item} />
         <ReceiptSection item={item} />
+        <LinksSection item={item} />
+        <OtherDocsSection item={item} />
         <NotesSection item={item} />
-        <DetailsSection item={item} />
         <RecyclingTipsSection item={item} />
       </div>
 

@@ -1,5 +1,5 @@
 /** Στοιχεία προϊόντος (όνομα, μάρκα, μοντέλο, σειριακός, κατηγορία, χώρος, ετικέτες) και ελεύθερες σημειώσεις. */
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { CATEGORIES, categoryById, type CategoryId } from '@/domain/categories';
 import { suggestCategory } from '@/domain/categorySuggest';
 import { GROUP_IDS, GROUP_LABELS, suggestGroup, type GroupId } from '@/domain/groups';
@@ -9,7 +9,42 @@ import { t } from '@/i18n';
 import { AutoField } from '@/components/controls';
 import { CategoryIcon } from '@/components/categoryIcons';
 
-export function DetailsSection({ item }: { item: Item }) {
+/**
+ * Στοιχεία προϊόντος, πρώτα στην καρτέλα (διάταξη «Ταυτότητα πρώτα», 23/11/2026): συμπαγής μορφή για ανάγνωση και
+ * «Επεξεργασία» για τη φόρμα. Ανοίγει σε επεξεργασία όταν το ζητά ο καλών (νέο προϊόν χωρίς σάρωση).
+ */
+export function DetailsSection({ item, startEditing = false }: { item: Item; startEditing?: boolean }) {
+  const [editing, setEditing] = useState(startEditing);
+  if (!editing) return <DetailsSummary item={item} onEdit={() => setEditing(true)} />;
+  return <DetailsForm item={item} onDone={() => setEditing(false)} />;
+}
+
+function DetailsSummary({ item, onEdit }: { item: Item; onEdit: () => void }) {
+  const group = item.group ?? suggestGroup(item);
+  const rows: [string, string, boolean?][] = [
+    [t('Μάρκα'), item.brand], [t('Μοντέλο'), item.model], [t('Σειριακός αριθμός'), item.serial, true],
+    [t('Κατηγορία'), t(categoryById(item.category).label)], [t('Χώρος'), item.room],
+    [t('Ομάδα'), group ? t(GROUP_LABELS[group]) : ''], [t('Ετικέτες'), item.tags.join(', ')],
+  ];
+  return (
+    <section className="card p-5">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="section-title">{t('Στοιχεία')}</h2>
+        <button type="button" className="btn btn-ghost -my-2 -mr-3 min-h-9 px-3 text-sm" onClick={onEdit}>{t('Επεξεργασία')}</button>
+      </div>
+      <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-[15px]">
+        {rows.map(([k, v, mono]) => (
+          <div key={k} className="contents">
+            <dt className="text-ink-2">{k}</dt>
+            <dd className={`min-w-0 break-words ${v ? 'font-semibold' : 'text-ink-3'} ${mono && v ? 'mono' : ''}`}>{v || '—'}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+function DetailsForm({ item, onDone }: { item: Item; onDone: () => void }) {
   const items = useItems();
   const rooms = [...new Set(items.map((i) => i.room).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el'));
   const listId = useId();
@@ -26,7 +61,10 @@ export function DetailsSection({ item }: { item: Item }) {
   );
   return (
     <section className="card space-y-3 p-5">
-      <h2 className="section-title">{t('Στοιχεία')}</h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="section-title">{t('Στοιχεία')}</h2>
+        <button type="button" className="btn btn-ghost -my-2 -mr-3 min-h-9 px-3 text-sm" onClick={onDone}>{t('Τέλος')}</button>
+      </div>
       {field('name', t('Όνομα'), { placeholder: t('π.χ. Πλυντήριο ρούχων') })}
       <div className="grid grid-cols-2 gap-3">
         {field('brand', t('Μάρκα'))}

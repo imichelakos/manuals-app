@@ -183,9 +183,25 @@ try {
 
   step('σημειώσεις, χώρος, ετικέτες');
   await page.locator('#d-notes').fill('Καθάρισμα φίλτρου αντλίας κάθε 3 μήνες');
+  await page.locator('section:has-text("Στοιχεία")').getByRole('button', { name: 'Επεξεργασία' }).click();   // συμπαγής μορφή → φόρμα
   await page.locator('#d-room').fill('Μπάνιο');
   await page.locator('#d-tags').fill('δώρο, εξοχικό');
   await page.locator('#d-tags').blur();
+  await page.locator('section:has-text("Στοιχεία")').getByRole('button', { name: 'Τέλος' }).click();
+  await page.locator('section:has-text("Στοιχεία") dd', { hasText: 'Μπάνιο' }).waitFor();            // πίσω στη συμπαγή μορφή
+
+  step('άλλα έγγραφα: αρχείο, τίτλος από πρόταση, σημείωση');
+  const otherDocs = page.locator('section:has-text("Άλλα έγγραφα")');
+  await otherDocs.locator('label:has-text("Αρχείο") input[type=file]').setInputFiles(files.receipt);
+  await otherDocs.getByRole('button', { name: 'Φύλλο σέρβις' }).click();
+  await page.waitForFunction(() => document.querySelector('input[aria-label="Τίτλος εγγράφου"]')?.value === 'Φύλλο σέρβις');
+  await otherDocs.getByLabel('Σημείωση εγγράφου').fill('Σέρβις Νοεμβρίου');
+  await otherDocs.getByLabel('Σημείωση εγγράφου').blur();
+  assert.equal(await otherDocs.getByRole('button', { name: 'Δήλωση συμμόρφωσης' }).count(), 0);         // οι προτάσεις φεύγουν με τίτλο
+
+  step('σάρωση QR αργότερα (web: φωτογραφία) → οι σύνδεσμοι υπάρχουν ήδη');
+  await page.locator('section:has-text("Σύνδεσμοι και QR") label:has-text("Σάρωση QR") input[type=file]').setInputFiles(files.cover);
+  await page.getByText('Ο σύνδεσμος υπάρχει ήδη.').waitFor();
   await page.waitForTimeout(300);
   // γενικές συμβουλές ανακύκλωσης της συσκευής
   await page.getByText('Όταν δεν θα τη χρειάζεσαι').click();
@@ -434,6 +450,8 @@ try {
         if (plugin === 'ProductReader' && method === 'read') return { lines: window.__mockLines ?? [], ocrMs: 300, ai: null, aiMs: 0, aiStatus: 'deviceNotEligible', aiError: null };
         // CapacitorHttp (native): oEmbed του YouTube και η μικρογραφία του
         if (plugin === 'CapacitorHttp') {
+          // σύντομος σύνδεσμος: η ανακατεύθυνση (HEAD) καταλήγει στο YouTube
+          if (o.url.startsWith('https://bit.ly/')) return { status: 200, headers: { 'Content-Type': 'text/html' }, url: 'https://youtu.be/abc', data: '' };
           if (o.url.startsWith('https://www.youtube.com/oembed')) return { status: 200, headers: { 'Content-Type': 'application/json' }, url: o.url, data: { provider_name: 'YouTube', title: 'X7 Usage EN', thumbnail_url: 'https://i.ytimg.com/vi/abc/hqdefault.jpg' } };
           if (o.url.startsWith('https://i.ytimg.com/')) return { status: 200, headers: { 'Content-Type': 'image/png' }, url: o.url, data: 'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR4nGP8z8Dwn4GBgYGJAQoAAB8AAQ0iLqkAAAAASUVORK5CYII=' };
           return { status: 404, headers: {}, url: o.url, data: '' };
@@ -553,14 +571,15 @@ try {
   await shot('20-brand-web', lp);
   await lp.unroute('https://www.wikidata.org/w/api.php?**');
 
-  step('iOS: σύνδεσμος YouTube → τίτλος και μικρογραφία (oEmbed μέσω CapacitorHttp)');
+  step('iOS: σύντομος σύνδεσμος bit.ly → τελικός YouTube, τίτλος και μικρογραφία (CapacitorHttp)');
   await lp.goto(BASE);
   await lp.locator('ul > li a[href^="#/item/"]').filter({ hasText: 'Bosch' }).first().click();
   await lp.locator('section:has-text("Σύνδεσμοι και QR")').getByRole('button', { name: 'Προσθήκη' }).click();
-  await lp.getByPlaceholder(/https/).fill('https://youtu.be/abc');
+  await lp.getByPlaceholder(/https/).fill('https://bit.ly/x7');
   await lp.getByPlaceholder(/https/).press('Enter');
   await lp.locator('input[aria-label="Τίτλος συνδέσμου"]').and(lp.locator('[value="YouTube — X7 Usage EN"]')).waitFor();
-  await lp.locator('section:has-text("Σύνδεσμοι και QR") li img[src^="data:image/png"]').waitFor();
+  await lp.locator('section:has-text("Σύνδεσμοι και QR") li img[src^="data:image/png"]').first().waitFor();
+  assert.equal(await lp.getByText('bit.ly').count(), 0);                             // κρατιέται μόνο ο τελικός σύνδεσμος
   await shot('21-link-title', lp);
 
   step('εισαγωγή PDF στη σάρωση — web (χωρίς PDFKit): από το όνομα του αρχείου');

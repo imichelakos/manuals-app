@@ -32,6 +32,8 @@ export const attachmentSchema = z.object({
   sourceUrl: z.string().max(2000).optional(),
   /** σελίδες: του PDF (μετρημένες κατά την αποθήκευση) ή 1 για φωτογραφία σελίδας */
   pages: z.number().int().min(1).max(100_000).optional(),
+  /** σύντομη περιγραφή από τον χρήστη (κυρίως στα «Άλλα έγγραφα», π.χ. «για το σέρβις του 2026») */
+  note: z.string().max(500).optional(),
 });
 export type Attachment = z.infer<typeof attachmentSchema>;
 
