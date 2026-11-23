@@ -17,7 +17,7 @@ export function SyncSettings() {
   const s = useSyncStatus();
   const tooBig = useTooBigCount();
   if (s.kind === 'unsupported') {
-    return <p className="text-[13px] leading-snug text-ink-2">{isNative
+    return <p className="text-[15px] leading-relaxed text-ink-2">{isNative
       ? t('Ο συγχρονισμός με iCloud δεν έχει ενεργοποιηθεί ακόμη σε αυτή την έκδοση. Μέχρι τότε η μεταφορά γίνεται με το αντίγραφο ασφαλείας.')
       : t('Ο συγχρονισμός με iCloud λειτουργεί στην εφαρμογή για iPhone και iPad. Εδώ η μεταφορά γίνεται με το αντίγραφο ασφαλείας.')}</p>;
   }
