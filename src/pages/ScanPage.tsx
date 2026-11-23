@@ -21,6 +21,7 @@ import { IconBack, IconCamera, IconCheck, IconFile, IconImage, IconPlus, IconQr,
 import { CameraPick } from '@/components/CameraPick';
 import { WebBrandLookup } from '@/components/WebBrandLookup';
 import type { BrandMatch } from '@/services/wikidata';
+import { enrichLinks } from '@/data/linkEnrich';
 
 /** σταθερός κενός πίνακας (ίδια αναφορά σε κάθε render: δεν ξαναξεκινά την αναζήτηση) */
 const NONE: string[] = [];
@@ -71,7 +72,7 @@ export default function ScanPage() {
       </div>
       {phase.name === 'start' && <Start onPhoto={start} />}
       {phase.name === 'working' && <Working source={phase.source} preview={phase.preview} step={phase.step} progress={phase.progress} />}
-      {phase.name === 'review' && <Review preview={phase.preview} result={phase.result} onSaved={(id) => nav(phase.result.pdf ? `/item/${id}` : `/item/${id}?find=1`, { replace: true })} />}
+      {phase.name === 'review' && <Review preview={phase.preview} result={phase.result} onRetake={(f) => void start(f)} onSaved={(id) => nav(phase.result.pdf ? `/item/${id}` : `/item/${id}?find=1`, { replace: true })} />}
     </div>
   );
 }
@@ -150,7 +151,7 @@ function Working({ source, preview, step, progress }: { source: Source; preview:
   );
 }
 
-function Review({ preview, result, onSaved }: { preview: string | null; result: ScanResult; onSaved: (id: string) => void }) {
+function Review({ preview, result, onSaved, onRetake }: { preview: string | null; result: ScanResult; onSaved: (id: string) => void; onRetake: (f: File) => void }) {
   const { found, codes } = result;
   const [brand, setBrand] = useState(found.brands[0] ?? '');
   const [model, setModel] = useState(found.models[0] ?? '');
@@ -189,7 +190,9 @@ function Review({ preview, result, onSaved }: { preview: string | null; result: 
         attachments,
         links: links.filter((l) => keep.has(l.url)).map((l): LinkRef => ({ id: newId(), url: l.url, title: linkLabel(l.kind), kind: l.kind, origin: 'qr', addedAt: now })),
       };
-      onSaved((await saveItem(item)).id);
+      const saved = await saveItem(item);
+      void enrichLinks(saved.id, linkLabel);   // τίτλοι και εικονίδια των συνδέσμων των QR, στο παρασκήνιο
+      onSaved(saved.id);
     } catch {
       setBusy(false);
       toast(t('Η αποθήκευση απέτυχε. Ίσως δεν υπάρχει ελεύθερος χώρος.'), 'error');
@@ -208,6 +211,11 @@ function Review({ preview, result, onSaved }: { preview: string | null; result: 
             : <><IconSpark className="mr-1 inline text-lg text-accent" />{t('Έλεγξε ότι τα στοιχεία είναι σωστά. Μπορείς να τα αλλάξεις και αργότερα.')}</>}
         </p>
       </div>
+      {!result.pdf && (
+        <CameraPick mode="photo" onCapture={(c) => onRetake(c.files[0]!)} className="btn btn-plain mt-2.5 w-full">
+          <IconCamera className="text-xl" />{t('Ξανά φωτογραφία')}
+        </CameraPick>
+      )}
 
       <div className="card mt-4 space-y-4 p-5">
         <div>

@@ -18,6 +18,7 @@ import { DetailsSection, NotesSection } from '@/components/item/Details';
 import { RecyclingTipsSection } from '@/components/item/RecyclingTips';
 import { toast } from '@/components/Toast';
 import { IconBack } from '@/components/icons';
+import { CoverPhoto } from '@/components/item/CoverPhoto';
 
 export default function ItemPage() {
   const { id } = useParams();
@@ -53,9 +54,9 @@ export default function ItemPage() {
       </div>
 
       <header className="flex items-center gap-4 pb-5 pt-1">
-        <div className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-3xl bg-surface text-4xl text-ink-3 shadow-card">
+        <CoverPhoto item={item}>
           {coverUrl ? <img src={coverUrl} alt={t('Εξώφυλλο εντύπου')} className="size-full object-cover" /> : <CategoryIcon id={item.category} />}
-        </div>
+        </CoverPhoto>
         <div className="min-w-0">
           <h1 className="text-2xl font-extrabold leading-tight">{title}</h1>
           {item.name && (item.brand || item.model) && <p className="mt-0.5 text-[15px] text-ink-2">{item.brand} {item.model}</p>}

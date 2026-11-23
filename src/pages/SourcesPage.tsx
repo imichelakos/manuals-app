@@ -48,6 +48,10 @@ export default function SourcesPage() {
           <p>{t('Οι μεγαλύτερες λέξεις του εξωφύλλου αναζητούνται στο Wikidata, μια ανοιχτή βάση με εταιρείες και μάρκες, μαζί με παραλλαγές για λάθη ανάγνωσης (π.χ. «OBLIGHT» → «Olight»). Στέλνονται μόνο λέξεις, ποτέ η φωτογραφία. Απενεργοποιείται από τις Ρυθμίσεις.')}</p>
           <Src href="https://www.wikidata.org/">Wikidata</Src>
         </Block>
+        <Block title={t('Σύνδεσμοι')}>
+          <p>{t('Για τους συνδέσμους (π.χ. από τα QR του εντύπου) η εφαρμογή φέρνει τον τίτλο και το εικονίδιο: για βίντεο YouTube και Vimeo μέσω του ανοιχτού προτύπου oEmbed, για άλλες σελίδες από την ίδια τη σελίδα. Ο τίτλος που γράφεις εσύ δεν αλλάζει ποτέ.')}</p>
+          <Src href="https://oembed.com/">oEmbed</Src>
+        </Block>
         <Block title={t('Συμβουλές ανακύκλωσης')}>
           <Src href={sourceUrl('annex7', getLang())}>{t('Οδηγία 2012/19/ΕΕ (ΑΗΗΕ): άρθρο 14, Παραρτήματα VII και IX')}</Src>
           <Src href={sourceUrl('epa', getLang())}>U.S. EPA — Electronics Donation and Recycling</Src>

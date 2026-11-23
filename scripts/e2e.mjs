@@ -174,6 +174,13 @@ try {
   await page.getByRole('button', { name: 'Σίγουρα;' }).click();
   await page.getByText('test-cover.jpg').waitFor({ state: 'detached' });
 
+  step('καρτέλα: αλλαγή φωτογραφίας (από τις φωτογραφίες)');
+  const coverSrc = await page.locator('header img').getAttribute('src');
+  await page.getByRole('button', { name: 'Αλλαγή φωτογραφίας' }).click();
+  await page.getByRole('dialog').locator('label:has-text("Από τις φωτογραφίες") input[type=file]').setInputFiles(files.receipt);
+  await page.waitForFunction((old) => { const i = document.querySelector('header img'); return i && i.getAttribute('src') !== old; }, coverSrc);
+  assert.equal(await page.getByRole('dialog').count(), 0);
+
   step('σημειώσεις, χώρος, ετικέτες');
   await page.locator('#d-notes').fill('Καθάρισμα φίλτρου αντλίας κάθε 3 μήνες');
   await page.locator('#d-room').fill('Μπάνιο');
@@ -405,6 +412,7 @@ try {
         { name: 'PdfReader', methods: [{ name: 'read', rtype: 'promise' }] },
         { name: 'DocumentScanner', methods: [{ name: 'isSupported', rtype: 'promise' }, { name: 'scan', rtype: 'promise' }] },
         { name: 'ProductReader', methods: [{ name: 'status', rtype: 'promise' }, { name: 'read', rtype: 'promise' }] },
+        { name: 'CapacitorHttp', methods: ['request', 'get'].map((name) => ({ name, rtype: 'promise' })) },
         { name: 'LocalNotifications', methods: [{ name: 'addListener' }, { name: 'removeListener' }, ...['checkPermissions', 'requestPermissions', 'getPending', 'schedule', 'cancel'].map((name) => ({ name, rtype: 'promise' }))] },
       ],
       nativeCallback: () => 'mock-callback',
@@ -424,6 +432,12 @@ try {
         // OCR της Apple (Vision): γραμμές με ύψος· εδώ οι πραγματικές γραμμές του εξωφύλλου Olight από iPhone
         if (plugin === 'ProductReader' && method === 'status') return { ios: '27.2', device: 'iPhone14,2', xcode: '2720', sdk: 'iphoneos27.2', ai: 'deviceNotEligible' };
         if (plugin === 'ProductReader' && method === 'read') return { lines: window.__mockLines ?? [], ocrMs: 300, ai: null, aiMs: 0, aiStatus: 'deviceNotEligible', aiError: null };
+        // CapacitorHttp (native): oEmbed του YouTube και η μικρογραφία του
+        if (plugin === 'CapacitorHttp') {
+          if (o.url.startsWith('https://www.youtube.com/oembed')) return { status: 200, headers: { 'Content-Type': 'application/json' }, url: o.url, data: { provider_name: 'YouTube', title: 'X7 Usage EN', thumbnail_url: 'https://i.ytimg.com/vi/abc/hqdefault.jpg' } };
+          if (o.url.startsWith('https://i.ytimg.com/')) return { status: 200, headers: { 'Content-Type': 'image/png' }, url: o.url, data: 'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR4nGP8z8Dwn4GBgYGJAQoAAB8AAQ0iLqkAAAAASUVORK5CYII=' };
+          return { status: 404, headers: {}, url: o.url, data: '' };
+        }
         if (plugin === 'LocalNotifications') {
           // προσομοίωση: άδεια δίνεται στο πρώτο αίτημα· οτιδήποτε άλλο (π.χ. μια «then») είναι σφάλμα
           const granted = localStorage.getItem('mock-notif') === 'granted';
@@ -538,6 +552,16 @@ try {
   assert.equal(await lp.getByRole('button', { name: 'OBLIGHT' }).count(), 0);      // η λέξη της μάρκας έφυγε από τις προτάσεις
   await shot('20-brand-web', lp);
   await lp.unroute('https://www.wikidata.org/w/api.php?**');
+
+  step('iOS: σύνδεσμος YouTube → τίτλος και μικρογραφία (oEmbed μέσω CapacitorHttp)');
+  await lp.goto(BASE);
+  await lp.locator('ul > li a[href^="#/item/"]').filter({ hasText: 'Bosch' }).first().click();
+  await lp.locator('section:has-text("Σύνδεσμοι και QR")').getByRole('button', { name: 'Προσθήκη' }).click();
+  await lp.getByPlaceholder(/https/).fill('https://youtu.be/abc');
+  await lp.getByPlaceholder(/https/).press('Enter');
+  await lp.locator('input[aria-label="Τίτλος συνδέσμου"]').and(lp.locator('[value="YouTube — X7 Usage EN"]')).waitFor();
+  await lp.locator('section:has-text("Σύνδεσμοι και QR") li img[src^="data:image/png"]').waitFor();
+  await shot('21-link-title', lp);
 
   step('εισαγωγή PDF στη σάρωση — web (χωρίς PDFKit): από το όνομα του αρχείου');
   const pc = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'el-GR' });

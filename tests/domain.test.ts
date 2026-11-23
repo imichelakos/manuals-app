@@ -6,6 +6,7 @@ import { latin, norm, within1 } from '@/domain/text';
 import { classifyCode, eanOk, parseHttpUrl } from '@/domain/codes';
 import { identify } from '@/domain/identify';
 import { cleanLine, coverLayout } from '@/domain/coverLayout';
+import { formatTitle, oembedUrl, parseHead } from '@/domain/linkPreview';
 import { brandQueries, describesBrand, sameWord } from '@/domain/brandLookup';
 import { localManualLanguage, manualQueries } from '@/domain/manualSearch';
 import { suggestCategory } from '@/domain/categorySuggest';
@@ -229,4 +230,18 @@ test('cleanLine: πλαίσιο γύρω από λέξη διαβασμένο ω
   assert.equal(cleanLine('|Baton| Turbo'), 'Baton Turbo');
   assert.equal(cleanLine('Galaxy S24 (2024)'), 'Galaxy S24 (2024)');   // σωστή παρένθεση μένει
   assert.equal(coverLayout([{ text: 'Baton (Turbo', size: 0.03 }]).modelHints[0], 'Baton Turbo');
+});
+
+test('linkPreview: oEmbed για βίντεο, τίτλος και εικονίδια από τη σελίδα, μορφή τίτλου', () => {
+  assert.equal(oembedUrl('https://youtu.be/abc'), 'https://www.youtube.com/oembed?format=json&url=https%3A%2F%2Fyoutu.be%2Fabc');
+  assert.ok(oembedUrl('https://vimeo.com/76979871')!.startsWith('https://vimeo.com/api/oembed.json?url='));
+  assert.equal(oembedUrl('https://www.bosch-home.gr/manual'), null);
+  const html = '<html><head><title>X7 &amp; Co | Support</title><link rel="icon" href="/fav.png"><link rel="apple-touch-icon" href="https://cdn.ex.com/touch.png"></head>';
+  const r = parseHead(html, 'https://www.example.com/p/1');
+  assert.equal(r.title, 'X7 & Co | Support');
+  assert.deepEqual(r.icons, ['https://cdn.ex.com/touch.png', 'https://www.example.com/fav.png', 'https://www.example.com/favicon.ico']);
+  assert.equal(parseHead('<meta property="og:title" content="Baton Turbo — Olight">', 'https://olight.com/').title, 'Baton Turbo — Olight');
+  assert.equal(formatTitle('YouTube', 'X7 Usage EN'), 'YouTube — X7 Usage EN');
+  assert.equal(formatTitle('YouTube', 'YouTube Kids'), 'YouTube Kids');
+  assert.equal(formatTitle(null, '  Οδηγίες&nbsp;χρήσης '), 'Οδηγίες χρήσης');
 });

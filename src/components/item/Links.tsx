@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { newId, type Item, type LinkKind, type LinkRef } from '@/domain/model';
 import { linkKind, parseHttpUrl } from '@/domain/codes';
 import { updateItem } from '@/data/library';
+import { enrichLinks } from '@/data/linkEnrich';
 import { ExternalLink } from '@/components/ExternalLink';
 import { t } from '@/i18n';
 import { AutoField, ConfirmDelete } from '@/components/controls';
@@ -31,6 +32,7 @@ export function LinksSection({ item }: { item: Item }) {
     await updateItem(item.id, (c) => ({ ...c, links: [...c.links, link] }));
     setUrl('');
     setAdding(false);
+    void enrichLinks(item.id, linkLabel);   // τίτλος και εικονίδιο από τη σελίδα, στο παρασκήνιο
   };
 
   return (
@@ -43,7 +45,9 @@ export function LinksSection({ item }: { item: Item }) {
       <ul className="mt-3 space-y-2.5">
         {item.links.map((l) => (
           <li key={l.id} className="flex items-center gap-3 rounded-2xl bg-surface-2 p-2 pl-3.5">
-            <span className="text-2xl text-accent"><LinkIcon kind={l.kind} /></span>
+            {l.icon
+              ? <img src={l.icon} alt="" className="size-9 shrink-0 rounded-lg bg-surface object-cover" />
+              : <span className="text-2xl text-accent"><LinkIcon kind={l.kind} /></span>}
             <div className="min-w-0 flex-1">
               <AutoField value={l.title} aria-label={t('Τίτλος συνδέσμου')} className="w-full bg-transparent text-[15px] font-semibold outline-hidden"
                 onCommit={(title) => void updateItem(item.id, (c) => ({ ...c, links: c.links.map((x) => (x.id === l.id ? { ...x, title: title.trim() || linkLabel(l.kind) } : x)) }))} />

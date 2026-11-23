@@ -46,6 +46,8 @@ export const linkSchema = z.object({
   kind: z.enum(linkKinds),
   origin: z.enum(['qr', 'manual']),
   addedAt: z.number().int(),
+  /** εικονίδιο της σελίδας ή μικρογραφία του βίντεο, σμικρυμένο (≤128 px) μέσα στην εγγραφή — όχι ξεχωριστό αρχείο */
+  icon: z.string().max(24_000).regex(/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/).optional(),
 });
 export type LinkRef = z.infer<typeof linkSchema>;
 

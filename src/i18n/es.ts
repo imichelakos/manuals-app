@@ -426,9 +426,18 @@ const ES: Record<string, string> = {
   // μάρκα από το διαδίκτυο (Wikidata)
   'Μάρκα από το διαδίκτυο': 'Marca desde internet',
   'Στη σάρωση, λέξεις του εξωφύλλου (όχι η φωτογραφία) αναζητούνται στο Wikidata για να βρεθεί η μάρκα.': 'Al escanear, palabras de la portada (no la foto) se buscan en Wikidata para encontrar la marca.',
-  'Η αναγνώριση κειμένου και η ανάγνωση QR γίνονται στη συσκευή. Η εφαρμογή συνδέεται στο διαδίκτυο μόνο όταν της ζητήσεις να κατεβάσει ένα PDF, ανοίξεις έναν σύνδεσμο ή — αν το έχεις ενεργοποιήσει — για να βρει τη μάρκα στο Wikidata.': 'El reconocimiento de texto y la lectura de QR se hacen en el dispositivo. La app solo se conecta a internet cuando le pides descargar un PDF, abres un enlace o, si lo has activado, para encontrar la marca en Wikidata.',
   'Αναζήτηση της μάρκας…': 'Buscando la marca…',
   'Αναγνώριση μάρκας': 'Reconocimiento de la marca',
   'Οι μεγαλύτερες λέξεις του εξωφύλλου αναζητούνται στο Wikidata, μια ανοιχτή βάση με εταιρείες και μάρκες, μαζί με παραλλαγές για λάθη ανάγνωσης (π.χ. «OBLIGHT» → «Olight»). Στέλνονται μόνο λέξεις, ποτέ η φωτογραφία. Απενεργοποιείται από τις Ρυθμίσεις.': 'Las palabras más grandes de la portada se buscan en Wikidata, una base abierta de empresas y marcas, junto con variantes para errores de lectura (p. ej., «OBLIGHT» → «Olight»). Solo se envían palabras, nunca la foto. Se puede desactivar en Ajustes.',
+  // φωτογραφία προϊόντος, σύνδεσμοι
+  'Η φωτογραφία δεν αποθηκεύτηκε.': 'La foto no se guardó.',
+  'Αλλαγή φωτογραφίας': 'Cambiar foto',
+  'Προσθήκη φωτογραφίας': 'Añadir foto',
+  'Νέα φωτογραφία': 'Nueva foto',
+  'Αφαίρεση φωτογραφίας': 'Quitar foto',
+  'Ξανά φωτογραφία': 'Repetir foto',
+  'Η αναγνώριση κειμένου και η ανάγνωση QR γίνονται στη συσκευή. Η εφαρμογή συνδέεται στο διαδίκτυο μόνο για να κατεβάσει ένα PDF που ζήτησες, να ανοίξει έναν σύνδεσμο, να φέρει τον τίτλο και το εικονίδιο των συνδέσμων ενός εντύπου και — αν είναι ενεργό — για να βρει τη μάρκα στο Wikidata.': 'El reconocimiento de texto y la lectura de QR se hacen en el dispositivo. La app solo se conecta a internet para descargar un PDF que pediste, abrir un enlace, obtener el título y el icono de los enlaces de un manual y, si está activado, para encontrar la marca en Wikidata.',
+  'Σύνδεσμοι': 'Enlaces',
+  'Για τους συνδέσμους (π.χ. από τα QR του εντύπου) η εφαρμογή φέρνει τον τίτλο και το εικονίδιο: για βίντεο YouTube και Vimeo μέσω του ανοιχτού προτύπου oEmbed, για άλλες σελίδες από την ίδια τη σελίδα. Ο τίτλος που γράφεις εσύ δεν αλλάζει ποτέ.': 'Para los enlaces (p. ej., de los QR del manual) la app obtiene el título y el icono: para vídeos de YouTube y Vimeo mediante el estándar abierto oEmbed, para otras páginas desde la propia página. Un título que escribas tú nunca se cambia.',
 };
 export default ES;

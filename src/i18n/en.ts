@@ -426,9 +426,18 @@ const EN: Record<string, string> = {
   // μάρκα από το διαδίκτυο (Wikidata)
   'Μάρκα από το διαδίκτυο': 'Brand from the internet',
   'Στη σάρωση, λέξεις του εξωφύλλου (όχι η φωτογραφία) αναζητούνται στο Wikidata για να βρεθεί η μάρκα.': 'When scanning, words from the cover (not the photo) are looked up on Wikidata to find the brand.',
-  'Η αναγνώριση κειμένου και η ανάγνωση QR γίνονται στη συσκευή. Η εφαρμογή συνδέεται στο διαδίκτυο μόνο όταν της ζητήσεις να κατεβάσει ένα PDF, ανοίξεις έναν σύνδεσμο ή — αν το έχεις ενεργοποιήσει — για να βρει τη μάρκα στο Wikidata.': 'Text recognition and QR reading happen on the device. The app goes online only when you ask it to download a PDF, open a link or — if you have turned it on — to find the brand on Wikidata.',
   'Αναζήτηση της μάρκας…': 'Looking up the brand…',
   'Αναγνώριση μάρκας': 'Brand recognition',
   'Οι μεγαλύτερες λέξεις του εξωφύλλου αναζητούνται στο Wikidata, μια ανοιχτή βάση με εταιρείες και μάρκες, μαζί με παραλλαγές για λάθη ανάγνωσης (π.χ. «OBLIGHT» → «Olight»). Στέλνονται μόνο λέξεις, ποτέ η φωτογραφία. Απενεργοποιείται από τις Ρυθμίσεις.': 'The largest words on the cover are looked up on Wikidata, an open database of companies and brands, together with variants for reading errors (e.g. “OBLIGHT” → “Olight”). Only words are sent, never the photo. Can be turned off in Settings.',
+  // φωτογραφία προϊόντος, σύνδεσμοι
+  'Η φωτογραφία δεν αποθηκεύτηκε.': 'The photo was not saved.',
+  'Αλλαγή φωτογραφίας': 'Change photo',
+  'Προσθήκη φωτογραφίας': 'Add photo',
+  'Νέα φωτογραφία': 'New photo',
+  'Αφαίρεση φωτογραφίας': 'Remove photo',
+  'Ξανά φωτογραφία': 'Retake photo',
+  'Η αναγνώριση κειμένου και η ανάγνωση QR γίνονται στη συσκευή. Η εφαρμογή συνδέεται στο διαδίκτυο μόνο για να κατεβάσει ένα PDF που ζήτησες, να ανοίξει έναν σύνδεσμο, να φέρει τον τίτλο και το εικονίδιο των συνδέσμων ενός εντύπου και — αν είναι ενεργό — για να βρει τη μάρκα στο Wikidata.': 'Text recognition and QR reading happen on the device. The app goes online only to download a PDF you asked for, open a link, fetch the title and icon of a manual’s links and — if turned on — to find the brand on Wikidata.',
+  'Σύνδεσμοι': 'Links',
+  'Για τους συνδέσμους (π.χ. από τα QR του εντύπου) η εφαρμογή φέρνει τον τίτλο και το εικονίδιο: για βίντεο YouTube και Vimeo μέσω του ανοιχτού προτύπου oEmbed, για άλλες σελίδες από την ίδια τη σελίδα. Ο τίτλος που γράφεις εσύ δεν αλλάζει ποτέ.': 'For links (e.g. from the manual’s QR codes) the app fetches the title and icon: for YouTube and Vimeo videos through the open oEmbed standard, for other pages from the page itself. A title you write yourself is never changed.',
 };
 export default EN;
