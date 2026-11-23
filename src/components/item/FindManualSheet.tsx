@@ -85,7 +85,7 @@ export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => 
         <Step n={1} title={t('Από το QR του εντύπου')} icon={<IconQr />}>
           {fromQr.map((l) => (
             <div key={l.id}>
-              <p className="mono truncate text-[13px] text-ink-2">{l.url.replace(/^https?:\/\//, '')}</p>
+              <p className="truncate text-[13px] text-ink-2">{l.url.replace(/^https?:\/\//, '')}</p>
               <div className="mt-2 flex gap-2">
                 {l.kind === 'pdf' && <button type="button" className="btn btn-soft flex-1" disabled={busy} onClick={() => void fetchPdf(l.url)}><IconDownload className="text-lg" />{t('Κατέβασμα')}</button>}
                 <ExternalLink href={l.url} className="btn btn-plain flex-1"><IconExternal className="text-lg" />{t('Άνοιγμα')}</ExternalLink>

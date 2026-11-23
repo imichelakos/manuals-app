@@ -1,5 +1,6 @@
 /** Ρυθμίσεις σε ομάδες: Γενικά, Υπενθυμίσεις, Ασφάλεια, Δεδομένα — γραμμές με τίτλο αριστερά και τη ρύθμιση δεξιά. */
 import { useEffect, useState, type ReactNode } from 'react';
+import { Link } from 'react-router';
 import { useItems, wipeAll } from '@/data/library';
 import { setSettings, useSettings, type Theme } from '@/data/settings';
 import { resetSync } from '@/data/syncRuntime';
@@ -119,6 +120,12 @@ export default function SettingsPage() {
               </div>
             ) : <button type="button" className="btn btn-danger" disabled={items.length === 0} onClick={() => setWipe(true)}>{t('Διαγραφή όλων')}</button>}
           </Row>
+        </Group>
+
+        <Group title={t('Πληροφορίες')}>
+          <Link to="/sources" className="flex items-center justify-between py-3 text-[15px] font-semibold">
+            {t('Πηγές και υπολογισμοί')}<span className="text-ink-3" aria-hidden="true">›</span>
+          </Link>
         </Group>
 
         <p className="px-2 text-center text-[13px] leading-relaxed text-ink-3">

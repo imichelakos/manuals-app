@@ -48,6 +48,15 @@ test('recyclingStats: σελίδες και εκτίμηση βάρους', () =
   assert.equal(s.paperUnknown, 1);
 });
 
+test('recyclingStats: CO2 και δέντρα από το χαρτί των ψηφιακών σελίδων', () => {
+  const att: Attachment = { id: 'a'.repeat(12), kind: 'manual', name: 'm.pdf', mime: 'application/pdf', size: 1, blobId: 'b'.repeat(12), addedAt: 1, origin: 'import', pages: 400 };
+  const s = recyclingStats([{ ...emptyItem(1), attachments: [att] }]);
+  assert.equal(s.digitalPaperGrams, 200 * 2.5);                          // 400 σελίδες → 200 φύλλα → 500 g
+  assert.ok(Math.abs(s.co2Kg - 0.5 * 0.97 / 0.907) < 1e-9);              // EPA WARM: 0,97 t ανά short ton
+  assert.ok(Math.abs(s.trees - 0.5 * 24 / 907.18474) < 1e-12);           // Conservatree: 24 δέντρα ανά short ton
+  assert.equal(recyclingStats([]).co2Kg, 0);
+});
+
 test('identifyPdf: μάρκα/μοντέλο από την πρώτη σελίδα, όχι από όλο το PDF', () => {
   const car = identifyPdf(['TOYOTA COROLLA\nOwner’s Manual', 'Seat belts and airbags. Smart key system. Mini spare wheel.', 'Car maintenance'], 'manual.pdf', []);
   assert.deepEqual([car.brands, car.models[0], car.category], [['Toyota'], 'COROLLA', 'vehicle']); // όχι SEAT/Smart/Mini

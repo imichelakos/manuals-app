@@ -342,10 +342,6 @@ const EN: Record<string, string> = {
   'Αυτόματα: {g}': 'Automatic: {g}',
   'Αυτόματα: —': 'Automatic: —',
   'σελίδες σε ψηφιακή μορφή': 'pages in digital form',
-  'χαρτί ανακυκλώθηκε (εκτίμηση)': 'paper recycled (estimate)',
-  'Πώς υπολογίζεται': 'How this is calculated',
-  'Σελίδες: του PDF κάθε εγχειριδίου, ή όσες σελίδες φωτογράφισες. Βάρος: υποθέτουμε ότι το έντυπο είχε όσες σελίδες και το PDF, τυπωμένες και στις δύο όψεις σε χαρτί A5 80 g/m² (≈ 2,5 g το φύλλο).':
-    'Pages: from each manual’s PDF, or the pages you photographed. Weight: we assume the printed manual had as many pages as the PDF, printed on both sides on A5 80 g/m² paper (≈ 2.5 g per sheet).',
   '{n} ανακυκλωμένο έντυπο δεν μετρά: δεν ξέρουμε τις σελίδες του.': '{n} recycled manual is not counted: its page count is unknown.',
   '{n} ανακυκλωμένα έντυπα δεν μετρούν: δεν ξέρουμε τις σελίδες τους.': '{n} recycled manuals are not counted: their page count is unknown.',
   'Διάγνωση': 'Diagnostics',
@@ -371,7 +367,6 @@ const EN: Record<string, string> = {
   'χωρίς ψηφιακό': 'no digital copy',
   'Ανακύκλωση': 'Recycling',
   '{a} ανακυκλώθηκαν, {b} έτοιμα, {c} χωρίς ψηφιακό': '{a} recycled, {b} ready, {c} without a digital copy',
-  'Ψηφιακό εγχειρίδιο: {p}% των προϊόντων': 'Digital manual: {p}% of products',
   'Τιμή': 'Price',
   'Νόμισμα': 'Currency',
   'Πρόταση: {label}': 'Suggested: {label}',
@@ -404,5 +399,29 @@ const EN: Record<string, string> = {
   '{n} ημέρες πριν': '{n} days before',
   'ένα προϊόν': 'a product',
   '«{name}» — έως {date}. Έχεις το παραστατικό αγοράς;': '“{name}” — until {date}. Do you have the receipt?',
+  // Αποτύπωμα και σελίδα «Πηγές και υπολογισμοί»
+  'θα χρειαζόταν για εκτύπωση (εκτίμηση)': 'would be needed to print them (estimate)',
+  '1/{d} δέντρου': '1/{d} of a tree',
+  '1 δέντρο': '1 tree',
+  '{n} δέντρα': '{n} trees',
+  '≈ {w} χαρτί ανακυκλώθηκε (εκτίμηση)': '≈ {w} of paper recycled (estimate)',
+  'Πώς υπολογίζεται ›': 'How this is calculated ›',
+  'Πληροφορίες': 'About',
+  'Πηγές και υπολογισμοί': 'Sources and calculations',
+  'Σελίδες και χαρτί': 'Pages and paper',
+  'Σελίδες: του PDF κάθε εγχειριδίου, ή όσες σελίδες φωτογράφισες.': 'Pages: those of each manual’s PDF, or as many pages as you photographed.',
+  'Χαρτί: υποθέτουμε εκτύπωση και στις δύο όψεις σε χαρτί A5 80 g/m², δηλαδή ≈ 2,5 g ανά φύλλο (0,148 × 0,210 m × 80 g/m²). Για τα ανακυκλωμένα έντυπα υποθέτουμε όσες σελίδες έχει και το PDF.':
+    'Paper: we assume double-sided printing on A5 80 g/m² paper, i.e. ≈ 2.5 g per sheet (0.148 × 0.210 m × 80 g/m²). For recycled manuals we assume the same number of pages as the PDF.',
+  'CO₂ (εκτίμηση)': 'CO₂ (estimate)',
+  'Όσο CO₂ θα χρειαζόταν για να παραχθεί το χαρτί των σελίδων σου σε ψηφιακή μορφή: ≈ 1,07 kg CO₂e ανά kg χαρτιού. Ισχύει αν το έντυπο δεν τυπωνόταν· αν ήρθε τυπωμένο, το CO₂ αυτό έχει ήδη εκλυθεί.':
+    'The CO₂ that producing the paper for your digital pages would take: ≈ 1.07 kg CO₂e per kg of paper. This holds if the manual was never printed; if it came printed, that CO₂ has already been emitted.',
+  'Από τον συντελεστή 0,97 t CO₂e ανά short ton χαρτιού γραφείου από παρθένα ύλη, με 1 μετρικό τόνο = 0,907 short tons. Δεν περιλαμβάνει τον άνθρακα που αποθηκεύεται στο δάσος.':
+    'From the factor of 0.97 t CO₂e per short ton of virgin office paper, with 1 metric ton = 0.907 short tons. It excludes carbon stored in forests.',
+  'Δέντρα (χονδρική εκτίμηση)': 'Trees (rough estimate)',
+  '24 δέντρα ανά αμερικανικό τόνο (907 kg) χαρτιού εκτύπωσης από παρθένα ύλη. Η ίδια η πηγή το χαρακτηρίζει χονδρική εκτίμηση: βασίζεται σε υπολογισμό για μείγμα δέντρων ύψους ≈ 12 m, που δημοσιεύτηκε σε βιβλίο του 1992. Δεν βρήκαμε επιστημονική πρωτογενή πηγή.':
+    '24 trees per US ton (907 kg) of virgin printing paper. The source itself calls this a rough estimate: it rests on a calculation for a mix of trees ≈ 12 m tall, published in a 1992 book. We found no scientific primary source.',
+  'Συμβουλές ανακύκλωσης': 'Recycling tips',
+  'Οι συμβουλές για το τέλος ζωής μιας συσκευής βασίζονται σε:': 'The end-of-life tips for a device are based on:',
+  'Οδηγία 2012/19/ΕΕ (ΑΗΗΕ): άρθρο 14, Παραρτήματα VII και IX': 'Directive 2012/19/EU (WEEE): Article 14, Annexes VII and IX',
 };
 export default EN;

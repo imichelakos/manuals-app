@@ -134,7 +134,7 @@ function Working({ source, preview, step, progress }: { source: Source; preview:
                 {state === 'done' ? <IconCheck /> : state === 'now' ? <span className="size-2.5 animate-pulse rounded-full bg-accent" /> : null}
               </span>
               <span className="flex-1">{labels[s]}</span>
-              {s === 'text' && state === 'now' && <span className="mono text-sm text-ink-2">{Math.round(progress * 100)}%</span>}
+              {s === 'text' && state === 'now' && <span className="text-sm tabular-nums text-ink-2">{Math.round(progress * 100)}%</span>}
             </li>
           );
         })}
@@ -258,7 +258,7 @@ function CodeRow({ link, on, onToggle }: { link: Extract<CodePayload, { type: 'l
         <span className="text-2xl text-accent"><LinkIcon kind={link.kind} /></span>
         <span className="min-w-0 flex-1">
           <span className="block text-[15px] font-semibold">{linkLabel(link.kind)}</span>
-          <span className="mono block truncate text-[13px] text-ink-2">{link.host}</span>
+          <span className="block truncate text-[13px] text-ink-2">{link.host}</span>
           {link.insecure && <span className="mt-1 flex items-center gap-1 text-xs font-semibold text-warn"><IconWarn className="text-sm" />{t('Μη ασφαλής σύνδεση (http)')}</span>}
         </span>
         <input type="checkbox" className="size-5 accent-[var(--accent)]" checked={on} onChange={onToggle} aria-label={t('Αρχειοθέτηση συνδέσμου {host}', { host: link.host })} />
