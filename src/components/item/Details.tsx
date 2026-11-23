@@ -17,11 +17,11 @@ export function DetailsSection({ item }: { item: Item }) {
   const suggested = item.category === 'other' ? suggestCategory(item, items) : null;
   const autoGroup = suggestGroup(item);
   const set = (patch: Partial<Item>) => void updateItem(item.id, (c) => ({ ...c, ...patch }));
-  const field = (key: 'name' | 'brand' | 'model' | 'serial', label: string, extra?: { mono?: boolean; placeholder?: string }) => (
+  const field = (key: 'name' | 'brand' | 'model' | 'serial', label: string, extra?: { mono?: boolean; code?: boolean; placeholder?: string } /* code: κωδικός, χωρίς ορθογραφικό έλεγχο */) => (
     <div>
       <label className="label" htmlFor={`d-${key}`}>{label}</label>
       <AutoField id={`d-${key}`} value={item[key]} className={`input ${extra?.mono ? 'mono' : ''}`} placeholder={extra?.placeholder}
-        autoComplete="off" spellCheck={!extra?.mono} onCommit={(v) => set({ [key]: v.trim() })} />
+        autoComplete="off" spellCheck={!extra?.mono && !extra?.code} onCommit={(v) => set({ [key]: v.trim() })} />
     </div>
   );
   return (
@@ -30,7 +30,7 @@ export function DetailsSection({ item }: { item: Item }) {
       {field('name', t('Όνομα'), { placeholder: t('π.χ. Πλυντήριο ρούχων') })}
       <div className="grid grid-cols-2 gap-3">
         {field('brand', t('Μάρκα'))}
-        {field('model', t('Μοντέλο'), { mono: true })}
+        {field('model', t('Μοντέλο'), { code: true })}
       </div>
       {field('serial', t('Σειριακός αριθμός'), { mono: true })}
       <div className="grid grid-cols-2 gap-3">

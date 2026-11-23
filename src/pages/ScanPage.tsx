@@ -6,7 +6,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { CATEGORIES, type CategoryId } from '@/domain/categories';
-import { emptyItem, newId, type Item, type LinkRef } from '@/domain/model';
+import { newProduct, newId, type Item, type LinkRef } from '@/domain/model';
 import type { CodePayload } from '@/domain/codes';
 import { suggestCategory } from '@/domain/categorySuggest';
 import { saveItem, useItems } from '@/data/library';
@@ -36,7 +36,7 @@ export default function ScanPage() {
   useEffect(() => {
     if (!manual || created.current) return;
     created.current = true;
-    void saveItem(emptyItem()).then((i) => nav(`/item/${i.id}?edit=1`, { replace: true }));
+    void saveItem(newProduct()).then((i) => nav(`/item/${i.id}?edit=1`, { replace: true }));
   }, [manual, nav]);
 
   async function start(file: File) {
@@ -163,7 +163,7 @@ function Review({ preview, result, onSaved }: { preview: string | null; result: 
     setBusy(true);
     try {
       const now = Date.now();
-      const base = emptyItem(now);
+      const base = newProduct(now);
       const attachments: Item['attachments'] = [];
       if (result.cover && result.thumb) {
         const blobId = newId(), thumbId = newId();
@@ -207,8 +207,8 @@ function Review({ preview, result, onSaved }: { preview: string | null; result: 
         </div>
         <div>
           <label className="label" htmlFor="sc-model">{t('Μοντέλο')}</label>
-          <input id="sc-model" className="input mono" value={model} onChange={(e) => setModel(e.target.value)} autoComplete="off" autoCapitalize="off" spellCheck={false} />
-          <Suggestions options={found.models} value={model} onPick={setModel} mono />
+          <input id="sc-model" className="input" value={model} onChange={(e) => setModel(e.target.value)} autoComplete="off" autoCapitalize="off" spellCheck={false} />
+          <Suggestions options={found.models} value={model} onPick={setModel} />
         </div>
         <div>
           <label className="label" htmlFor="sc-name">{t('Όνομα')} <span className="font-normal text-ink-3">({t('προαιρετικό')})</span></label>
@@ -227,7 +227,7 @@ function Review({ preview, result, onSaved }: { preview: string | null; result: 
           <h2 className="section-title flex items-center gap-2"><IconQr className="text-base" />{t('Κωδικοί στο έντυπο')}</h2>
           <ul className="mt-3 space-y-2.5">
             {links.map((l) => <CodeRow key={l.url} link={l} on={keep.has(l.url)} onToggle={() => setKeep((s) => { const n = new Set(s); if (n.has(l.url)) n.delete(l.url); else n.add(l.url); return n; })} />)}
-            {ean && <li className="flex items-center gap-3 rounded-2xl bg-surface-2 px-3.5 py-3 text-[15px]"><span className="text-ink-2">{t('Barcode προϊόντος')}</span><span className="mono ml-auto">{ean}</span></li>}
+            {ean && <li className="flex items-center gap-3 rounded-2xl bg-surface-2 px-3.5 py-3 text-[15px]"><span className="text-ink-2">{t('Barcode προϊόντος')}</span><span className="ml-auto tabular-nums">{ean}</span></li>}
           </ul>
           {links.length > 0 && <p className="mt-3 text-[13px] leading-relaxed text-ink-3">{t('Οι σύνδεσμοι αποθηκεύονται στην καρτέλα του προϊόντος. Δεν ανοίγουν αυτόματα.')}</p>}
         </div>
@@ -240,13 +240,13 @@ function Review({ preview, result, onSaved }: { preview: string | null; result: 
   );
 }
 
-function Suggestions({ options, value, onPick, mono }: { options: string[]; value: string; onPick: (v: string) => void; mono?: boolean }) {
+function Suggestions({ options, value, onPick }: { options: string[]; value: string; onPick: (v: string) => void }) {
   const rest = options.filter((o) => o !== value).slice(0, 5);
   if (!rest.length) return null;
   return (
     <div className="mt-2 flex flex-wrap items-center gap-2">
       <span className="text-[13px] text-ink-3">{t('Ή μήπως:')}</span>
-      {rest.map((o) => <button key={o} type="button" className={`chip min-h-8 px-3 text-[13px] ${mono ? 'mono' : ''}`} onClick={() => onPick(o)}>{o}</button>)}
+      {rest.map((o) => <button key={o} type="button" className="chip min-h-8 px-3 text-[13px]" onClick={() => onPick(o)}>{o}</button>)}
     </div>
   );
 }

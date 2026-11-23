@@ -79,7 +79,7 @@ export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => 
 
   return (
     <Sheet title={t('Βρες το ψηφιακό')} onClose={onClose}>
-      <p className="text-[15px] text-ink-2">{displayName(item) || t('Συμπλήρωσε μάρκα και μοντέλο για καλύτερη αναζήτηση.')}{item.name && item.model ? <> · <span className="mono text-[13px]">{item.model}</span></> : null}</p>
+      <p className="text-[15px] text-ink-2">{displayName(item) || t('Συμπλήρωσε μάρκα και μοντέλο για καλύτερη αναζήτηση.')}{item.name && item.model ? <> · {item.model}</> : null}</p>
 
       {fromQr.length > 0 && (
         <Step n={1} title={t('Από το QR του εντύπου')} icon={<IconQr />}>

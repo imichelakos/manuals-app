@@ -114,6 +114,11 @@ export function emptyItem(now: number = Date.now()): Item {
   };
 }
 
+/** Διάρκεια εγγύησης κάθε νέου προϊόντος· αλλάζει ανά προϊόν (απόφαση 23/11/2026: όχι ρύθμιση). */
+export const DEFAULT_WARRANTY_MONTHS = 24;
+/** Νέο προϊόν από τον χρήστη: κενό, με τη συνήθη εγγύηση. */
+export const newProduct = (now: number = Date.now()): Item => ({ ...emptyItem(now), warranty: { months: DEFAULT_WARRANTY_MONTHS } });
+
 /** Τίτλος για εμφάνιση: όνομα, αλλιώς μάρκα + μοντέλο, αλλιώς κενό (η οθόνη βάζει «Χωρίς όνομα»). */
 export const displayName = (i: Pick<Item, 'name' | 'brand' | 'model'>): string =>
   i.name.trim() || [i.brand, i.model].map((s) => s.trim()).filter(Boolean).join(' ');

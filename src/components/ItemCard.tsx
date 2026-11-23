@@ -17,7 +17,7 @@ export function ItemCard({ item, selected }: { item: Item; selected: boolean }) 
       <div className="min-w-0 flex-1">
         <p className="truncate text-[16px] font-bold leading-snug">{displayName(item) || t('Χωρίς όνομα')}</p>
         {sub.length > 0 && item.name && (
-          <p className="truncate text-sm text-ink-2">{item.brand}{item.brand && item.model ? ' · ' : ''}<span className="mono text-[13px]">{item.model}</span></p>
+          <p className="truncate text-sm text-ink-2">{item.brand}{item.brand && item.model ? ' · ' : ''}{item.model}</p>
         )}
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
           {hasDigitalManual(item)

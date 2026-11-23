@@ -97,7 +97,7 @@
   .badge-bad { @apply bg-bad-soft text-bad; }
   .badge-mute { @apply bg-surface-2 text-ink-2; }
   .section-title { @apply text-[13px] font-bold uppercase tracking-wider text-ink-3; }
-  /* μονοδιάστατη ΜΟΝΟ για κωδικούς (μοντέλο, σειριακός, EAN) — απόφαση 23/11/2026· όλο το άλλο κείμενο σε Manrope */
+  /* μονοδιάστατη ΜΟΝΟ για τον σειριακό αριθμό (απόφαση 23/11/2026)· όλο το άλλο κείμενο σε Manrope */
   .mono { font-family: var(--font-mono); letter-spacing: -0.01em; }
   .no-scrollbar { scrollbar-width: none; }
   .no-scrollbar::-webkit-scrollbar { display: none; }

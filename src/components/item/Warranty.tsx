@@ -18,7 +18,7 @@ import { IconClose, IconShield } from '@/components/icons';
 const MONTHS = [12, 24, 36, 60];
 
 export function WarrantySection({ item }: { item: Item }) {
-  const { warrantyMonths, currency: lastCurrency } = useSettings();
+  const { currency: lastCurrency } = useSettings();
   const w = warrantyInfo(item, today());
   const patch = (fn: (c: Item) => Item) => void updateItem(item.id, fn);
   const tone = w.state === 'active' ? 'bg-ok-soft text-ok' : w.state === 'expiring' ? 'bg-warn-soft text-warn' : w.state === 'expired' ? 'bg-bad-soft text-bad' : 'bg-surface-2 text-ink-2';
@@ -27,8 +27,8 @@ export function WarrantySection({ item }: { item: Item }) {
   const currency = item.purchase.price !== undefined || item.purchase.currency ? currencyOf(item.purchase) : lastCurrency;
   const currencies = [...new Set([currency, ...COMMON_CURRENCIES])];
   const label = (m: number) => (m % 12 === 0 ? (m === 12 ? t('1 χρόνος') : t('{n} χρόνια', { n: m / 12 })) : tn(m, '{n} μήνας', '{n} μήνες'));
-  // chips: οι συνηθισμένες + η προεπιλογή των Ρυθμίσεων + η διάρκεια του προϊόντος (μια «Άλλη» γίνεται chip μόλις αποθηκευτεί)
-  const options = [...new Set([...MONTHS, warrantyMonths, ...(months ? [months] : [])])].filter((m) => m > 0).sort((a, b) => a - b);
+  // chips: οι συνηθισμένες + η διάρκεια του προϊόντος (μια «Άλλη» γίνεται chip μόλις αποθηκευτεί)
+  const options = [...new Set([...MONTHS, ...(months ? [months] : [])])].filter((m) => m > 0).sort((a, b) => a - b);
   const setMonths = (n: number | undefined) => patch((c) => ({ ...c, warranty: { ...c.warranty, months: n } }));
   // «Άλλη» διάρκεια: σε χρόνια (8 → 96 μήνες) ή σε μήνες· αποθηκεύεται πάντα σε μήνες
   const [unit, setUnit] = useState<'years' | 'months'>('years');

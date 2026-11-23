@@ -14,6 +14,7 @@ import { getLang, setLang, t, tn, type Lang } from '@/i18n';
 import { SyncSettings } from '@/components/SyncSettings';
 import { BackupSettings } from '@/components/BackupSettings';
 import { usePrefersDark } from '@/hooks/usePrefersDark';
+import { Segmented } from '@/components/controls';
 
 declare const __APP_VERSION__: string;
 
@@ -71,18 +72,11 @@ export default function SettingsPage() {
       <h1 className="pb-4 pt-2 text-[32px] font-extrabold leading-tight">{t('Ρυθμίσεις')}</h1>
       <div className="flex flex-col gap-6">
         <Group title={t('Γενικά')}>
-          <Row title={t('Εμφάνιση')} hint={s.theme === 'auto' ? (prefersDark ? t('Τώρα: σκοτεινή') : t('Τώρα: φωτεινή')) : undefined}>
-            <Choice<Theme> label={t('Εμφάνιση')} value={s.theme} onChange={(theme) => setSettings({ theme })} options={[['auto', t('Όπως η συσκευή')], ['light', t('Φωτεινή')], ['dark', t('Σκοτεινή')]]} />
+          <Row title={t('Εμφάνιση')} hint={s.theme === 'auto' ? (prefersDark ? t('Τώρα: σκοτεινή') : t('Τώρα: φωτεινή')) : undefined} stack>
+            <Segmented<Theme> label={t('Εμφάνιση')} value={s.theme} onChange={(theme) => setSettings({ theme })} options={[['light', t('Φωτεινή')], ['dark', t('Σκοτεινή')], ['auto', t('Αυτόματη')]]} />
           </Row>
           <Row title={t('Γλώσσα')}>
             <Choice<Lang> label={t('Γλώσσα')} value={getLang()} onChange={setLang} options={[['el', 'Ελληνικά'], ['en', 'English']]} />
-          </Row>
-          <Row title={t('Μηχανή αναζήτησης')} hint={t('Για την εύρεση του ψηφιακού εγχειριδίου.')}>
-            <Choice<SearchEngine> label={t('Μηχανή αναζήτησης')} value={s.engine} onChange={(engine) => setSettings({ engine })} options={SEARCH_ENGINES.map((e) => [e, ENGINES[e].name])} />
-          </Row>
-          <Row title={t('Συνήθης εγγύηση')} hint={t('Γρήγορη επιλογή σε κάθε προϊόν.')}>
-            <Choice label={t('Συνήθης διάρκεια εγγύησης')} value={String(s.warrantyMonths)} onChange={(v) => setSettings({ warrantyMonths: Number(v) })}
-              options={[['12', t('1 χρόνος')], ['24', t('{n} χρόνια', { n: 2 })], ['36', t('{n} χρόνια', { n: 3 })], ['60', t('{n} χρόνια', { n: 5 })]]} />
           </Row>
         </Group>
 
@@ -126,6 +120,13 @@ export default function SettingsPage() {
           <Link to="/sources" className="flex items-center justify-between py-3 text-[15px] font-semibold">
             {t('Πηγές και υπολογισμοί')}<span className="text-ink-3" aria-hidden="true">›</span>
           </Link>
+          {/* μόνο για δοκιμές: ο χρήστης δεν διαλέγει μηχανή (απόφαση 23/11/2026)· η εύρεση θα γίνεται αυτόματα */}
+          <details className="py-3">
+            <summary className="cursor-pointer text-[13px] font-semibold text-ink-3">{t('Για δοκιμές')}</summary>
+            <Row title={t('Μηχανή αναζήτησης')}>
+              <Choice<SearchEngine> label={t('Μηχανή αναζήτησης')} value={s.engine} onChange={(engine) => setSettings({ engine })} options={SEARCH_ENGINES.map((e) => [e, ENGINES[e].name])} />
+            </Row>
+          </details>
         </Group>
 
         <p className="px-2 text-center text-[13px] leading-relaxed text-ink-3">

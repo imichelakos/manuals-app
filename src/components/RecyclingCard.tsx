@@ -7,10 +7,22 @@ import { IconRecycle } from './icons';
 /** 840 → «840 g», 1250 → «1,3 kg» */
 const grams = (g: number) => (g < 1000 ? `${Math.round(g).toLocaleString(locale())} g` : `${(g / 1000).toLocaleString(locale(), { maximumFractionDigits: 1 })} kg`);
 
-/** 0,55 → «0,55 kg», 12,3 → «12 kg» */
-const kg = (v: number) => `${v.toLocaleString(locale(), { maximumFractionDigits: v < 10 ? 2 : 0 })} kg`;
-/** κάτω από ένα δέντρο ως κλάσμα («1/70 δέντρου»), αλλιώς με ένα δεκαδικό */
-const treesText = (n: number) => (n < 1 ? t('1/{d} δέντρου', { d: Math.max(1, Math.round(1 / n)).toLocaleString(locale()) }) : n < 1.05 ? t('1 δέντρο') : t('{n} δέντρα', { n: (Math.round(n * 10) / 10).toLocaleString(locale()) }));
+/** 0,55 → «0,55», 12,3 → «12» (σε kg) */
+const kgNum = (v: number) => v.toLocaleString(locale(), { maximumFractionDigits: v < 10 ? 2 : 0 });
+/** δέντρα ως [τιμή, λέξη]: κάτω από ένα ως κλάσμα («1/91», «δέντρου»), αλλιώς με ένα δεκαδικό */
+function treesParts(n: number): [string, string] {
+  if (n < 1) return [`1/${Math.max(1, Math.round(1 / n)).toLocaleString(locale())}`, t('δέντρου')];
+  const v = Math.round(n * 10) / 10;
+  return [v.toLocaleString(locale()), v === 1 ? t('δέντρο') : t('δέντρα')];
+}
+
+/** Ένα από τα τρία μεγέθη του αποτυπώματος: τιμή από πάνω, σύντομη λέξη από κάτω. */
+const Stat = ({ value, label }: { value: string; label: string }) => (
+  <div className="min-w-0 flex-1 px-2 text-center first:pl-0 last:pr-0">
+    <p className="text-[17px] font-extrabold leading-tight tabular-nums">{value}</p>
+    <p className="mt-0.5 text-[12px] leading-snug">{label}</p>
+  </div>
+);
 
 export type RecyclingFilter = 'recycled' | 'ready' | 'waiting';
 
@@ -26,7 +38,10 @@ export function RecyclingCard({ stats: s, active, onPick }: { stats: RecyclingSt
     <section className="card mb-3 p-4" aria-label={t('Ανακύκλωση')}>
       <div className="flex items-center gap-2.5">
         <IconRecycle className="text-xl text-ok" />
-        <p className="text-[15px] font-bold">{tn(s.recycled, '{n} έντυπο ανακυκλώθηκε', '{n} έντυπα ανακυκλώθηκαν')}</p>
+        <div className="min-w-0">
+          <p className="text-[15px] font-bold">{tn(s.recycled, '{n} έντυπο ανακυκλώθηκε', '{n} έντυπα ανακυκλώθηκαν')}</p>
+          {s.paperGrams > 0 && <p className="text-[13px] text-ink-2">{t('≈ {w} χαρτί', { w: grams(s.paperGrams) })}</p>}
+        </div>
         <span className="ml-auto text-sm font-semibold text-ink-2">{s.recycledPct}%</span>
       </div>
       <div className="mt-3 flex h-2.5 overflow-hidden rounded-full bg-surface-2" role="img"
@@ -42,21 +57,14 @@ export function RecyclingCard({ stats: s, active, onPick }: { stats: RecyclingSt
           </button>
         ))}
       </div>
-      {s.pagesDigital > 0 && <>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <div className="rounded-2xl bg-surface-2 px-3 py-2.5">
-            <p className="text-lg font-extrabold leading-tight">{s.pagesDigital.toLocaleString(locale())}</p>
-            <p className="text-[12px] leading-snug text-ink-2">{t('σελίδες σε ψηφιακή μορφή')}</p>
-          </div>
-          <div className="rounded-2xl bg-ok-soft px-3 py-2.5 text-ok">
-            <p className="text-lg font-extrabold leading-tight">≈ {kg(s.co2Kg)} CO₂</p>
-            <p className="text-[12px] leading-snug">{t('θα χρειαζόταν για εκτύπωση (εκτίμηση)')}</p>
-            <p className="mt-0.5 text-[12px] font-semibold leading-snug">≈ {treesText(s.trees)}</p>
-          </div>
+      {s.pagesDigital > 0 && (
+        <div className="mt-3 flex divide-x divide-ok/20 rounded-2xl bg-ok-soft px-3 py-2.5 text-ok">
+          <Stat value={s.pagesDigital.toLocaleString(locale())} label={t('σελίδες ψηφιακά')} />
+          <Stat value={`≈ ${kgNum(s.co2Kg)} kg`} label={t('CO₂ για εκτύπωση')} />
+          <Stat value={`≈ ${treesParts(s.trees)[0]}`} label={treesParts(s.trees)[1]} />
         </div>
-        <p className="mt-2 text-[13px] text-ink-2">{t('≈ {w} χαρτί ανακυκλώθηκε (εκτίμηση)', { w: grams(s.paperGrams) })}</p>
-        {s.paperUnknown > 0 && <p className="mt-0.5 text-[12px] text-ink-3">{tn(s.paperUnknown, '{n} ανακυκλωμένο έντυπο δεν μετρά: δεν ξέρουμε τις σελίδες του.', '{n} ανακυκλωμένα έντυπα δεν μετρούν: δεν ξέρουμε τις σελίδες τους.')}</p>}
-      </>}
+      )}
+      {s.paperUnknown > 0 && <p className="mt-2 text-[12px] text-ink-3">{tn(s.paperUnknown, '{n} ανακυκλωμένο έντυπο δεν μετρά: δεν ξέρουμε τις σελίδες του.', '{n} ανακυκλωμένα έντυπα δεν μετρούν: δεν ξέρουμε τις σελίδες τους.')}</p>}
       <Link to="/sources" className="mt-2 inline-block text-[13px] font-semibold text-accent">{t('Πώς υπολογίζεται ›')}</Link>
     </section>
   );
