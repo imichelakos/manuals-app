@@ -3,22 +3,28 @@ import type { Item } from '@/domain/model';
 import { warrantyInfo } from '@/domain/warranty';
 import { today } from '@/domain/dates';
 import { updateItem } from '@/data/library';
-import { useSettings } from '@/data/settings';
-import { t } from '@/i18n';
-import { AutoField } from '@/components/controls';
+import { setSettings, useSettings } from '@/data/settings';
+import { COMMON_CURRENCIES, currencyOf } from '@/domain/currency';
+import { t, tn } from '@/i18n';
+import { AutoField, OtherNumber } from '@/components/controls';
 import { warrantyText } from '@/components/WarrantyBadge';
-import { IconShield } from '@/components/icons';
+import { IconClose, IconShield } from '@/components/icons';
 
 const MONTHS = [12, 24, 36, 60];
 
 export function WarrantySection({ item }: { item: Item }) {
-  const { warrantyMonths } = useSettings();
+  const { warrantyMonths, currency: lastCurrency } = useSettings();
   const w = warrantyInfo(item, today());
   const patch = (fn: (c: Item) => Item) => void updateItem(item.id, fn);
   const tone = w.state === 'active' ? 'bg-ok-soft text-ok' : w.state === 'expiring' ? 'bg-warn-soft text-warn' : w.state === 'expired' ? 'bg-bad-soft text-bad' : 'bg-surface-2 text-ink-2';
   const months = item.warranty.months;
-  const label = (m: number) => (m % 12 === 0 ? (m === 12 ? t('1 χρόνος') : t('{n} χρόνια', { n: m / 12 })) : t('{n} μήνες', { n: m }));
+  // νόμισμα: της τιμής που υπάρχει ήδη· χωρίς τιμή, το τελευταίο που χρησιμοποίησε ο χρήστης
+  const currency = item.purchase.price !== undefined || item.purchase.currency ? currencyOf(item.purchase) : lastCurrency;
+  const currencies = [...new Set([currency, ...COMMON_CURRENCIES])];
+  const label = (m: number) => (m % 12 === 0 ? (m === 12 ? t('1 χρόνος') : t('{n} χρόνια', { n: m / 12 })) : tn(m, '{n} μήνας', '{n} μήνες'));
+  // chips: οι συνηθισμένες + η προεπιλογή των Ρυθμίσεων + η διάρκεια του προϊόντος (μια «Άλλη» γίνεται chip μόλις αποθηκευτεί)
   const options = [...new Set([...MONTHS, warrantyMonths, ...(months ? [months] : [])])].filter((m) => m > 0).sort((a, b) => a - b);
+  const setMonths = (n: number | undefined) => patch((c) => ({ ...c, warranty: { ...c.warranty, months: n } }));
 
   return (
     <section className="card p-5">
@@ -43,29 +49,37 @@ export function WarrantySection({ item }: { item: Item }) {
 
       <fieldset className="mt-3">
         <legend className="label">{t('Διάρκεια εγγύησης')}</legend>
+        {/* με επιλεγμένη διάρκεια μένει μόνο αυτή· νέο πάτημα την καταργεί και ξαναφέρνει τις επιλογές */}
         <div className="flex flex-wrap gap-2">
-          {options.map((m) => (
+          {(months ? [months] : options).map((m) => (
             <button key={m} type="button" aria-pressed={months === m} className={`chip ${months === m ? 'chip-on' : ''}`}
-              onClick={() => patch((c) => ({ ...c, warranty: { ...c.warranty, months: months === m ? undefined : m } }))}>{label(m)}</button>
+              aria-label={months === m ? t('{d} — πάτησε για αλλαγή', { d: label(m) }) : undefined}
+              onClick={() => setMonths(months === m ? undefined : m)}>{label(m)}{months === m && <IconClose className="text-sm opacity-70" />}</button>
           ))}
-          <label className="chip gap-2 pr-2">
+          {!months && <label className="chip gap-2 pr-2">
             <span>{t('Άλλη')}</span>
-            <input type="number" inputMode="numeric" min={1} max={600} className="w-[4.5rem] rounded-lg bg-surface-2 px-2 py-1 text-center text-base text-ink outline-hidden"
-              aria-label={t('Διάρκεια εγγύησης σε μήνες')} placeholder={t('μήνες')} value={months && !options.includes(months) ? months : ''}
-              onChange={(e) => { const n = Math.round(Number(e.target.value)); patch((c) => ({ ...c, warranty: { ...c.warranty, months: n >= 1 && n <= 600 ? n : undefined } })); }} />
-          </label>
+            <OtherNumber value={months} presets={options} min={1} max={600} onChange={setMonths}
+              className="w-[4.5rem] rounded-lg bg-surface-2 px-2 py-1 text-center text-base text-ink outline-hidden"
+              label={t('Διάρκεια εγγύησης σε μήνες')} placeholder={t('μήνες')} />
+          </label>}
         </div>
       </fieldset>
 
-      <div className="mt-3 grid grid-cols-[1fr_7.5rem] gap-3">
+      <div className="mt-3 grid grid-cols-[1fr_10.5rem] gap-3">
         <div>
           <label className="label" htmlFor="w-store">{t('Κατάστημα')}</label>
           <AutoField id="w-store" value={item.purchase.store ?? ''} onCommit={(v) => patch((c) => ({ ...c, purchase: { ...c.purchase, store: v.trim() || undefined } }))} />
         </div>
         <div>
-          <label className="label" htmlFor="w-price">{t('Τιμή (€)')}</label>
-          <AutoField id="w-price" inputMode="decimal" value={item.purchase.price?.toString().replace('.', ',') ?? ''}
-            onCommit={(v) => { const n = Number(v.replace(',', '.').replace(/[^\d.]/g, '')); patch((c) => ({ ...c, purchase: { ...c.purchase, price: v.trim() && Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : undefined } })); }} />
+          <label className="label" htmlFor="w-price">{t('Τιμή')}</label>
+          <div className="flex gap-1.5">
+            <AutoField id="w-price" inputMode="decimal" className="input min-w-0" value={item.purchase.price?.toString().replace('.', ',') ?? ''}
+              onCommit={(v) => { const n = Number(v.replace(',', '.').replace(/[^\d.]/g, '')); const price = v.trim() && Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : undefined; patch((c) => ({ ...c, purchase: { ...c.purchase, price, currency: price === undefined ? undefined : currency } })); }} />
+            <select aria-label={t('Νόμισμα')} className="input w-[4.75rem] shrink-0 px-2" value={currency}
+              onChange={(e) => { const cur = e.target.value; setSettings({ currency: cur }); patch((c) => ({ ...c, purchase: { ...c.purchase, currency: c.purchase.price !== undefined ? cur : undefined } })); }}>
+              {currencies.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
         </div>
       </div>
       <div className="mt-3">

@@ -1,6 +1,5 @@
 /** Ρυθμίσεις: εμφάνιση, γλώσσα, αναζήτηση, προεπιλεγμένη εγγύηση, αντίγραφο ασφαλείας, συγχρονισμός, αποθήκευση. */
 import { useEffect, useState, type ReactNode } from 'react';
-import { exportBackup, importBackup, BackupError } from '@/data/backup';
 import { useItems, wipeAll } from '@/data/library';
 import { setSettings, useSettings, type Theme } from '@/data/settings';
 import { resetSync } from '@/data/syncRuntime';
@@ -8,15 +7,12 @@ import { confirmIdentity } from '@/data/appLock';
 import { SecuritySettings } from '@/components/SecuritySettings';
 import { ReminderSettings } from '@/components/ReminderSettings';
 import { cancelAllScheduled } from '@/services/notifications';
-import type { SearchEngine } from '@/domain/manualSearch';
-import { today } from '@/domain/dates';
+import { ENGINES, SEARCH_ENGINES, type SearchEngine } from '@/domain/manualSearch';
 import { prettySize } from '@/services/files';
-import { saveFile } from '@/services/platform';
 import { getLang, setLang, t, tn, type Lang } from '@/i18n';
-import { FilePick } from '@/components/controls';
 import { SyncSettings } from '@/components/SyncSettings';
-import { toast } from '@/components/Toast';
-import { IconDownload, IconUpload } from '@/components/icons';
+import { BackupSettings } from '@/components/BackupSettings';
+import { usePrefersDark } from '@/hooks/usePrefersDark';
 
 declare const __APP_VERSION__: string;
 
@@ -43,8 +39,8 @@ function Segmented<T extends string>({ value, options, onChange, label }: { valu
 
 export default function SettingsPage() {
   const s = useSettings();
+  const prefersDark = usePrefersDark();
   const items = useItems();
-  const [busy, setBusy] = useState(false);
   const [storage, setStorage] = useState<{ used: number; persisted: boolean | null } | null>(null);
   const [wipe, setWipe] = useState(false);
 
@@ -56,25 +52,6 @@ export default function SettingsPage() {
     })();
   }, [items]);
 
-  const doExport = async () => {
-    if (!(await confirmIdentity(t('Επιβεβαίωση για εξαγωγή αντιγράφου')))) return;
-    setBusy(true);
-    try { await saveFile(await exportBackup(), `manuals-backup-${today()}.zip`); }
-    catch { toast(t('Το αντίγραφο δεν δημιουργήθηκε.'), 'error'); }
-    setBusy(false);
-  };
-  const doImport = async (file: File) => {
-    if (!(await confirmIdentity(t('Επιβεβαίωση για εισαγωγή αντιγράφου')))) return;
-    setBusy(true);
-    try {
-      const r = await importBackup(file);
-      toast(`${tn(r.added, '{n} νέο προϊόν', '{n} νέα προϊόντα')} · ${tn(r.updated, '{n} ενημερώθηκε', '{n} ενημερώθηκαν')}`);
-    } catch (e) {
-      const code = e instanceof BackupError ? e.code : 'not-backup';
-      toast(code === 'too-big' ? t('Το αρχείο είναι πολύ μεγάλο.') : code === 'newer-version' ? t('Το αντίγραφο είναι από νεότερη έκδοση της εφαρμογής.') : t('Αυτό δεν είναι αντίγραφο ασφαλείας της εφαρμογής.'), 'error');
-    }
-    setBusy(false);
-  };
 
   return (
     <div className="mx-auto max-w-2xl px-4 pb-10 pt-[calc(1rem+env(safe-area-inset-top))]">
@@ -83,6 +60,7 @@ export default function SettingsPage() {
         <section className="card divide-y divide-line p-5">
           <Row title={t('Εμφάνιση')}>
             <Segmented<Theme> label={t('Εμφάνιση')} value={s.theme} onChange={(theme) => setSettings({ theme })} options={[['auto', t('Όπως η συσκευή')], ['light', t('Φωτεινή')], ['dark', t('Σκοτεινή')]]} />
+            {s.theme === 'auto' && <p className="mt-2 text-[13px] text-ink-2">{prefersDark ? t('Η συσκευή είναι τώρα σε σκοτεινή εμφάνιση.') : t('Η συσκευή είναι τώρα σε φωτεινή εμφάνιση.')}</p>}
           </Row>
           <Row title={t('Γλώσσα')}>
             <Segmented<Lang> label={t('Γλώσσα')} value={getLang()} onChange={setLang} options={[['el', 'Ελληνικά'], ['en', 'English']]} />
@@ -97,7 +75,7 @@ export default function SettingsPage() {
 
         <section className="card divide-y divide-line p-5">
           <Row title={t('Μηχανή αναζήτησης')} hint={t('Όταν ψάχνεις το ψηφιακό εγχειρίδιο, η αναζήτηση ανοίγει εδώ.')}>
-            <Segmented<SearchEngine> label={t('Μηχανή αναζήτησης')} value={s.engine} onChange={(engine) => setSettings({ engine })} options={[['duckduckgo', 'DuckDuckGo'], ['google', 'Google']]} />
+            <Segmented<SearchEngine> label={t('Μηχανή αναζήτησης')} value={s.engine} onChange={(engine) => setSettings({ engine })} options={SEARCH_ENGINES.map((e) => [e, ENGINES[e].name])} />
           </Row>
           <Row title={t('Συνήθης διάρκεια εγγύησης')} hint={t('Εμφανίζεται ως γρήγορη επιλογή στην καρτέλα κάθε προϊόντος.')}>
             <Segmented label={t('Συνήθης διάρκεια εγγύησης')} value={String(s.warrantyMonths)} onChange={(v) => setSettings({ warrantyMonths: Number(v) })}
@@ -109,11 +87,8 @@ export default function SettingsPage() {
         </section>
 
         <section className="card divide-y divide-line p-5">
-          <Row title={t('Αντίγραφο ασφαλείας')} hint={t('Ένα αρχείο .zip με όλα τα προϊόντα και τα αρχεία τους. Με αυτό μεταφέρεις τη βιβλιοθήκη και σε άλλη συσκευή: η εισαγωγή συγχωνεύει, δεν σβήνει. Το αρχείο δεν είναι κρυπτογραφημένο — φύλαξέ το σε ασφαλές μέρος.')}>
-            <div className="grid grid-cols-2 gap-2.5">
-              <button type="button" className="btn btn-plain" disabled={busy || items.length === 0} onClick={() => void doExport()}><IconDownload className="text-xl" />{t('Εξαγωγή')}</button>
-              <FilePick accept=".zip,application/zip" disabled={busy} onFiles={(f) => void doImport(f[0]!)} className="btn btn-plain"><IconUpload className="text-xl" />{t('Εισαγωγή')}</FilePick>
-            </div>
+          <Row title={t('Αντίγραφο ασφαλείας')} hint={t('Ένα αρχείο με όλα τα προϊόντα και τα αρχεία τους, κρυπτογραφημένο με κωδικό που διαλέγεις. Με αυτό μεταφέρεις τη βιβλιοθήκη και σε άλλη συσκευή: η εισαγωγή συγχωνεύει, δεν σβήνει.')}>
+            <BackupSettings />
           </Row>
           <Row title={t('Συγχρονισμός iCloud')} hint={t('Τα προϊόντα και τα αρχεία σου αποθηκεύονται στον ιδιωτικό χώρο iCloud του Apple ID σου και εμφανίζονται σε όλες τις συσκευές σου. Μετρούν στον αποθηκευτικό σου χώρο iCloud.')}>
             <SyncSettings />

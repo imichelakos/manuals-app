@@ -10,15 +10,21 @@ import { buildIndex, facets, search, activeFilterCount, NO_FILTERS, type Filters
 import { hasDigitalManual } from '@/domain/model';
 import { warrantyInfo } from '@/domain/warranty';
 import { today } from '@/domain/dates';
+import { recyclingStats } from '@/domain/recycling';
 import { t, tn } from '@/i18n';
 import { ItemCard } from '@/components/ItemCard';
 import { FilterSheet } from '@/components/FilterSheet';
-import { IconClose, IconFilter, IconPlus, IconRecycle, IconScan, IconSearch, IconShield, IconFile } from '@/components/icons';
+import { RecyclingCard, type RecyclingFilter } from '@/components/RecyclingCard';
+import { InboxSheet } from '@/components/InboxSheet';
+import { useInbox } from '@/data/inbox';
+import { IconBell, IconClose, IconFilter, IconPlus, IconRecycle, IconScan, IconSearch, IconShield, IconFile } from '@/components/icons';
 
 export default function LibraryPanel() {
   const items = useItems();
   const { query, filters, sort } = useViewState();
   const [sheet, setSheet] = useState(false);
+  const [inbox, setInbox] = useState(false);
+  const notices = useInbox().length;
   const selected = useMatch('/item/:id')?.params.id;
   const now = today();
 
@@ -28,9 +34,8 @@ export default function LibraryPanel() {
   const results = useMemo(() => search(index, { query: q, filters, sort, today: now }), [index, q, filters, sort, now]);
   const counts = useMemo(() => facets(index, { query: q, filters, today: now }), [index, q, filters, now]);
 
+  const recycling = useMemo(() => recyclingStats(items), [items]);
   const stats = useMemo(() => ({
-    recycled: items.filter((i) => i.paper === 'recycled').length,
-    ready: items.filter((i) => i.paper === 'kept' && hasDigitalManual(i)).length,
     missing: items.filter((i) => !hasDigitalManual(i)).length,
     expiring: items.filter((i) => warrantyInfo(i, now).state === 'expiring').length,
   }), [items, now]);
@@ -39,10 +44,15 @@ export default function LibraryPanel() {
   const same = (a: Filters, b: Partial<Filters>) => (Object.keys(b) as (keyof Filters)[]).every((k) => JSON.stringify(a[k]) === JSON.stringify(b[k]));
   // γρήγορα φίλτρα: ένα πάτημα εφαρμόζει τον συνδυασμό, δεύτερο τον αφαιρεί
   const quick: { key: string; label: string; n: number; icon: React.ReactNode; set: Partial<Filters>; unset: Partial<Filters> }[] = [
-    { key: 'ready', label: t('Έτοιμα για ανακύκλωση'), n: stats.ready, icon: <IconRecycle />, set: { manual: 'yes', paper: 'kept' }, unset: { manual: 'any', paper: 'any' } },
     { key: 'missing', label: t('Χωρίς ψηφιακό'), n: stats.missing, icon: <IconFile />, set: { manual: 'no' }, unset: { manual: 'any' } },
     { key: 'expiring', label: t('Η εγγύηση λήγει σύντομα'), n: stats.expiring, icon: <IconShield />, set: { warranty: ['expiring'] }, unset: { warranty: [] } },
   ];
+  // κάρτα ανακύκλωσης: κάθε πλήθος είναι ένας συνδυασμός φίλτρων (εγχειρίδιο × έντυπο)
+  const RECYCLING: Record<RecyclingFilter, Partial<Filters>> = {
+    recycled: { manual: 'any', paper: 'recycled' }, ready: { manual: 'yes', paper: 'kept' }, waiting: { manual: 'no', paper: 'kept' },
+  };
+  const recyclingOn = (Object.keys(RECYCLING) as RecyclingFilter[]).find((k) => same(filters, RECYCLING[k])) ?? null;
+  const pickRecycling = (k: RecyclingFilter) => setFilters({ ...filters, ...(recyclingOn === k ? { manual: 'any', paper: 'any' } : RECYCLING[k]) });
   const active = activeFilterCount(filters);
   const filtered = q.trim() !== '' || active > 0;
 
@@ -53,13 +63,19 @@ export default function LibraryPanel() {
           <h1 className="text-[32px] font-extrabold leading-tight">{t('Βιβλιοθήκη')}</h1>
           <p className="mt-0.5 text-sm text-ink-2">
             {items.length === 0 ? t('Όλα τα εγχειρίδιά σου, χωρίς χαρτί')
-              : `${tn(items.length, '{n} προϊόν', '{n} προϊόντα')} · ${tn(stats.recycled, '{n} έντυπο ανακυκλώθηκε', '{n} έντυπα ανακυκλώθηκαν')}`}
+              : tn(items.length, '{n} προϊόν', '{n} προϊόντα')}
           </p>
         </div>
+        <button type="button" className="icon-btn relative mb-1 bg-surface shadow-card" onClick={() => setInbox(true)}
+          aria-label={notices ? t('Ειδοποιήσεις: {n}', { n: notices }) : t('Ειδοποιήσεις')}>
+          <IconBell className="text-xl" />
+          {notices > 0 && <span className="absolute -right-0.5 -top-0.5 flex min-w-5 items-center justify-center rounded-full bg-bad px-1 text-[11px] font-bold text-white" aria-hidden="true">{notices}</span>}
+        </button>
       </header>
 
       {items.length === 0 ? <Empty /> : (
         <>
+          {!query && <RecyclingCard stats={recycling} active={recyclingOn} onPick={pickRecycling} />}
           <div className="sticky top-0 z-10 -mx-4 bg-bg/90 px-4 pb-2 pt-1 backdrop-blur-md">
             <div className="relative">
               <IconSearch className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-xl text-ink-3" />
@@ -106,6 +122,7 @@ export default function LibraryPanel() {
         </>
       )}
 
+      {inbox && <InboxSheet onClose={() => setInbox(false)} />}
       {sheet && <FilterSheet filters={filters} sort={sort} counts={counts} onChange={setFilters} onSort={(s) => setViewState({ sort: s })} onClose={() => setSheet(false)} />}
     </div>
   );

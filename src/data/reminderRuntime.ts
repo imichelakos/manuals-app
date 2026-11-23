@@ -15,14 +15,21 @@ const LIMIT = 50;
 
 export const remindersSupported = notificationsSupported;
 
+/** Τίτλος και κείμενο μιας υπενθύμισης — ίδια στην ειδοποίηση της συσκευής και στη λίστα ειδοποιήσεων της εφαρμογής. */
+export function reminderMessage(r: Reminder): { title: string; body: string } {
+  const name = r.name || t('ένα προϊόν');
+  return {
+    title: r.kind === 'day' ? t('Η εγγύηση λήγει σήμερα') : tn(r.daysLeft, 'Η εγγύηση λήγει σε {n} ημέρα', 'Η εγγύηση λήγει σε {n} ημέρες'),
+    body: t('«{name}» — έως {date}. Έχεις το παραστατικό αγοράς;', { name, date: fmtDate(r.until) }),
+  };
+}
+
 function toNotification(r: Reminder): DeviceNotification | null {
   const d = parseIso(r.date);
   if (!d) return null;
-  const name = r.name || t('ένα προϊόν');
   return {
     id: r.id,
-    title: r.kind === 'day' ? t('Η εγγύηση λήγει σήμερα') : tn(r.daysLeft, 'Η εγγύηση λήγει σε {n} ημέρα', 'Η εγγύηση λήγει σε {n} ημέρες'),
-    body: t('«{name}» — έως {date}. Έχεις το παραστατικό αγοράς;', { name, date: fmtDate(r.until) }),
+    ...reminderMessage(r),
     at: new Date(d.y, d.m - 1, d.d, REMINDER_HOUR, 0, 0),
     extra: { itemId: r.itemId },
   };

@@ -6,12 +6,12 @@
 import { useState } from 'react';
 import { displayName, type Item } from '@/domain/model';
 import { classifyCode } from '@/domain/codes';
-import { manualQueries } from '@/domain/manualSearch';
+import { ENGINES, localManualLanguage, manualQueries } from '@/domain/manualSearch';
 import { updateItem } from '@/data/library';
 import { useSettings } from '@/data/settings';
 import { downloadPdf, type DownloadFailure } from '@/services/download';
 import { storeFile } from '@/services/files';
-import { t } from '@/i18n';
+import { languageName, t, userLanguages } from '@/i18n';
 import { Sheet } from '@/components/Sheet';
 import { ExternalLink } from '@/components/ExternalLink';
 import { DOC_TYPES, FilePick, IMAGE_TYPES } from '@/components/controls';
@@ -32,8 +32,9 @@ export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => 
   const [busy, setBusy] = useState(false);
   const [blocked, setBlocked] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
-  const queries = manualQueries(item, engine);
-  const labels = { pdf: t('PDF του εγχειριδίου'), local: t('Εγχειρίδιο στα ελληνικά'), support: t('Σελίδα υποστήριξης') };
+  const queries = manualQueries(item, engine, localManualLanguage(userLanguages()));
+  const labels = { pdf: t('PDF του εγχειριδίου (αγγλικά)'), support: t('Σελίδα υποστήριξης (αγγλικά)'), local: '' };
+  const labelOf = (q: (typeof queries)[number]) => (q.id === 'local' ? t('Εγχειρίδιο στα {lang}', { lang: languageName(q.lang) }) : labels[q.id]);
   // σύνδεσμοι από QR που μοιάζουν να οδηγούν στο εγχειρίδιο
   const fromQr = item.links.filter((l) => { const c = classifyCode(l.url); return c.type === 'link' && c.manualHint; });
 
@@ -101,11 +102,11 @@ export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => 
             <div className="flex flex-col gap-2">
               {queries.map((q) => (
                 <ExternalLink key={q.id} href={q.url} className="btn btn-soft justify-between text-left">
-                  <span>{labels[q.id]}</span><IconExternal className="shrink-0 text-lg" />
+                  <span>{labelOf(q)}</span><IconExternal className="shrink-0 text-lg" />
                 </ExternalLink>
               ))}
             </div>
-            <p className="mt-2 text-[13px] leading-relaxed text-ink-3">{t('Ανοίγει στο {engine}. Προτίμησε τη σελίδα του κατασκευαστή. Αντίγραψε τη διεύθυνση του PDF και γύρνα εδώ.', { engine: engine === 'google' ? 'Google' : 'DuckDuckGo' })}</p>
+            <p className="mt-2 text-[13px] leading-relaxed text-ink-3">{t('Ανοίγει στο {engine}. Προτίμησε τη σελίδα του κατασκευαστή. Αντίγραψε τη διεύθυνση του PDF και γύρνα εδώ.', { engine: ENGINES[engine].name })}</p>
           </>}
       </Step>
 

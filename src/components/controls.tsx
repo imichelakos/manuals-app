@@ -1,6 +1,7 @@
 /** Μικρά κοινά στοιχεία φόρμας: πεδίο κειμένου με αυτόματη αποθήκευση, επιλογή αρχείου, κουμπί διαγραφής με επιβεβαίωση. */
 import { useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
 import { useLatest } from '@/hooks/useLatest';
+import { expectAppSwitch } from '@/services/appSwitch';
 import { t } from '@/i18n';
 import { IconTrash } from './icons';
 
@@ -33,12 +34,40 @@ export function AutoField({ value, onCommit, multiline, className = 'input', ...
     : <input {...rest} {...props} />;
 }
 
+/**
+ * Πεδίο «Άλλο» δίπλα σε έτοιμες επιλογές (π.χ. 12/24/36 μήνες): δείχνει την τιμή μόνο όταν δεν είναι μία από αυτές.
+ * Αποθηκεύει ΟΤΑΝ ΤΕΛΕΙΩΣΕΙ ο χρήστης (έξοδος από το πεδίο ή Enter), όχι σε κάθε ψηφίο: έτσι ο καλών μπορεί να κάνει την
+ * τιμή chip χωρίς το πεδίο να αδειάζει στη μέση της πληκτρολόγησης. Κενό πεδίο → onChange(undefined).
+ */
+export function OtherNumber({ value, presets, min, max, onChange, label, placeholder, className }: {
+  value: number | undefined; presets: readonly number[]; min: number; max: number;
+  onChange: (n: number | undefined) => void; label: string; placeholder?: string; className?: string;
+}) {
+  const shown = value !== undefined && !presets.includes(value) ? String(value) : '';
+  const [draft, setDraft] = useState<string | null>(null); // null: δεν γράφει
+  const commit = () => {
+    if (draft === null) return;
+    const n = Number(draft);
+    if (!draft) { if (shown) onChange(undefined); } // άδειασε το πεδίο της δικής του τιμής
+    else if (Number.isInteger(n) && n >= min && n <= max && n !== value) onChange(n);
+    setDraft(null);
+  };
+  return (
+    <input type="number" inputMode="numeric" enterKeyHint="done" min={min} max={max} aria-label={label} placeholder={placeholder} className={className}
+      value={draft ?? shown}
+      onFocus={() => setDraft(shown)}
+      onBlur={commit}
+      onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+      onChange={(e) => setDraft(e.target.value.replace(/\D/g, '').slice(0, String(max).length))} />
+  );
+}
+
 /** Κουμπί που ανοίγει την κάμερα ή τον επιλογέα αρχείων του συστήματος. */
 export function FilePick({ onFiles, accept, capture, multiple, className, children, disabled }: {
   onFiles: (files: File[]) => void; accept: string; capture?: boolean; multiple?: boolean; className?: string; children: ReactNode; disabled?: boolean;
 }) {
   return (
-    <label className={`${className ?? ''} ${disabled ? 'pointer-events-none opacity-40' : 'cursor-pointer'} focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent`}>
+    <label onClick={expectAppSwitch} className={`${className ?? ''} ${disabled ? 'pointer-events-none opacity-40' : 'cursor-pointer'} focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent`}>
       {children}
       <input type="file" className="sr-only" accept={accept} multiple={multiple} disabled={disabled}
         {...(capture ? { capture: 'environment' as const } : {})}

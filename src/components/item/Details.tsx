@@ -1,15 +1,21 @@
 /** Στοιχεία προϊόντος (όνομα, μάρκα, μοντέλο, σειριακός, κατηγορία, χώρος, ετικέτες) και ελεύθερες σημειώσεις. */
 import { useId } from 'react';
-import { CATEGORIES, type CategoryId } from '@/domain/categories';
+import { CATEGORIES, categoryById, type CategoryId } from '@/domain/categories';
+import { suggestCategory } from '@/domain/categorySuggest';
+import { GROUP_IDS, GROUP_LABELS, suggestGroup, type GroupId } from '@/domain/groups';
 import type { Item } from '@/domain/model';
 import { updateItem, useItems } from '@/data/library';
 import { t } from '@/i18n';
 import { AutoField } from '@/components/controls';
+import { CategoryIcon } from '@/components/categoryIcons';
 
 export function DetailsSection({ item }: { item: Item }) {
   const items = useItems();
   const rooms = [...new Set(items.map((i) => i.room).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'el'));
   const listId = useId();
+  // πρόταση μόνο όταν δεν έχει μπει κατηγορία («Άλλο»): δεν αλλάζει ποτέ μόνη της κάτι που διάλεξε ο χρήστης
+  const suggested = item.category === 'other' ? suggestCategory(item, items) : null;
+  const autoGroup = suggestGroup(item);
   const set = (patch: Partial<Item>) => void updateItem(item.id, (c) => ({ ...c, ...patch }));
   const field = (key: 'name' | 'brand' | 'model' | 'serial', label: string, extra?: { mono?: boolean; placeholder?: string }) => (
     <div>
@@ -29,16 +35,28 @@ export function DetailsSection({ item }: { item: Item }) {
       {field('serial', t('Σειριακός αριθμός'), { mono: true })}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="label" htmlFor="d-cat">{t('Κατηγορία')}</label>
+          <label className="label flex items-center gap-1.5" htmlFor="d-cat">{t('Κατηγορία')}<CategoryIcon id={item.category} className="text-base text-ink-2" /></label>
           <select id="d-cat" className="input" value={item.category} onChange={(e) => set({ category: e.target.value as CategoryId })}>
             {CATEGORIES.map((c) => <option key={c.id} value={c.id}>{t(c.label)}</option>)}
           </select>
+          {suggested && (
+            <button type="button" className="chip mt-2 max-w-full" onClick={() => set({ category: suggested })}>
+              <span className="truncate">{t('Πρόταση: {label}', { label: t(categoryById(suggested).label) })}</span>
+            </button>
+          )}
         </div>
         <div>
           <label className="label" htmlFor="d-room">{t('Χώρος')}</label>
           <AutoField id="d-room" value={item.room} list={listId} placeholder={t('π.χ. Κουζίνα')} onCommit={(v) => set({ room: v.trim() })} />
           <datalist id={listId}>{rooms.map((r) => <option key={r} value={r} />)}</datalist>
         </div>
+      </div>
+      <div>
+        <label className="label" htmlFor="d-group">{t('Ομάδα')}</label>
+        <select id="d-group" className="input" value={item.group ?? ''} onChange={(e) => set({ group: (e.target.value || undefined) as GroupId | undefined })}>
+          <option value="">{autoGroup ? t('Αυτόματα: {g}', { g: t(GROUP_LABELS[autoGroup]) }) : t('Αυτόματα: —')}</option>
+          {GROUP_IDS.map((g) => <option key={g} value={g}>{t(GROUP_LABELS[g])}</option>)}
+        </select>
       </div>
       <div>
         <label className="label" htmlFor="d-tags">{t('Ετικέτες')} <span className="font-normal text-ink-3">({t('χωρισμένες με κόμμα')})</span></label>

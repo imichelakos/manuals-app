@@ -32,6 +32,9 @@
 
 Το project δεν έχει ακόμη αρχείο entitlements· το δημιουργεί το βήμα 3.
 
+6. Μετά το βήμα 3: `ManualsICloudSyncEnabled` → `true` στο `ios/App/App/Info.plist`. Μέχρι τότε το plugin ΔΕΝ καταχωρίζεται
+   (`AppViewController.swift`): στο iPhone, χωρίς το entitlement, το άνοιγμα του συγχρονισμού τερμάτιζε την εφαρμογή (22/11/2026).
+
 ## Πριν από App Store
 
 - Σε ανάπτυξη οι τύποι εγγραφών δημιουργούνται μόνοι τους την πρώτη φορά που αποθηκεύεται εγγραφή («just-in-time schema»,

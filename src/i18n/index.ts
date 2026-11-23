@@ -37,11 +37,21 @@ export function t(el: string, vars?: Record<string, string | number>): string {
 /** Ενικός/πληθυντικός: tn(n, '{n} προϊόν', '{n} προϊόντα'). */
 export const tn = (n: number, one: string, many: string) => t(n === 1 ? one : many, { n });
 
-const locale = () => (lang === 'en' ? 'en-GB' : 'el-GR');
+export const locale = () => (lang === 'en' ? 'en-GB' : 'el-GR');
 /** «ΕΕΕΕ-ΜΜ-ΗΗ» → «14 Μαρ 2025». */
 export function fmtDate(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number);
   if (!y || !m || !d) return iso;
   return new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(y, m - 1, d)));
 }
-export const fmtMoney = (v: number) => new Intl.NumberFormat(locale(), { style: 'currency', currency: 'EUR' }).format(v);
+export const fmtMoney = (v: number, currency = 'EUR') => new Intl.NumberFormat(locale(), { style: 'currency', currency }).format(v);
+
+/** Οι γλώσσες του χρήστη κατά σειρά προτίμησης: της συσκευής, και στο τέλος της εφαρμογής. */
+export function userLanguages(): string[] {
+  const nav = typeof navigator !== 'undefined' ? [...(navigator.languages ?? []), navigator.language].filter(Boolean) : [];
+  return [...nav, lang];
+}
+/** Όνομα γλώσσας στη γλώσσα της εφαρμογής: 'de' → «Γερμανικά» / «German». */
+export function languageName(code: string): string {
+  try { return new Intl.DisplayNames([locale()], { type: 'language' }).of(code) ?? code; } catch { return code; }
+}

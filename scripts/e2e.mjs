@@ -3,7 +3,7 @@
 // αντίγραφο ασφαλείας (εξαγωγή, εισαγωγή σε «άλλη συσκευή»). Αποτυγχάνει και σε οποιοδήποτε σφάλμα κονσόλας (π.χ. CSP).
 // Χρήση: npm run build && npm run e2e   (χρειάζεται εγκατεστημένο το playwright με Chromium)
 import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import QRCode from 'qrcode';
@@ -18,7 +18,7 @@ mkdirSync(OUT, { recursive: true });
 
 const PDF_URL = 'https://example.com/manuals/WAU28PH9BY.pdf';
 const VIDEO_URL = 'https://youtu.be/abc123xyz';
-const PDF_BYTES = Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[]/Count 0>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n');
+const PDF_BYTES = Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[]/Count 3>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n');
 
 const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore' });
 const stop = () => server.kill();
@@ -116,6 +116,21 @@ try {
   await page.locator('#w-date').fill('2025-03-14');
   await page.getByRole('button', { name: '2 χρόνια' }).click();
   await page.getByText('Εγγύηση έως 14 Μαρ 2027').first().waitFor();
+  assert.equal(await page.getByRole('button', { name: '1 χρόνος' }).count(), 0); // με επιλεγμένη διάρκεια οι άλλες κρύβονται
+  await page.getByRole('button', { name: /^2 χρόνια/ }).click();                 // νέο πάτημα: ξανά όλες οι επιλογές
+  await page.getByRole('button', { name: '1 χρόνος' }).waitFor();
+  // «Άλλη»: διψήφιος αριθμός πληκτρολογημένος ψηφίο-ψηφίο (το πεδίο δεν πρέπει να αδειάζει στη μέση)
+  const other = page.getByLabel('Διάρκεια εγγύησης σε μήνες');
+  await other.pressSequentially('30');
+  assert.equal(await other.inputValue(), '30');                       // δεν αδειάζει στη μέση της πληκτρολόγησης
+  await other.press('Enter');                                          // αποθήκευση → γίνεται chip
+  await page.getByRole('button', { name: /^30 μήνες/, pressed: true }).waitFor();
+  await page.getByText('Εγγύηση έως 14 Σεπ 2027').first().waitFor();
+  assert.equal(await other.count(), 0);                                            // «Άλλη» κρύβεται όσο υπάρχει διάρκεια
+  await page.getByRole('button', { name: /^30 μήνες/ }).click();
+  await page.getByRole('button', { name: '2 χρόνια' }).click();
+  await page.getByText('Εγγύηση έως 14 Μαρ 2027').first().waitFor();
+  assert.equal(await other.count(), 0);
   await page.locator('#w-store').fill('Ηλεκτρικά Παπαδόπουλος');
   await page.locator('#w-price').fill('499');
   await page.locator('#w-price').blur();
@@ -133,6 +148,9 @@ try {
   await page.locator('#d-tags').fill('δώρο, εξοχικό');
   await page.locator('#d-tags').blur();
   await page.waitForTimeout(300);
+  // γενικές συμβουλές ανακύκλωσης της συσκευής
+  await page.getByText('Όταν δεν θα τη χρειάζεσαι').click();
+  await page.getByText(/Πολλοί κατασκευαστές και καταστήματα/).waitFor();
   await page.evaluate(() => window.scrollTo(0, 0));
   await shot('07-item');
   await page.screenshot({ path: path.join(OUT, '07b-item-full.png'), fullPage: true });
@@ -144,8 +162,10 @@ try {
   await page.locator('#d-name').fill('Ψυγειοκαταψύκτης');
   await page.locator('#d-brand').fill('Samsung');
   await page.locator('#d-model').fill('RB34T632ESA');
-  await page.locator('#d-cat').selectOption('kitchen');
-  await page.locator('#w-date').fill('2020-01-10');
+  await page.locator('#d-model').blur();
+  await page.getByRole('button', { name: 'Πρόταση: Κουζίνα' }).click(); // κατηγορία από το όνομα
+  await page.waitForFunction(() => document.querySelector('#d-cat').value === 'kitchen');
+  await page.locator('#w-date').fill('2025-10-10'); // λήγει 10/10/2026: έληξε πριν από λίγο → ειδοποιήσεις στη λίστα
   await page.getByRole('button', { name: '1 χρόνος' }).click();
   await page.locator('#d-model').blur();
   await page.waitForTimeout(900);
@@ -155,6 +175,9 @@ try {
   const cards = page.locator('ul > li a[href^="#/item/"]');
   await cards.first().waitFor();
   assert.equal(await cards.count(), 2);
+  await cards.filter({ hasText: 'Samsung' }).getByText('Κουζίνα').waitFor(); // κατηγορία με εικονίδιο στην κάρτα
+  await page.getByText('σελίδες σε ψηφιακή μορφή').waitFor();          // 3 σελίδες στο PDF → 2 φύλλα → ≈ 5 g
+  await page.getByText('≈ 5 g').waitFor();
   await shot('08-library');
   const search = page.getByRole('searchbox');
   for (const [q, n] of [['πλυντ', 1], ['psyg', 1], ['wau28', 1], ['samsnug', 1], ['φιλτρο', 1], ['εξοχικο', 1], ['παπαδοπουλος', 1], ['zzz', 0], ['', 2]]) {
@@ -171,6 +194,10 @@ try {
   await page.getByRole('button', { name: /^Χωρίς ψηφιακό/ }).click();
   await page.getByRole('button', { name: /^Φίλτρα/ }).click();
   await page.getByRole('heading', { name: 'Φίλτρα' }).waitFor();
+  await page.getByRole('button', { name: /^Samsung/ }).click();               // μάρκα
+  await page.getByRole('button', { name: 'Εμφάνιση 1 προϊόντος' }).waitFor();
+  await page.getByRole('button', { name: /^Samsung/ }).click();
+  await page.getByRole('button', { name: /^Μεγάλες συσκευές 2/ }).waitFor();   // ψυγειοκαταψύκτης + πλυντήριο ρούχων: ομάδα από το όνομα
   await page.getByRole('button', { name: /^Έχει λήξει/ }).click();
   await page.waitForTimeout(400);
   await shot('10-filters');
@@ -178,6 +205,23 @@ try {
   assert.equal(await cards.count(), 1);
   await page.getByRole('button', { name: 'Καθαρισμός', exact: true }).click();
   assert.equal(await cards.count(), 2);
+
+  step('ειδοποιήσεις: κρατιούνται στη λίστα μέχρι να σβηστούν (σύρσιμο ή ×)');
+  await page.getByRole('button', { name: 'Ειδοποιήσεις: 1' }).click(); // έληξε: μένει μόνο η ειδοποίηση της ημέρας λήξης
+  await page.getByRole('heading', { name: 'Ειδοποιήσεις' }).waitFor();
+  await page.getByText('Η εγγύηση έληξε').first().waitFor();     // ο τίτλος λογαριάζεται από σήμερα
+  await page.waitForTimeout(400);
+  await shot('10b-inbox');
+  const first = page.locator('[role=dialog] li > div').first();
+  const box = await first.boundingBox();
+  await page.mouse.move(box.x + box.width - 40, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width - 120, box.y + box.height / 2, { steps: 6 });
+  await page.mouse.move(box.x + 20, box.y + box.height / 2, { steps: 6 });
+  await page.mouse.up();
+  await page.getByText('Δεν υπάρχουν ειδοποιήσεις.').waitFor();    // σβήστηκε με σύρσιμο
+  await page.getByRole('button', { name: 'Κλείσιμο' }).click();
+  await page.getByRole('button', { name: 'Ειδοποιήσεις', exact: true }).waitFor();
 
   step('κρυπτογράφηση: στον δίσκο δεν φαίνεται περιεχόμενο');
   const disk = await page.evaluate(async () => {
@@ -206,9 +250,24 @@ try {
   await page.getByRole('button', { name: 'Πίσω στη βιβλιοθήκη' }).click();
   await page.getByRole('link', { name: 'Ρυθμίσεις' }).click();
   await page.getByRole('radio', { name: 'Φωτεινή' }).click();
-  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Εξαγωγή' }).click()]);
-  const backup = path.join(OUT, 'backup.zip');
+  await page.getByRole('button', { name: 'Εξαγωγή' }).click();
+  const pw1 = page.getByLabel('Κωδικός', { exact: true }), pw2 = page.getByLabel('Ξανά ο κωδικός');
+  await pw1.fill('abc123');
+  await page.getByText('Τουλάχιστον 12 χαρακτήρες.').waitFor();             // αδύναμος κωδικός: όχι εξαγωγή
+  await pw1.fill('Πορτοκαλί-ποδήλατο 42');
+  await pw2.fill('Πορτοκαλί-ποδήλατο 4');
+  await page.getByText('Οι δύο κωδικοί δεν είναι ίδιοι.').waitFor();
+  assert.ok(await page.locator('button[form="backup-pw"]').isDisabled());
+  await pw2.fill('Πορτοκαλί-ποδήλατο 42');
+  await page.waitForTimeout(400); // τέλος της κίνησης του φύλλου
+  await shot('11b-backup-password');
+  const [download] = await Promise.all([page.waitForEvent('download'), page.locator('button[form="backup-pw"]').click()]);
+  assert.match(download.suggestedFilename(), /\.mbackup$/);
+  const backup = path.join(OUT, 'backup.mbackup');
   await download.saveAs(backup);
+  const raw = readFileSync(backup);
+  assert.equal(raw.subarray(0, 7).toString(), 'MNLSBAK');
+  for (const plain of ['manifest.json', 'Bosch', 'WAU28PH9BY', 'Παπαδόπουλος']) assert.equal(raw.includes(Buffer.from(plain)), false, `φαίνεται «${plain}» στο αντίγραφο`);
 
   // ---------- «άλλη συσκευή»: iPad, άδεια, εισαγωγή του αντιγράφου ----------
   step('iPad: εισαγωγή αντιγράφου σε άδεια συσκευή, δύο στήλες');
@@ -217,6 +276,11 @@ try {
   watch(tab);
   await tab.goto(`${BASE}#/settings`);
   await tab.locator('label:has-text("Εισαγωγή") input[type=file]').setInputFiles(backup);
+  await tab.getByLabel('Κωδικός', { exact: true }).fill('λάθος κωδικός');
+  await tab.locator('button[form="backup-pw"]').click();
+  await tab.getByText('Λάθος κωδικός — ή το αρχείο έχει αλλοιωθεί.').waitFor({ timeout: 30_000 });
+  await tab.getByLabel('Κωδικός', { exact: true }).fill('Πορτοκαλί-ποδήλατο 42');
+  await tab.locator('button[form="backup-pw"]').click();
   const tcards = tab.locator('aside ul > li a[href^="#/item/"]');
   await tcards.first().waitFor();
   assert.equal(await tcards.count(), 2);
@@ -229,7 +293,9 @@ try {
   // δεύτερη εισαγωγή του ίδιου αντιγράφου: καμία διπλή εγγραφή
   await tab.goto(`${BASE}#/settings`);
   await tab.locator('label:has-text("Εισαγωγή") input[type=file]').setInputFiles(backup);
-  await tab.getByText('0 νέα προϊόντα').waitFor();
+  await tab.getByLabel('Κωδικός', { exact: true }).fill('Πορτοκαλί-ποδήλατο 42');
+  await tab.locator('button[form="backup-pw"]').click();
+  await tab.getByText('0 νέα προϊόντα').waitFor({ timeout: 30_000 });
   assert.equal(await tcards.count(), 2);
   await shot('15-ipad-settings', tab);
 
@@ -267,6 +333,74 @@ try {
     return { itemKeys: Object.keys(it).sort().join(',') };
   });
   assert.equal(after.itemKeys, 'ct,id,iv');
+
+  // ---------- κλειδί web → Keychain (εφαρμογή iOS όπου τα plugins Swift εμφανίζονται αργότερα) ----------
+  step('μετάβαση κλειδιού: δεδομένα με κλειδί web, μετά εμφανίζεται Keychain (προσομοίωση iOS)');
+  // προσομοίωση της γέφυρας iOS του Capacitor: πλατφόρμα «ios», plugin SecureKey με «Keychain» στο localStorage
+  await legacy.addInitScript(() => {
+    window.webkit = { messageHandlers: { bridge: { postMessage() {} } } };
+    window.Capacitor = {
+      PluginHeaders: [
+        { name: 'SecureKey', methods: [{ name: 'storageKey', rtype: 'promise' }, { name: 'deleteStorageKey', rtype: 'promise' }] },
+        { name: 'LocalNotifications', methods: [{ name: 'addListener' }, { name: 'removeListener' }, ...['checkPermissions', 'requestPermissions', 'getPending', 'schedule', 'cancel'].map((name) => ({ name, rtype: 'promise' }))] },
+      ],
+      nativeCallback: () => 'mock-callback',
+      nativePromise: async (plugin, method, o) => {
+        if (plugin === 'LocalNotifications') {
+          // προσομοίωση: άδεια δίνεται στο πρώτο αίτημα· οτιδήποτε άλλο (π.χ. μια «then») είναι σφάλμα
+          const granted = localStorage.getItem('mock-notif') === 'granted';
+          if (method === 'checkPermissions') return { display: granted ? 'granted' : 'prompt' };
+          if (method === 'requestPermissions') { localStorage.setItem('mock-notif', 'granted'); return { display: 'granted' }; }
+          if (method === 'getPending') return { notifications: [] };
+          if (method === 'schedule' || method === 'cancel' || method === 'removeListener') return {};
+        }
+        if (plugin === 'SecureKey' && method === 'storageKey') {
+          let k = localStorage.getItem('mock-keychain');
+          if (!k && o.create) { k = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))); localStorage.setItem('mock-keychain', k); }
+          return { key: k };
+        }
+        throw new Error(`mock: ${plugin}.${method}`);
+      },
+    };
+  });
+  const webKeyCount = () => lp.evaluate(() => new Promise((res) => {
+    const r = indexedDB.open('manuals-keys', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('k');
+    r.onsuccess = () => { const c = r.result.transaction('k').objectStore('k').count(); c.onsuccess = () => { res(c.result); r.result.close(); }; };
+  }));
+  assert.equal(await webKeyCount(), 1); // τα δεδομένα είναι ακόμη με κλειδί web
+  await lp.goto(BASE);
+  await lp.getByText('Παλιό τοστιέρα').click();
+  await lp.getByText('old.pdf').waitFor();                    // ξανακρυπτογραφήθηκαν με το νέο κλειδί χωρίς απώλεια
+  assert.equal(await webKeyCount(), 0);                         // το κλειδί web σβήστηκε
+  assert.ok(await lp.evaluate(() => !!localStorage.getItem('mock-keychain')));
+  await lp.goto(`${BASE}#/settings`);
+  await lp.getByText('Keychain της συσκευής').waitFor();
+  await lp.reload();                                            // δεύτερη εκκίνηση: μόνο με το Keychain
+  await lp.goto(BASE);
+  await lp.getByText('Παλιό τοστιέρα').click();
+  await lp.getByText('old.pdf').waitFor();                      // το αρχείο (το μόνο blob) το επαληθεύει ήδη το openVault με το νέο κλειδί· χωρίς άνοιγμα (θέλει το plugin αρχείων)
+
+  step('υπενθυμίσεις: ο διακόπτης ανοίγει (προσομοίωση iOS με LocalNotifications)');
+  await lp.goto(`${BASE}#/settings`);
+  const remSwitch = lp.getByRole('switch', { name: 'Υπενθύμιση λήξης εγγύησης' });
+  await remSwitch.click();
+  await lp.waitForFunction(() => document.querySelector('[role=switch][aria-label="Υπενθύμιση λήξης εγγύησης"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 });
+  // πολλαπλή επιλογή «πόσο νωρίς», έως 5
+  await lp.getByRole('button', { name: '30 ημέρες πριν', pressed: true }).waitFor();          // προεπιλογή
+  await lp.getByRole('button', { name: '7 ημέρες πριν' }).click();
+  await lp.getByRole('button', { name: '60 ημέρες πριν' }).click();
+  const otherDays = lp.getByLabel('Ημέρες πριν από τη λήξη');
+  await otherDays.pressSequentially('14'); await otherDays.press('Enter');
+  await lp.getByRole('button', { name: '14 ημέρες πριν', pressed: true }).waitFor();
+  await otherDays.pressSequentially('3'); await otherDays.press('Enter');
+  await lp.getByRole('button', { name: '3 ημέρες πριν', pressed: true }).waitFor();         // 5 επιλογές
+  assert.equal(await lp.getByLabel('Ημέρες πριν από τη λήξη').count(), 0);                 // στο όριο: όχι «Άλλο»
+  await lp.getByRole('switch', { name: 'Υπενθύμιση λήξης εγγύησης' }).scrollIntoViewIfNeeded();
+  await shot('17-reminders', lp);
+  await lp.getByRole('button', { name: '7 ημέρες πριν' }).click();                          // μία λιγότερη → ξανά «Άλλο»
+  await lp.getByLabel('Ημέρες πριν από τη λήξη').waitFor();
+  assert.deepEqual(await lp.evaluate(() => JSON.parse(localStorage.getItem('manuals-settings-v1')).reminderDays), [60, 30, 14, 3]);
 
   // ---------- αγγλικά ----------
   step('αγγλικά');

@@ -15,6 +15,7 @@ import { FindManualSheet } from '@/components/item/FindManualSheet';
 import { LinksSection } from '@/components/item/Links';
 import { WarrantySection } from '@/components/item/Warranty';
 import { DetailsSection, NotesSection } from '@/components/item/Details';
+import { RecyclingTipsSection } from '@/components/item/RecyclingTips';
 import { toast } from '@/components/Toast';
 import { IconBack } from '@/components/icons';
 
@@ -72,6 +73,7 @@ export default function ItemPage() {
         <ReceiptSection item={item} />
         <NotesSection item={item} />
         <DetailsSection item={item} />
+        <RecyclingTipsSection item={item} />
       </div>
 
       {find && <FindManualSheet item={item} onClose={() => setFind(false)} />}

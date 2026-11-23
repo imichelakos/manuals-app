@@ -7,9 +7,10 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { CATEGORIES, type CategoryId } from '@/domain/categories';
 import { emptyItem, newId, type Item, type LinkRef } from '@/domain/model';
 import type { CodePayload } from '@/domain/codes';
-import { saveItem } from '@/data/library';
+import { suggestCategory } from '@/domain/categorySuggest';
+import { saveItem, useItems } from '@/data/library';
 import { blobStore } from '@/data/blobs';
-import { scanCover, type ScanResult, type ScanStep } from '@/services/scan';
+import { scanCover, warmScan, type ScanResult, type ScanStep } from '@/services/scan';
 import { t } from '@/i18n';
 import { FilePick, IMAGE_TYPES } from '@/components/controls';
 import { linkLabel, LinkIcon } from '@/components/item/Links';
@@ -45,6 +46,9 @@ export default function ScanPage() {
       toast(t('Δεν μπόρεσα να ανοίξω αυτή τη φωτογραφία. Δοκίμασε άλλη.'), 'error');
     }
   }
+
+  // προθέρμανση μόλις ανοίξει η σάρωση: OCR και κωδικοί είναι έτοιμοι όταν έρθει η φωτογραφία
+  useEffect(() => { if (!manual) warmScan(); }, [manual]);
 
   if (manual) return null;
   return (
@@ -130,7 +134,10 @@ function Review({ preview, result, onSaved }: { preview: string; result: ScanRes
   const [brand, setBrand] = useState(found.brands[0] ?? '');
   const [model, setModel] = useState(found.models[0] ?? '');
   const [name, setName] = useState(found.productWord);
-  const [category, setCategory] = useState<CategoryId>(found.category);
+  // κατηγορία: προτείνεται από όνομα / μάρκα / μοντέλο / κείμενο και ακολουθεί τις αλλαγές τους, μέχρι να τη διαλέξει ο χρήστης
+  const library = useItems();
+  const [chosenCategory, setCategory] = useState<CategoryId | null>(null);
+  const category = chosenCategory ?? suggestCategory({ name, brand, model, ocrText: result.text }, library) ?? found.category;
   const links = codes.flatMap((c) => (c.type === 'link' ? [c] : []));
   const ean = codes.find((c) => c.type === 'ean')?.code;
   const [keep, setKeep] = useState<Set<string>>(() => new Set(links.map((l) => l.url)));

@@ -1,6 +1,8 @@
 import { Link } from 'react-router';
 import { displayName, hasDigitalManual, type Item } from '@/domain/model';
+import { categoryById } from '@/domain/categories';
 import { t } from '@/i18n';
+import { CategoryIcon } from './categoryIcons';
 import { Thumb } from './Thumb';
 import { WarrantyBadge } from './WarrantyBadge';
 import { IconCheck, IconRecycle } from './icons';
@@ -22,6 +24,7 @@ export function ItemCard({ item, selected }: { item: Item; selected: boolean }) 
             ? <span className="badge badge-ok"><IconCheck className="text-sm" />{t('Ψηφιακό')}</span>
             : <span className="badge badge-mute">{t('Χωρίς ψηφιακό')}</span>}
           <WarrantyBadge item={item} short />
+          {item.category !== 'other' && <span className="badge badge-mute"><CategoryIcon id={item.category} className="text-sm" />{t(categoryById(item.category).label)}</span>}
           {item.paper === 'recycled' && <span className="badge badge-ok" title={t('Το έντυπο ανακυκλώθηκε')}><IconRecycle className="text-sm" /><span className="sr-only">{t('Το έντυπο ανακυκλώθηκε')}</span></span>}
         </div>
       </div>

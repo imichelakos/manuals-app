@@ -1,4 +1,5 @@
 /** Όλα τα φίλτρα και η ταξινόμηση. Δίπλα σε κάθε επιλογή, πόσα προϊόντα θα έδινε· επιλογές με 0 δεν πατιούνται. */
+import { GROUP_IDS, GROUP_LABELS, type GroupId } from '@/domain/groups';
 import type { ReactNode } from 'react';
 import { CATEGORIES, type CategoryId } from '@/domain/categories';
 import { NO_FILTERS, type Facets, type Filters, type Sort, type YesNo } from '@/domain/search';
@@ -31,6 +32,8 @@ export function FilterSheet({ filters: f, sort, counts, onChange, onSort, onClos
   const yn = (key: 'manual' | 'receipt', v: YesNo) => onChange({ ...f, [key]: f[key] === v ? 'any' : v });
   const sorts: [Sort, string][] = [['relevance', t('Συνάφεια / πρόσφατα')], ['recent', t('Τελευταία αλλαγή')], ['name', t('Όνομα')], ['warranty', t('Λήξη εγγύησης')]];
   const warranty: [WarrantyState, string][] = [['active', t('Ενεργή')], ['expiring', t('Λήγει σύντομα')], ['expired', t('Έχει λήξει')], ['none', t('Χωρίς στοιχεία')]];
+  const brands = [...new Set([...counts.brands.keys(), ...f.brands])].map((k) => ({ k, label: counts.brands.get(k)?.label ?? k, n: counts.brands.get(k)?.n ?? 0 }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'el'));
   const rooms = [...new Set([...counts.rooms.keys(), ...f.rooms])].sort((a, b) => a.localeCompare(b, 'el'));
   const tags = [...new Set([...counts.tags.keys(), ...f.tags])].sort((a, b) => a.localeCompare(b, 'el'));
   const cats = CATEGORIES.filter((c) => counts.categories.has(c.id) || f.categories.includes(c.id));
@@ -60,9 +63,21 @@ export function FilterSheet({ filters: f, sort, counts, onChange, onSort, onClos
         <Opt on={f.receipt === 'yes'} n={counts.receipt.yes} onClick={() => yn('receipt', 'yes')}>{t('Υπάρχει')}</Opt>
         <Opt on={f.receipt === 'no'} n={counts.receipt.no} onClick={() => yn('receipt', 'no')}>{t('Λείπει')}</Opt>
       </Group>
+      {GROUP_IDS.some((g) => counts.groups.has(g) || f.groups.includes(g)) && (
+        <Group title={t('Ομάδα')}>
+          {GROUP_IDS.filter((g) => counts.groups.has(g) || f.groups.includes(g)).map((g) => (
+            <Opt key={g} on={f.groups.includes(g)} n={counts.groups.get(g) ?? 0} onClick={() => onChange({ ...f, groups: toggle<GroupId>(f.groups, g) })}>{t(GROUP_LABELS[g])}</Opt>
+          ))}
+        </Group>
+      )}
       {cats.length > 0 && (
         <Group title={t('Κατηγορία')}>
           {cats.map((c) => <Opt key={c.id} on={f.categories.includes(c.id)} n={counts.categories.get(c.id) ?? 0} onClick={() => onChange({ ...f, categories: toggle<CategoryId>(f.categories, c.id) })}>{t(c.label)}</Opt>)}
+        </Group>
+      )}
+      {brands.length > 0 && (
+        <Group title={t('Μάρκα')}>
+          {brands.map((b) => <Opt key={b.k} on={f.brands.includes(b.k)} n={b.n} onClick={() => onChange({ ...f, brands: toggle(f.brands, b.k) })}>{b.label}</Opt>)}
         </Group>
       )}
       {rooms.length > 0 && (

@@ -2,8 +2,8 @@
  * Υπενθυμίσεις λήξης εγγύησης: ΠΟΙΕΣ και ΠΟΤΕ. Καθαρός υπολογισμός από τα προϊόντα — το προγραμματισμό στη συσκευή τον
  * κάνει το services/notifications.
  *
- * Για κάθε ζωντανό προϊόν με εγγύηση που δεν έχει λήξει: μία υπενθύμιση `daysBefore` ημέρες πριν και μία την ημέρα της
- * λήξης, στις 10:00 τοπική ώρα. Όσες πέφτουν στο παρελθόν παραλείπονται. Κρατιούνται οι πιο κοντινές (`limit`): το iOS
+ * Για κάθε ζωντανό προϊόν με εγγύηση που δεν έχει λήξει: μία υπενθύμιση για κάθε τιμή του `daysBefore` (έως
+ * MAX_REMINDER_OFFSETS, π.χ. 60, 30 και 7 ημέρες πριν) και μία την ημέρα της λήξης, στις 10:00 τοπική ώρα. Όσες πέφτουν στο παρελθόν παραλείπονται. Κρατιούνται οι πιο κοντινές (`limit`): το iOS
  * έχει όριο στις προγραμματισμένες ειδοποιήσεις ανά εφαρμογή, και οι υπόλοιπες ξαναϋπολογίζονται σε κάθε αλλαγή.
  */
 import { displayName, type Item } from './model';
@@ -24,25 +24,67 @@ export interface Reminder {
 }
 
 export const REMINDER_HOUR = 10;
+/** πόσες «πριν» υπενθυμίσεις μπορεί να διαλέξει ο χρήστης */
+export const MAX_REMINDER_OFFSETS = 5;
 
-/** FNV-1a 32 bit, περιορισμένο στο 1…2^31−1 (θετικό int για το plugin). */
-export function reminderId(itemId: string, kind: Reminder['kind']): number {
+/** Οι ημέρες «πριν» καθαρές: ακέραιες 1…99, χωρίς διπλές, φθίνουσες (πιο νωρίς πρώτα), έως MAX_REMINDER_OFFSETS. */
+export function normalizeOffsets(v: unknown): number[] {
+  const list = (Array.isArray(v) ? v : [v]).filter((n): n is number => Number.isInteger(n) && (n as number) >= 1 && (n as number) <= 99);
+  return [...new Set(list)].sort((a, b) => b - a).slice(0, MAX_REMINDER_OFFSETS);
+}
+
+/** FNV-1a 32 bit, περιορισμένο στο 1…2^31−1 (θετικό int για το plugin). `days`: για τις «πριν» (μία ανά πλήθος ημερών). */
+export function reminderId(itemId: string, kind: Reminder['kind'], days = 0): number {
   let h = 0x811c9dc5;
-  for (const ch of `${itemId}:${kind}`) { h ^= ch.charCodeAt(0); h = Math.imul(h, 0x01000193) >>> 0; }
+  for (const ch of kind === 'before' ? `${itemId}:before:${days}` : `${itemId}:${kind}`) { h ^= ch.charCodeAt(0); h = Math.imul(h, 0x01000193) >>> 0; }
   return (h % 0x7ffffffe) + 1;
 }
 
-export function planReminders(items: Item[], o: { today: IsoDate; daysBefore: number; limit: number }): Reminder[] {
+export function planReminders(items: Item[], o: { today: IsoDate; daysBefore: number[]; limit: number }): Reminder[] {
   const out: Reminder[] = [];
   for (const i of items) {
     if (i.deleted) continue;
     const until = warrantyUntil(i);
     if (!until || until < o.today) continue;
     const name = displayName(i);
-    const before = addDays(until, -o.daysBefore);
-    // «πριν»: μόνο αν είναι αυστηρά μετά από σήμερα (σήμερα στις 10:00 μπορεί να έχει ήδη περάσει)
-    if (before && o.daysBefore > 0 && before > o.today) out.push({ id: reminderId(i.id, 'before'), itemId: i.id, kind: 'before', date: before, name, until, daysLeft: o.daysBefore });
+    for (const days of normalizeOffsets(o.daysBefore)) {
+      const before = addDays(until, -days);
+      // «πριν»: μόνο αν είναι αυστηρά μετά από σήμερα (σήμερα στις 10:00 μπορεί να έχει ήδη περάσει)
+      if (before && before > o.today) out.push({ id: reminderId(i.id, 'before', days), itemId: i.id, kind: 'before', date: before, name, until, daysLeft: days });
+    }
     if (until > o.today) out.push({ id: reminderId(i.id, 'day'), itemId: i.id, kind: 'day', date: until, name, until, daysLeft: 0 });
   }
   return out.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.id - b.id)).slice(0, o.limit);
+}
+
+/**
+ * Ειδοποιήσεις που έχουν ήδη «χτυπήσει» (ημερομηνία ≤ σήμερα), για τη λίστα ειδοποιήσεων της εφαρμογής: κρατιούνται μέχρι
+ * να τις σβήσει ο χρήστης, ακόμη κι αφού λήξει η εγγύηση (έως `lookbackDays` πίσω). Το κλειδί αλλάζει όταν αλλάξει η
+ * ημερομηνία λήξης, ώστε μια νέα λήξη να φέρει νέα ειδοποίηση. Νεότερες πρώτα.
+ */
+export interface DueReminder extends Reminder { key: string }
+
+export function dueReminders(items: Item[], o: { today: IsoDate; daysBefore: number[]; lookbackDays: number }): DueReminder[] {
+  const oldest = addDays(o.today, -o.lookbackDays);
+  if (!oldest) return [];
+  const out: DueReminder[] = [];
+  for (const i of items) {
+    if (i.deleted) continue;
+    const until = warrantyUntil(i);
+    if (!until) continue;
+    const name = displayName(i);
+    const add = (kind: Reminder['kind'], date: IsoDate | null, daysLeft: number) => {
+      if (!date || date > o.today || date < oldest) return;
+      out.push({ id: reminderId(i.id, kind, daysLeft), key: kind === 'before' ? `${i.id}:before:${daysLeft}:${until}` : `${i.id}:day:${until}`, itemId: i.id, kind, date, name, until, daysLeft });
+    };
+    // οι «νωρίτερες» έχουν νόημα μόνο μέχρι να λήξει η εγγύηση· μετά μένει μόνο αυτή της ημέρας λήξης. Από τις «πριν»
+    // που έχουν ήδη χτυπήσει κρατιέται μόνο η πιο πρόσφατη: οι παλαιότερες λένε το ίδιο με λιγότερη ακρίβεια.
+    if (until > o.today) {
+      const fired = normalizeOffsets(o.daysBefore).filter((d) => { const b = addDays(until, -d); return !!b && b <= o.today; });
+      const latest = fired.length ? Math.min(...fired) : null;
+      if (latest !== null) add('before', addDays(until, -latest), latest);
+    }
+    add('day', until, 0);
+  }
+  return out.sort((a, b) => (a.date > b.date ? -1 : a.date < b.date ? 1 : a.id - b.id));
 }

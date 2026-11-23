@@ -1,4 +1,5 @@
 /** Ρυθμίσεις → Συγχρονισμός iCloud: άνοιγμα/κλείσιμο, κατάσταση, «Συγχρονισμός τώρα». */
+import { isNative } from '@/services/platform';
 import { setSyncEnabled, syncNow, useSyncStatus, useTooBigCount } from '@/data/syncRuntime';
 import type { SyncErrorCode } from '@/data/sync';
 import { getLang, t, tn } from '@/i18n';
@@ -16,7 +17,9 @@ export function SyncSettings() {
   const s = useSyncStatus();
   const tooBig = useTooBigCount();
   if (s.kind === 'unsupported') {
-    return <p className="text-[15px] leading-relaxed text-ink-2">{t('Ο συγχρονισμός με iCloud λειτουργεί στην εφαρμογή για iPhone και iPad. Εδώ η μεταφορά γίνεται με το αντίγραφο ασφαλείας.')}</p>;
+    return <p className="text-[15px] leading-relaxed text-ink-2">{isNative
+      ? t('Ο συγχρονισμός με iCloud δεν έχει ενεργοποιηθεί ακόμη σε αυτή την έκδοση. Μέχρι τότε η μεταφορά γίνεται με το αντίγραφο ασφαλείας.')
+      : t('Ο συγχρονισμός με iCloud λειτουργεί στην εφαρμογή για iPhone και iPad. Εδώ η μεταφορά γίνεται με το αντίγραφο ασφαλείας.')}</p>;
   }
   const on = s.kind !== 'off' && !(s.kind === 'error' && s.code === 'remote-deleted');
   const last = 'lastSync' in s ? s.lastSync : null;

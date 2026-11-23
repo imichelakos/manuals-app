@@ -7,6 +7,7 @@
  * μάρκα, μοντέλο, ημερομηνίες από το πέρασμα «eng»· ελληνικές λέξεις από το «ell».
  */
 import type { Worker } from 'tesseract.js';
+import { appSwitchExpected } from './appSwitch';
 
 export type OcrLang = 'eng' | 'ell';
 export interface OcrOptions {
@@ -46,7 +47,19 @@ function release() {
   loaded = null;
   void w?.then((x) => x.terminate()).catch(() => {});
 }
-if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && !busy) release(); });
+// στο παρασκήνιο ο worker κλείνει — όχι όταν η εφαρμογή βγήκε για την κάμερα / τον επιλογέα φωτογραφιών (services/appSwitch)
+if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && !busy && !appSwitchExpected()) release(); });
+
+/**
+ * Προθέρμανση: φορτώνει worker, WASM και αγγλικό μοντέλο όσο ο χρήστης φωτογραφίζει, ώστε η ανάγνωση να ξεκινά αμέσως.
+ * Αν δεν ακολουθήσει ανάγνωση, κλείνει μόνος του μετά από 2 λεπτά.
+ */
+export function warmOcr(): void {
+  if (busy) return;
+  clearTimeout(idle);
+  void get('eng').catch(() => release());
+  idle = setTimeout(() => { if (!busy) release(); }, 120_000);
+}
 
 // οι αναγνώσεις εκτελούνται μία-μία (ένας worker, εναλλαγή γλώσσας)
 let queue: Promise<unknown> = Promise.resolve();

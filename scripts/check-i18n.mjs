@@ -12,6 +12,8 @@ for (const file of walk('src')) {
   for (const m of src.matchAll(new RegExp(String.raw`\bt\(\s*${str}`, 'g'))) keys.add(m[1]);
   for (const m of src.matchAll(new RegExp(String.raw`\btn\([^,]+,\s*${str}\s*,\s*${str}`, 'g'))) { keys.add(m[1]); keys.add(m[2]); }
   if (file.endsWith('categories.ts')) for (const m of src.matchAll(new RegExp(String.raw`label:\s*${str}`, 'g'))) keys.add(m[1]);
+  // ετικέτες ομάδων (domain/groups: GROUP_LABELS, μία ανά γραμμή «id: 'κείμενο',»)
+  if (file.endsWith('groups.ts')) for (const m of src.matchAll(new RegExp(String.raw`^\s+\w+:\s*${str},?$`, 'gm'))) keys.add(m[1]);
 }
 const en = readFileSync('src/i18n/en.ts', 'utf8');
 const have = new Set([...en.matchAll(new RegExp(String.raw`^\s*${str}\s*:`, 'gm'))].map((m) => m[1]));

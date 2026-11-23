@@ -2,12 +2,13 @@
 import { useEffect, useState } from 'react';
 import { confirmIdentity, lockSupported } from '@/data/appLock';
 import { setSettings, useSettings } from '@/data/settings';
-import { biometricInfo } from '@/services/deviceSecurity';
+import { biometricInfo, keychainAvailable, nativeDiagnostics } from '@/services/deviceSecurity';
 import { t } from '@/i18n';
 
 export function SecuritySettings() {
   const { lock } = useSettings();
   const [label, setLabel] = useState('Face ID');
+  const diag = nativeDiagnostics();
   const [available, setAvailable] = useState(lockSupported);
   useEffect(() => { void biometricInfo().then((i) => { setAvailable(i.available); if (i.label) setLabel(i.label); }); }, []);
 
@@ -20,7 +21,7 @@ export function SecuritySettings() {
   return (
     <div className="space-y-3">
       <p className="text-[15px] leading-relaxed text-ink-2">
-        {t('Τα προϊόντα, οι σημειώσεις και τα αρχεία σου αποθηκεύονται κρυπτογραφημένα (AES-256). Το αντίγραφο ασφαλείας .zip δεν είναι κρυπτογραφημένο.')}
+        {t('Τα προϊόντα, οι σημειώσεις και τα αρχεία σου αποθηκεύονται κρυπτογραφημένα (AES-256). Το αντίγραφο ασφαλείας κρυπτογραφείται με τον κωδικό που διαλέγεις.')}
       </p>
       {lockSupported && (
         <div className="flex items-center gap-3">
@@ -31,11 +32,20 @@ export function SecuritySettings() {
           <div>
             <p className="text-[15px] font-semibold">{t('Κλείδωμα με {label}', { label })}</p>
             <p className="text-[13px] leading-snug text-ink-2">
-              {available ? t('Στο άνοιγμα της εφαρμογής και όταν επιστρέφεις μετά από 1 λεπτό.') : t('Δεν έχει οριστεί Face ID, Touch ID ή κωδικός σε αυτή τη συσκευή.')}
+              {available ? t('Κλειδώνει μόλις βγεις από την εφαρμογή. Η κάμερα και ο επιλογέας αρχείων δεν μετρούν ως έξοδος.') : t('Δεν έχει οριστεί Face ID, Touch ID ή κωδικός σε αυτή τη συσκευή.')}
             </p>
           </div>
         </div>
       )}
+      {/* κατάσταση: δείχνει αμέσως αν η εφαρμογή βρίσκει το Keychain και το Face ID της συσκευής */}
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-2xl bg-surface-2 p-3 text-[13px] leading-snug">
+        <dt className="text-ink-2">{t('Κλειδί κρυπτογράφησης')}</dt>
+        <dd className="font-semibold">{keychainAvailable ? t('Keychain της συσκευής') : t('αποθήκη του browser')}</dd>
+        <dt className="text-ink-2">{t('Κλείδωμα')}</dt>
+        <dd className="font-semibold">{!lockSupported ? t('δεν υποστηρίζεται εδώ') : available ? t('{label} διαθέσιμο', { label }) : t('χωρίς Face ID / κωδικό')}</dd>
+        <dt className="text-ink-2">{t('Διάγνωση')}</dt>
+        <dd className="mono break-all text-[12px]">{diag.platform} · {diag.plugins.join(', ') || '—'}<br />native: {diag.native}</dd>
+      </dl>
     </div>
   );
 }

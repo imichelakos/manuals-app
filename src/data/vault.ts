@@ -8,7 +8,7 @@
  * Fail-closed: αν υπάρχουν κρυπτογραφημένα δεδομένα αλλά όχι κλειδί που να τα ανοίγει, η εφαρμογή δεν γράφει τίποτα
  * (κατάσταση «locked») μέχρι να αποφασίσει ο χρήστης.
  */
-import { generateKey, importRawKey, isSealed, openBlob, openItem, type SealedItem } from './codec';
+import { generateKey, importRawKey, isSealed, openBlob, openItem, sealBlob, sealItem, type SealedBlob, type SealedItem } from './codec';
 import { deleteKeychainKey, keychainAvailable, keychainKey } from '@/services/deviceSecurity';
 import * as idb from './idb';
 
@@ -48,6 +48,28 @@ async function loadKey(create: boolean): Promise<CryptoKey | null> {
   try { return await webKey(create); } catch { return null; }
 }
 
+/**
+ * Μετάβαση κλειδιού web → Keychain. Συμβαίνει όταν τα δεδομένα γράφτηκαν με κλειδί web μέσα στην εφαρμογή iOS (π.χ. τα
+ * plugins Swift δεν ήταν διαθέσιμα σε κάποια έκδοση) και τώρα υπάρχει Keychain. Κάθε εγγραφή που ΔΕΝ ανοίγει με το νέο
+ * κλειδί ανοίγει με το παλιό και ξανακλειδώνεται με το νέο. Είναι επαναλήψιμη: αν διακοπεί, η επόμενη εκκίνηση συνεχίζει
+ * από εκεί που έμεινε, γιατί το κλειδί web σβήνεται ΜΟΝΟ όταν τελειώσουν όλες οι εγγραφές.
+ */
+async function rekey(from: CryptoKey, to: CryptoKey): Promise<void> {
+  const items = (await idb.getAll<unknown>('items')).filter(isSealed) as SealedItem[];
+  const put: { value: unknown }[] = [];
+  for (const rec of items) {
+    try { await openItem(to, rec); continue; } catch { /* όχι ακόμη στο νέο κλειδί */ }
+    put.push({ value: await sealItem(to, rec.id, await openItem(from, rec)) });
+  }
+  if (put.length) await idb.write('items', { put });
+  for (const id of await idb.allKeys('blobs')) { // ένα-ένα: τα αρχεία μπορεί να είναι μεγάλα
+    const rec = await idb.getOne<SealedBlob>('blobs', id);
+    if (!rec || !isSealed(rec)) continue;
+    try { await openBlob(to, id, rec); continue; } catch { /* όχι ακόμη στο νέο κλειδί */ }
+    await idb.write('blobs', { put: [{ key: id, value: await sealBlob(to, id, await openBlob(from, id, rec)) }] });
+  }
+}
+
 /** ready: όλα καλά · locked: υπάρχουν δεδομένα που δεν ανοίγουν · no-key: δεν δημιουργήθηκε κλειδί (π.χ. σφάλμα Keychain) */
 export type VaultStatus = 'ready' | 'locked' | 'no-key';
 
@@ -56,15 +78,29 @@ export type VaultStatus = 'ready' | 'locked' | 'no-key';
  * προϊόν και ένα αρχείο. Νέο κλειδί δημιουργείται ΜΟΝΟ όταν δεν υπάρχει κανένα κρυπτογραφημένο δεδομένο.
  */
 export async function openVault(): Promise<VaultStatus> {
-  const [items, blob] = await Promise.all([idb.getAll<unknown>('items'), idb.firstEntry<unknown>('blobs')]);
-  const sealedItem = items.find(isSealed) as SealedItem | undefined;
-  const sealedBlob = blob && isSealed(blob.value) ? blob : null;
-  const anySealed = !!sealedItem || !!sealedBlob;
+  const sealedNow = async () => {
+    const [items, blob] = await Promise.all([idb.getAll<unknown>('items'), idb.firstEntry<unknown>('blobs')]);
+    return { item: items.find(isSealed) as SealedItem | undefined, blob: blob && isSealed(blob.value) ? { key: blob.key, value: blob.value } : null };
+  };
+  let found = await sealedNow();
+  const anySealed = !!found.item || !!found.blob;
+  if (keychainAvailable && anySealed) {
+    const web = await webKey(false).catch(() => null);
+    if (web) {
+      const raw = await keychainKey(true);
+      if (!raw) { key = web; return 'ready'; } // χωρίς Keychain αυτή τη στιγμή: συνεχίζει με το κλειδί web, ξαναδοκιμάζει την επόμενη φορά
+      try {
+        await rekey(web, await importRawKey(raw));
+        await deleteWebKey();
+      } catch { key = null; return 'locked'; } // η επόμενη εκκίνηση συνεχίζει τη μετάβαση (το κλειδί web υπάρχει ακόμη)
+      found = await sealedNow(); // ο έλεγχος πιο κάτω γίνεται πάνω στις ξανακρυπτογραφημένες εγγραφές
+    }
+  }
   key = await loadKey(!anySealed);
   if (!key) return anySealed ? 'locked' : 'no-key';
   try {
-    if (sealedItem) await openItem(key, sealedItem);
-    if (sealedBlob && isSealed(sealedBlob.value)) await openBlob(key, sealedBlob.key, sealedBlob.value);
+    if (found.item) await openItem(key, found.item);
+    if (found.blob) await openBlob(key, found.blob.key, found.blob.value);
   } catch {
     key = null;
     return 'locked';

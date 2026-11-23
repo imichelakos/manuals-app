@@ -9,7 +9,8 @@ const config: CapacitorConfig = {
   // χωρίς καταγραφή των μηνυμάτων JS↔native: αλλιώς η κονσόλα της συσκευής θα έδειχνε περιεχόμενο αρχείων (base64)
   loggingBehavior: 'none',
   ios: {
-    backgroundColor: '#F5F3EE',
+    // χωρίς σταθερό backgroundColor: το Capacitor βάζει UIColor.systemBackground, που ακολουθεί φωτεινή/σκοτεινή εμφάνιση
+    // (με σταθερό ανοιχτό χρώμα, οι άκρες και το φόντο πίσω από τη σελίδα έμεναν φωτεινά και στο σκοτεινό θέμα)
     contentInset: 'never', // safe area μέσω CSS env()
   },
 };

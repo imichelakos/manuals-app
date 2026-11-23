@@ -5,6 +5,7 @@
  * ΣΗΜ.: ο κώδικας Swift δεν έχει μεταγλωττιστεί ούτε τρέξει ακόμη σε συσκευή.
  */
 import { Capacitor, registerPlugin } from '@capacitor/core';
+import { clearAppSwitch, expectAppSwitch } from './appSwitch';
 
 const onIos = Capacitor.getPlatform() === 'ios';
 
@@ -19,6 +20,17 @@ interface BiometricPlugin {
 // τα plugins του Capacitor είναι Proxy που «απαντούν» και σε `then`: δηλώνονται στο επίπεδο του module, όχι μέσα σε Promise
 const SecureKey = registerPlugin<SecureKeyPlugin>('SecureKey');
 const Biometric = registerPlugin<BiometricPlugin>('Biometric');
+
+/**
+ * Διάγνωση για τις Ρυθμίσεις: πλατφόρμα κατά το Capacitor και τα native plugins που δήλωσε η εφαρμογή iOS στη σελίδα
+ * (window.Capacitor.PluginHeaders). Αν λείπουν τα SecureKey/Biometric, δεν φτάνουν στη σελίδα τα δικά μας plugins Swift.
+ */
+export function nativeDiagnostics(): { platform: string; plugins: string[]; native: string } {
+  const g = globalThis as { Capacitor?: { PluginHeaders?: { name: string }[] }; __manualsNative?: { vc: string; bridge: boolean; built: string } };
+  const n = g.__manualsNative;
+  // native: σήμανση από το AppViewController.swift (λείπει → δεν τρέχει ο δικός μας view controller ή το build είναι παλιό)
+  return { platform: Capacitor.getPlatform(), plugins: (g.Capacitor?.PluginHeaders ?? []).map((h) => h.name).sort(), native: n ? `${n.vc}${n.bridge ? '' : ' (χωρίς bridge)'} · ${n.built}` : '—' };
+}
 
 /** Υπάρχει Keychain (εφαρμογή iOS με το plugin); */
 export const keychainAvailable = onIos && Capacitor.isPluginAvailable('SecureKey');
@@ -53,5 +65,6 @@ export async function biometricInfo(): Promise<{ available: boolean; label: stri
 /** Ζητά Face ID (ή κωδικό συσκευής). true μόνο αν πέτυχε· ακύρωση ή σφάλμα → false. */
 export async function biometricAuth(reason: string): Promise<boolean> {
   if (!biometricSupported) return false;
-  try { return (await Biometric.authenticate({ reason })).ok; } catch { return false; }
+  expectAppSwitch(); // το παράθυρο του Face ID / του κωδικού δεν μετρά ως έξοδος από την εφαρμογή
+  try { return (await Biometric.authenticate({ reason })).ok; } catch { return false; } finally { clearAppSwitch(); }
 }
