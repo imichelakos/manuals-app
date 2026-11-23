@@ -1,3 +1,3 @@
 /* Μηνύματα αδειών του iOS (it). Ίδια κλειδιά με το Info.plist· όλες οι γλώσσες: src/i18n/languages.ts. */
 "NSFaceIDUsageDescription" = "Face ID blocca l’app e conferma l’esportazione dei backup e l’eliminazione dei dati. I dati biometrici non arrivano mai all’app.";
-"NSCameraUsageDescription" = "La fotocamera serve a fotografare manuali e ricevute. Le immagini restano solo sul Suo dispositivo.";
+"NSCameraUsageDescription" = "La fotocamera serve a fotografare manuali e ricevute. Le immagini restano solo sul tuo dispositivo.";

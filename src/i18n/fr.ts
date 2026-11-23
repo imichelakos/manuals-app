@@ -263,7 +263,7 @@ const FR: Record<string, string> = {
   'Ξεκλείδωμα με {label}': 'Déverrouiller avec {label}',
   'Κλείδωμα με {label}': 'Verrouiller avec {label}',
   'Κλειδί κρυπτογράφησης': 'Clé de chiffrement',
-  'Keychain της συσκευής': 'Keychain de l’appareil',
+  'Keychain της συσκευής': 'Trousseau de l’appareil',
   'αποθήκη του browser': 'stockage du navigateur',
   'Κλείδωμα': 'Verrouillage',
   'Στις 10:00, με το όνομα του προϊόντος.': 'À 10 h, avec le nom du produit.',
