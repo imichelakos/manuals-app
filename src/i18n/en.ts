@@ -415,5 +415,9 @@ const EN: Record<string, string> = {
   '≈ 24 δέντρα ανά short ton (907 kg) χαρτιού εκτύπωσης από παρθένα ύλη. Χονδρική εκτίμηση, κατά την ίδια την πηγή.': '≈ 24 trees per short ton (907 kg) of virgin printing paper. A rough estimate, as the source itself says.',
   // σαρωτής εγγράφων (VisionKit)
   'Η σάρωση απέτυχε. Δοκίμασε ξανά.': 'Scanning failed. Try again.',
+  // έλεγχος «μοιάζει με παραστατικό;»
+  'Δεν μοιάζει με παραστατικό αγοράς': 'This doesn’t look like a proof of purchase',
+  'Δεν βρέθηκε ημερομηνία μαζί με ποσό ή στοιχεία απόδειξης. Να αποθηκευτεί παρ’ όλα αυτά;': 'No date was found together with an amount or receipt details. Save it anyway?',
+  'Έλεγχος του παραστατικού…': 'Checking the receipt…',
 };
 export default EN;

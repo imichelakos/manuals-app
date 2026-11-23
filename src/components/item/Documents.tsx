@@ -5,13 +5,13 @@
 import { useState } from 'react';
 import type { Attachment, AttachmentKind, Item } from '@/domain/model';
 import { hasDigitalManual } from '@/domain/model';
-import { extractDates } from '@/domain/receiptHints';
+import { checkReceipt, extractDates } from '@/domain/receiptHints';
 import { today } from '@/domain/dates';
 import { updateItem } from '@/data/library';
 import { blobStore } from '@/data/blobs';
 import { FileError, prettySize, storeFile } from '@/services/files';
 import { openFile } from '@/services/platform';
-import { readText } from '@/services/ocr';
+import { readReceipt } from '@/services/receiptReader';
 import { useBlobUrl } from '@/hooks/useBlobUrl';
 import { fmtDate, t } from '@/i18n';
 import { ConfirmDelete, DOC_TYPES, FilePick } from '@/components/controls';
@@ -113,18 +113,35 @@ export function ReceiptSection({ item }: { item: Item }) {
   const receipts = item.attachments.filter((a) => a.kind === 'receipt');
   const [busy, setBusy] = useState(false);
   const [dates, setDates] = useState<string[]>([]);
+  // αρχεία που δεν μοιάζουν με παραστατικό: περιμένουν απάντηση του χρήστη πριν αποθηκευτούν
+  const [doubt, setDoubt] = useState<{ files: File[]; origin: Attachment['origin']; dates: string[] } | null>(null);
+  const [phase, setPhase] = useState<'check' | 'save'>('save');
 
-  // firstPage: εικόνα για την πρόταση ημερομηνίας όταν το αρχείο είναι PDF του σαρωτή
+  const store = async (files: File[], origin: Attachment['origin'], found: string[]) => {
+    setPhase('save');
+    const added = await addFiles(item.id, files, 'receipt', origin);
+    if (added.length) setDates(found.filter((d) => d !== item.purchase.date)); // πρόταση· ο χρήστης αποφασίζει
+  };
+
+  // firstPage: η εικόνα της 1ης σελίδας όταν το αρχείο είναι PDF του σαρωτή
   const add = async (files: File[], origin: Attachment['origin'], firstPage?: Blob | null) => {
     setBusy(true);
+    setDoubt(null);
     try {
-      const added = await addFiles(item.id, files, 'receipt', origin);
-      // πρόταση ημερομηνίας αγοράς από το κείμενο της απόδειξης (μόνο εικόνες· ο χρήστης αποφασίζει)
-      const img = added.find((a) => a.mime.startsWith('image/'));
-      const blob = firstPage ?? (img ? await blobStore.get(img.blobId) : null);
-      // ημερομηνίες = ψηφία → αγγλικό μοντέλο (το ελληνικό μπερδεύει ψηφία)
-      if (blob) setDates(extractDates((await readText(blob, { langs: ['eng'], sparse: false })).eng, today()).filter((d) => d !== item.purchase.date));
+      setPhase('check');
+      const r = await readReceipt(files, firstPage);
+      const found = r ? extractDates(r.dateText, today()) : [];
+      // δεν μοιάζει με παραστατικό → ερώτηση πριν από την αποθήκευση· χωρίς κείμενο (π.χ. PDF στο web) δεν ρωτάμε
+      if (r && !checkReceipt(r.text, today()).likely) { setDoubt({ files, origin, dates: found }); return; }
+      await store(files, origin, found);
     } finally { setBusy(false); }
+  };
+  const confirmDoubt = async () => {
+    if (!doubt) return;
+    const d = doubt;
+    setDoubt(null);
+    setBusy(true);
+    try { await store(d.files, d.origin, d.dates); } finally { setBusy(false); }
   };
 
   return (
@@ -133,6 +150,16 @@ export function ReceiptSection({ item }: { item: Item }) {
       {receipts.length === 0
         ? <p className="mt-2 text-[15px] leading-relaxed text-ink-2">{t('Κράτα την απόδειξη ή το τιμολόγιο: χρειάζεται για την εγγύηση.')}</p>
         : <ul className="mt-3 space-y-2.5">{receipts.map((a) => <AttachmentRow key={a.id} itemId={item.id} a={a} />)}</ul>}
+      {doubt && (
+        <div className="mt-3 rounded-2xl bg-warn-soft p-3.5 text-warn" role="alert">
+          <p className="text-[14px] font-semibold">{t('Δεν μοιάζει με παραστατικό αγοράς')}</p>
+          <p className="mt-0.5 text-[13px] leading-snug">{t('Δεν βρέθηκε ημερομηνία μαζί με ποσό ή στοιχεία απόδειξης. Να αποθηκευτεί παρ’ όλα αυτά;')}</p>
+          <div className="mt-2.5 flex gap-2">
+            <button type="button" className="btn btn-plain min-h-10 flex-1 bg-surface text-ink" onClick={() => setDoubt(null)}>{t('Άκυρο')}</button>
+            <button type="button" className="btn btn-primary min-h-10 flex-1" onClick={() => void confirmDoubt()}>{t('Αποθήκευση')}</button>
+          </div>
+        </div>
+      )}
       {dates.length > 0 && (
         <div className="mt-3 rounded-2xl bg-accent-soft p-3.5">
           <p className="text-[13px] font-semibold text-accent">{t('Ημερομηνία αγοράς από την απόδειξη;')}</p>
@@ -145,10 +172,10 @@ export function ReceiptSection({ item }: { item: Item }) {
         </div>
       )}
       <div className="mt-3 grid grid-cols-2 gap-2.5">
-        <CameraPick mode="document" disabled={busy} onCapture={(c) => void add(c.files, 'scan', c.firstPage)} className="btn btn-plain"><IconCamera className="text-xl" />{t('Σάρωση')}</CameraPick>
-        <FilePick accept={DOC_TYPES} multiple disabled={busy} onFiles={(f) => void add(f, 'import')} className="btn btn-plain"><IconUpload className="text-xl" />{t('Αρχείο')}</FilePick>
+        <CameraPick mode="document" disabled={busy || !!doubt} onCapture={(c) => void add(c.files, 'scan', c.firstPage)} className="btn btn-plain"><IconCamera className="text-xl" />{t('Σάρωση')}</CameraPick>
+        <FilePick accept={DOC_TYPES} multiple disabled={busy || !!doubt} onFiles={(f) => void add(f, 'import')} className="btn btn-plain"><IconUpload className="text-xl" />{t('Αρχείο')}</FilePick>
       </div>
-      {busy && <p className="mt-2 text-center text-[13px] text-ink-3" role="status">{t('Αποθήκευση…')}</p>}
+      {busy && <p className="mt-2 text-center text-[13px] text-ink-3" role="status">{phase === 'check' ? t('Έλεγχος του παραστατικού…') : t('Αποθήκευση…')}</p>}
     </section>
   );
 }

@@ -9,7 +9,7 @@ import { localManualLanguage, manualQueries } from '@/domain/manualSearch';
 import { suggestCategory } from '@/domain/categorySuggest';
 import { recyclingStats } from '@/domain/recycling';
 import { mergeItems, referencedBlobs } from '@/domain/merge';
-import { extractDates } from '@/domain/receiptHints';
+import { checkReceipt, extractDates } from '@/domain/receiptHints';
 import { emptyItem, itemSchema, newId, displayName, type Item } from '@/domain/model';
 
 test('dates: addMonths κρατά την ημέρα ή πάει στο τέλος του μήνα', () => {
@@ -176,4 +176,16 @@ test('identify: οχήματα — μάρκα και όνομα μοντέλου
   assert.ok(!vw.models.includes('Owner’s'));                     // γενική λέξη, όχι μοντέλο
   // σε συσκευή δεν εφαρμόζεται: εκεί μοντέλο είναι ο κωδικός
   assert.equal(identify({ latin: 'Bosch Serie 6 washing machine WAU28PH9BY', greek: '' }).models[0], 'WAU28PH9BY');
+});
+
+test('checkReceipt: ημερομηνία + ποσό ή λέξη παραστατικού → μοιάζει με παραστατικό', () => {
+  const today = '2026-11-23';
+  assert.equal(checkReceipt('ΗΛΕΚΤΡΙΚΑ ΠΑΠΑΔΟΠΟΥΛΟΣ\nΑΦΜ 099999999\n14/03/2025\nΣΥΝΟΛΟ 499,00 €', today).likely, true);
+  assert.equal(checkReceipt('Απόδειξη λιανικής 14-03-2025', today).likely, true);               // τόνοι και πεζά
+  assert.equal(checkReceipt('MediaMarkt  Rechnung  12.01.2026  Summe 89,99 EUR', today).likely, true);
+  assert.equal(checkReceipt('Scontrino 05/06/2025 Totale 12,50', today).likely, true);
+  assert.equal(checkReceipt('Washing machine safety instructions. Read carefully.', today).likely, false); // καμία ένδειξη
+  assert.equal(checkReceipt('Total 12,50 €', today).likely, false);                                    // χωρίς ημερομηνία
+  assert.equal(checkReceipt('Έκδοση 14/03/2025 — οδηγίες χρήσης', today).likely, false);             // ημερομηνία μόνο
+  assert.equal(checkReceipt('', today).likely, false);
 });

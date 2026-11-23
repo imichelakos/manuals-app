@@ -159,6 +159,21 @@ try {
   await page.getByRole('button', { name: '14 Μαρ 2025' }).click();
   await page.waitForFunction(() => document.querySelector('#w-date').value === '2025-03-14'); // η αποθήκευση είναι ασύγχρονη
 
+  step('παραστατικό που δεν μοιάζει με παραστατικό → ερώτηση πριν από την αποθήκευση');
+  const receiptInput = page.locator('section:has-text("Παραστατικό αγοράς") label:has-text("Αρχείο") input[type=file]');
+  await receiptInput.setInputFiles(files.cover);                                   // εξώφυλλο εγχειριδίου, όχι απόδειξη
+  await page.getByText('Δεν μοιάζει με παραστατικό αγοράς').waitFor({ timeout: 120_000 });
+  assert.equal(await page.getByText('test-cover.jpg').count(), 0);                  // δεν αποθηκεύτηκε πριν απαντήσει
+  await page.getByRole('alert').getByRole('button', { name: 'Άκυρο' }).click();
+  await page.waitForTimeout(300);
+  assert.equal(await page.getByText('test-cover.jpg').count(), 0);                  // «Άκυρο»: τίποτα
+  await receiptInput.setInputFiles(files.cover);
+  await page.getByRole('alert').getByRole('button', { name: 'Αποθήκευση' }).click({ timeout: 120_000 });
+  await page.getByText('test-cover.jpg').waitFor();                                 // «Αποθήκευση»: μπαίνει
+  await page.getByRole('button', { name: 'Διαγραφή αρχείου test-cover.jpg' }).click();
+  await page.getByRole('button', { name: 'Σίγουρα;' }).click();
+  await page.getByText('test-cover.jpg').waitFor({ state: 'detached' });
+
   step('σημειώσεις, χώρος, ετικέτες');
   await page.locator('#d-notes').fill('Καθάρισμα φίλτρου αντλίας κάθε 3 μήνες');
   await page.locator('#d-room').fill('Μπάνιο');
