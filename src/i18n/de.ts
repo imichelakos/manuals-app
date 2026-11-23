@@ -419,5 +419,12 @@ const DE: Record<string, string> = {
   'Δεν μοιάζει με παραστατικό αγοράς': 'Das sieht nicht wie ein Kaufbeleg aus',
   'Δεν βρέθηκε ημερομηνία μαζί με ποσό ή στοιχεία απόδειξης. Να αποθηκευτεί παρ’ όλα αυτά;': 'Es wurde kein Datum zusammen mit einem Betrag oder Belegangaben gefunden. Trotzdem speichern?',
   'Έλεγχος του παραστατικού…': 'Beleg wird geprüft…',
+  // πρωτότυπο αναγνώρισης στη συσκευή (Για δοκιμές, Διάγνωση)
+  'Μόνο στην εφαρμογή για iPhone και iPad.': 'Nur in der App für iPhone und iPad.',
+  'Δοκιμή αναγνώρισης (AI)': 'Erkennungstest (KI)',
+  'Ανάγνωση…': 'Wird gelesen…',
+  'Επίλεξε εικόνα εξωφύλλου': 'Wähle ein Titelbild',
+  'Συσκευή': 'Gerät',
+  'AI στη συσκευή': 'KI auf dem Gerät',
 };
 export default DE;

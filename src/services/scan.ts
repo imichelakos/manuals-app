@@ -62,6 +62,7 @@ export function identifyPdf(pageTexts: string[], fileName: string, urls: string[
   return {
     brands: fromCover.brands.length ? fromCover.brands : fromEarly.brands,
     models: fromCover.models.length ? fromCover.models : fromEarly.models,
+    modelHints: fromCover.modelHints.length ? fromCover.modelHints : fromEarly.modelHints,
     category: fromEarly.category,
     productWord: fromCover.productWord || fromEarly.productWord,
   };

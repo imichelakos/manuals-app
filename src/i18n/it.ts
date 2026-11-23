@@ -419,5 +419,12 @@ const IT: Record<string, string> = {
   'Δεν μοιάζει με παραστατικό αγοράς': 'Non sembra una prova d’acquisto',
   'Δεν βρέθηκε ημερομηνία μαζί με ποσό ή στοιχεία απόδειξης. Να αποθηκευτεί παρ’ όλα αυτά;': 'Non è stata trovata una data insieme a un importo o a dati di ricevuta. Salvarlo comunque?',
   'Έλεγχος του παραστατικού…': 'Controllo della ricevuta…',
+  // πρωτότυπο αναγνώρισης στη συσκευή (Για δοκιμές, Διάγνωση)
+  'Μόνο στην εφαρμογή για iPhone και iPad.': 'Solo nell’app per iPhone e iPad.',
+  'Δοκιμή αναγνώρισης (AI)': 'Test di riconoscimento (IA)',
+  'Ανάγνωση…': 'Lettura…',
+  'Επίλεξε εικόνα εξωφύλλου': 'Scegli un’immagine di copertina',
+  'Συσκευή': 'Dispositivo',
+  'AI στη συσκευή': 'IA sul dispositivo',
 };
 export default IT;

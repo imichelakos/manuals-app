@@ -419,5 +419,12 @@ const EN: Record<string, string> = {
   'Δεν μοιάζει με παραστατικό αγοράς': 'This doesn’t look like a proof of purchase',
   'Δεν βρέθηκε ημερομηνία μαζί με ποσό ή στοιχεία απόδειξης. Να αποθηκευτεί παρ’ όλα αυτά;': 'No date was found together with an amount or receipt details. Save it anyway?',
   'Έλεγχος του παραστατικού…': 'Checking the receipt…',
+  // πρωτότυπο αναγνώρισης στη συσκευή (Για δοκιμές, Διάγνωση)
+  'Μόνο στην εφαρμογή για iPhone και iPad.': 'Only in the iPhone and iPad app.',
+  'Δοκιμή αναγνώρισης (AI)': 'Recognition test (AI)',
+  'Ανάγνωση…': 'Reading…',
+  'Επίλεξε εικόνα εξωφύλλου': 'Choose a cover image',
+  'Συσκευή': 'Device',
+  'AI στη συσκευή': 'On-device AI',
 };
 export default EN;

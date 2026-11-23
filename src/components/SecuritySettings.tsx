@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { confirmIdentity, lockSupported } from '@/data/appLock';
 import { setSettings, useSettings } from '@/data/settings';
 import { biometricInfo, keychainAvailable, nativeDiagnostics } from '@/services/deviceSecurity';
+import { productReaderStatus, type ProductReaderStatus } from '@/services/productReader';
 import { t } from '@/i18n';
 
 export function SecuritySettings() {
@@ -11,6 +12,8 @@ export function SecuritySettings() {
   const diag = nativeDiagnostics();
   const [available, setAvailable] = useState(lockSupported);
   useEffect(() => { void biometricInfo().then((i) => { setAvailable(i.available); if (i.label) setLabel(i.label); }); }, []);
+  const [device, setDevice] = useState<ProductReaderStatus | null>(null);
+  useEffect(() => { void productReaderStatus().then(setDevice); }, []);
 
   const toggle = async () => {
     // το κλείσιμο του κλειδώματος θέλει επιβεβαίωση· το άνοιγμα όχι
@@ -45,6 +48,12 @@ export function SecuritySettings() {
           <dd className="font-semibold">{!lockSupported ? t('δεν υποστηρίζεται εδώ') : available ? t('{label} διαθέσιμο', { label }) : t('χωρίς Face ID / κωδικό')}</dd>
           <dt className="text-ink-2">{t('Διάγνωση')}</dt>
           <dd className="break-all text-[12px]">{diag.platform} · {diag.plugins.join(', ') || '—'}<br />native: {diag.native}</dd>
+          {device && <>
+            <dt className="text-ink-2">{t('Συσκευή')}</dt>
+            <dd className="break-all text-[12px]">iOS {device.ios} · {device.device} · SDK {device.sdk || '—'} · Xcode {device.xcode || '—'}</dd>
+            <dt className="text-ink-2">{t('AI στη συσκευή')}</dt>
+            <dd className="text-[12px] font-semibold">{device.ai}</dd>
+          </>}
         </dl>
       </details>
     </div>

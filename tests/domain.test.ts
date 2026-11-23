@@ -189,3 +189,12 @@ test('checkReceipt: ημερομηνία + ποσό ή λέξη παραστατ
   assert.equal(checkReceipt('Έκδοση 14/03/2025 — οδηγίες χρήσης', today).likely, false);             // ημερομηνία μόνο
   assert.equal(checkReceipt('', today).likely, false);
 });
+
+test('identify: μοντέλο-όνομα ως πρόταση όταν δεν υπάρχει κωδικός (πραγματικό OCR εξωφύλλου Olight Baton Turbo)', () => {
+  // απόσπασμα από το OCR (eng, sparse) της σάρωσης του χρήστη· τα «LEG», «mY;», «Ny» είναι θόρυβος από το σχέδιο
+  const latin = 'QOLIGHT\nUSER\nMANUAL\na\nLEG\nmY;\nLID\nNU,\nNy\nIv\nTm NR\nBaton\nPortable, long-range EDC flashlight';
+  const r = identify({ latin, greek: '' });
+  assert.deepEqual(r.models, []);                 // κανένας κωδικός → τίποτα δεν συμπληρώνεται μόνο του
+  assert.deepEqual(r.modelHints, ['Baton']);      // μόνο ως πρόταση· όχι ο θόρυβος, όχι «USER MANUAL»
+  assert.equal(r.category, 'tools');             // «flashlight» → Εργαλεία & κήπος
+});

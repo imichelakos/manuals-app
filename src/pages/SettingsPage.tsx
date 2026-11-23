@@ -15,6 +15,7 @@ import { SyncSettings } from '@/components/SyncSettings';
 import { BackupSettings } from '@/components/BackupSettings';
 import { usePrefersDark } from '@/hooks/usePrefersDark';
 import { Segmented } from '@/components/controls';
+import { AiProbe } from '@/components/AiProbe';
 
 declare const __APP_VERSION__: string;
 
@@ -126,6 +127,7 @@ export default function SettingsPage() {
             <Row title={t('Μηχανή αναζήτησης')}>
               <Choice<SearchEngine> label={t('Μηχανή αναζήτησης')} value={s.engine} onChange={(engine) => setSettings({ engine })} options={SEARCH_ENGINES.map((e) => [e, ENGINES[e].name])} />
             </Row>
+            <AiProbe />
           </details>
         </Group>
 

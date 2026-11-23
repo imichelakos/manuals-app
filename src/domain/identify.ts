@@ -11,6 +11,8 @@ export interface Identification {
   brands: string[];
   /** πιθανοί κωδικοί μοντέλου, ο πιθανότερος πρώτος (έως 6) */
   models: string[];
+  /** μοντέλα-ονόματα από γραμμές-τίτλους, όταν δεν βρέθηκε κωδικός: ΜΟΝΟ προτάσεις, δεν συμπληρώνονται μόνα τους */
+  modelHints: string[];
   category: CategoryId;
   /** λέξη που περιγράφει το είδος όπως γράφεται στο έντυπο (π.χ. «Ψυγειοκαταψύκτης»), αν βρέθηκε */
   productWord: string;
@@ -112,6 +114,25 @@ function namedModels(text: string, brand: string): string[] {
   return out;
 }
 
+/**
+ * Μοντέλο-όνομα σε οποιοδήποτε προϊόν («Baton», «Galaxy S24»), όταν δεν υπάρχει κωδικός: σύντομες γραμμές (1–3 λέξεις)
+ * όπου κάθε λέξη είναι γραμμένη σαν όνομα (κεφαλαίο + πεζά, ή κεφαλαίο + ψηφία), τουλάχιστον 3 χαρακτήρες, όχι γενικές
+ * λέξεις και όχι η μάρκα. ΜΟΝΟ προτάσεις (chips): ο χρήστης επιλέγει (απόφαση 23/11/2026).
+ */
+function titleModels(text: string, brands: string[]): string[] {
+  const brandSet = new Set(brands.map((b) => b.toLowerCase()));
+  const out: string[] = [];
+  for (const raw of text.split('\n')) {
+    const line = raw.trim().replace(/[.,:;]+$/, '');
+    const words = line.split(/\s+/);
+    if (!line || words.length > 3 || line.replace(/\s/g, '').length < 3) continue;
+    if (!words.every((w) => /^\p{Lu}(?:\p{Ll}{2,}|\p{Ll}*\p{N}+\p{L}*)$/u.test(w) && !NOT_MODEL.test(w))) continue;
+    if (brandSet.has(line.toLowerCase()) || out.includes(line)) continue;
+    out.push(line);
+  }
+  return out.slice(0, 4);
+}
+
 /** `categoryHint`: κατηγορία που βρέθηκε αλλού (π.χ. στις επόμενες σελίδες ενός PDF), όταν αυτό το κείμενο δεν δείχνει καμία. */
 export function identify(text: CoverText, urls: string[] = [], categoryHint?: CategoryId): Identification {
   // μάρκα και μοντέλο ΜΟΝΟ από το λατινικό πέρασμα (το ελληνικό παραμορφώνει τους κωδικούς)· το είδος και από τα δύο
@@ -121,5 +142,7 @@ export function identify(text: CoverText, urls: string[] = [], categoryHint?: Ca
   let models = findModels(text.latin);
   // όχημα: πρώτα το όνομα μοντέλου μετά τη μάρκα, μετά τυχόν κωδικοί
   if (kind.category === 'vehicle' && brands[0]) models = [...new Set([...namedModels(text.latin, brands[0]), ...models])].slice(0, 6);
-  return { brands, models, ...kind };
+  // χωρίς κωδικό: γραμμές-τίτλοι ως προτάσεις μοντέλου (π.χ. «Baton» στο εξώφυλλο ενός φακού)
+  const modelHints = models.length ? [] : titleModels(text.latin, brands);
+  return { brands, models, modelHints, ...kind };
 }

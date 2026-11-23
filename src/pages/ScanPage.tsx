@@ -158,7 +158,7 @@ function Review({ preview, result, onSaved }: { preview: string | null; result: 
   const ean = codes.find((c) => c.type === 'ean')?.code;
   const [keep, setKeep] = useState<Set<string>>(() => new Set(links.map((l) => l.url)));
   const [busy, setBusy] = useState(false);
-  const nothing = !found.brands.length && !found.models.length && !codes.length;
+  const nothing = !found.brands.length && !found.models.length && !found.modelHints.length && !codes.length;
 
   async function save() {
     setBusy(true);
@@ -209,7 +209,7 @@ function Review({ preview, result, onSaved }: { preview: string | null; result: 
         <div>
           <label className="label" htmlFor="sc-model">{t('Μοντέλο')}</label>
           <input id="sc-model" className="input" value={model} onChange={(e) => setModel(e.target.value)} autoComplete="off" autoCapitalize="off" spellCheck={false} />
-          <Suggestions options={found.models} value={model} onPick={setModel} />
+          <Suggestions options={[...found.models, ...found.modelHints]} value={model} onPick={setModel} />
         </div>
         <div>
           <label className="label" htmlFor="sc-name">{t('Όνομα')} <span className="font-normal text-ink-3">({t('προαιρετικό')})</span></label>

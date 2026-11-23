@@ -15,6 +15,7 @@ class AppViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(BiometricPlugin())  // Face ID / Touch ID
         bridge?.registerPluginInstance(PdfReaderPlugin())  // ανάγνωση PDF (PDFKit) για την εισαγωγή στη σάρωση
         bridge?.registerPluginInstance(DocumentScannerPlugin())  // σαρωτής εγγράφων του iOS (VisionKit)
+        bridge?.registerPluginInstance(ProductReaderPlugin())  // αναγνώριση προϊόντος στη συσκευή (Vision + Apple Foundation Models)
         exportBuildInfo()
     }
 
