@@ -421,19 +421,14 @@ const ES: Record<string, string> = {
   'Μόνο στην εφαρμογή για iPhone και iPad.': 'Solo en la app para iPhone y iPad.',
   'Δοκιμή αναγνώρισης (AI)': 'Prueba de reconocimiento (IA)',
   'Ανάγνωση…': 'Leyendo…',
-  'Επίλεξε εικόνα εξωφύλλου': 'Elige una imagen de portada',
   'Συσκευή': 'Dispositivo',
   'AI στη συσκευή': 'IA en el dispositivo',
   // μάρκα από το διαδίκτυο (Wikidata)
-  'Να βρίσκω τη μάρκα στο διαδίκτυο;': '¿Buscar la marca en internet?',
-  'Λέξεις του εξωφύλλου (εδώ: {w}) αναζητούνται στο Wikidata, μια ανοιχτή βάση με εταιρείες και μάρκες. Στέλνονται μόνο αυτές οι λέξεις — όχι η φωτογραφία. Δωρεάν. Μπορείς να το αλλάξεις στις Ρυθμίσεις.': 'Palabras de la portada (aquí: {w}) se buscan en Wikidata, una base abierta de empresas y marcas. Solo se envían esas palabras, no la foto. Gratis. Puedes cambiarlo en Ajustes.',
-  'Όχι': 'No',
-  'Ναι': 'Sí',
-  'Αναζήτηση της μάρκας στο Wikidata…': 'Buscando la marca en Wikidata…',
-  'Από το Wikidata: {b} — {d}': 'Según Wikidata: {b} — {d}',
-  'Δεν βρέθηκε μάρκα στο Wikidata. Συμπλήρωσέ τη εσύ.': 'No se encontró la marca en Wikidata. Escríbela tú.',
   'Μάρκα από το διαδίκτυο': 'Marca desde internet',
   'Στη σάρωση, λέξεις του εξωφύλλου (όχι η φωτογραφία) αναζητούνται στο Wikidata για να βρεθεί η μάρκα.': 'Al escanear, palabras de la portada (no la foto) se buscan en Wikidata para encontrar la marca.',
   'Η αναγνώριση κειμένου και η ανάγνωση QR γίνονται στη συσκευή. Η εφαρμογή συνδέεται στο διαδίκτυο μόνο όταν της ζητήσεις να κατεβάσει ένα PDF, ανοίξεις έναν σύνδεσμο ή — αν το έχεις ενεργοποιήσει — για να βρει τη μάρκα στο Wikidata.': 'El reconocimiento de texto y la lectura de QR se hacen en el dispositivo. La app solo se conecta a internet cuando le pides descargar un PDF, abres un enlace o, si lo has activado, para encontrar la marca en Wikidata.',
+  'Αναζήτηση της μάρκας…': 'Buscando la marca…',
+  'Αναγνώριση μάρκας': 'Reconocimiento de la marca',
+  'Οι μεγαλύτερες λέξεις του εξωφύλλου αναζητούνται στο Wikidata, μια ανοιχτή βάση με εταιρείες και μάρκες, μαζί με παραλλαγές για λάθη ανάγνωσης (π.χ. «OBLIGHT» → «Olight»). Στέλνονται μόνο λέξεις, ποτέ η φωτογραφία. Απενεργοποιείται από τις Ρυθμίσεις.': 'Las palabras más grandes de la portada se buscan en Wikidata, una base abierta de empresas y marcas, junto con variantes para errores de lectura (p. ej., «OBLIGHT» → «Olight»). Solo se envían palabras, nunca la foto. Se puede desactivar en Ajustes.',
 };
 export default ES;

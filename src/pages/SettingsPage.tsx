@@ -80,7 +80,7 @@ export default function SettingsPage() {
             <Choice<Lang> label={t('Γλώσσα')} value={getLang()} onChange={setLang} options={LANGS.map((l) => [l, LANG_INFO[l].name])} />
           </Row>
           <Row title={t('Μάρκα από το διαδίκτυο')} hint={t('Στη σάρωση, λέξεις του εξωφύλλου (όχι η φωτογραφία) αναζητούνται στο Wikidata για να βρεθεί η μάρκα.')}>
-            <Switch label={t('Μάρκα από το διαδίκτυο')} on={s.webBrand === true} onChange={(webBrand) => setSettings({ webBrand })} />
+            <Switch label={t('Μάρκα από το διαδίκτυο')} on={s.webBrand} onChange={(webBrand) => setSettings({ webBrand })} />
           </Row>
         </Group>
 

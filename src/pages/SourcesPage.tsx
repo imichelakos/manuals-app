@@ -44,6 +44,10 @@ export default function SourcesPage() {
           <p>{t('≈ 24 δέντρα ανά short ton (907 kg) χαρτιού εκτύπωσης από παρθένα ύλη. Χονδρική εκτίμηση, κατά την ίδια την πηγή.')}</p>
           <Src href={CONSERVATREE}>Conservatree — Trees Into Paper</Src>
         </Block>
+        <Block title={t('Αναγνώριση μάρκας')}>
+          <p>{t('Οι μεγαλύτερες λέξεις του εξωφύλλου αναζητούνται στο Wikidata, μια ανοιχτή βάση με εταιρείες και μάρκες, μαζί με παραλλαγές για λάθη ανάγνωσης (π.χ. «OBLIGHT» → «Olight»). Στέλνονται μόνο λέξεις, ποτέ η φωτογραφία. Απενεργοποιείται από τις Ρυθμίσεις.')}</p>
+          <Src href="https://www.wikidata.org/">Wikidata</Src>
+        </Block>
         <Block title={t('Συμβουλές ανακύκλωσης')}>
           <Src href={sourceUrl('annex7', getLang())}>{t('Οδηγία 2012/19/ΕΕ (ΑΗΗΕ): άρθρο 14, Παραρτήματα VII και IX')}</Src>
           <Src href={sourceUrl('epa', getLang())}>U.S. EPA — Electronics Donation and Recycling</Src>

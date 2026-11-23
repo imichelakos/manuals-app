@@ -516,7 +516,7 @@ try {
   await lp.getByText(/^scan-\d{8}-\d{6}\.pdf$/).waitFor();                                      // ένα PDF με τις σελίδες
   await lp.getByText('Ημερομηνία αγοράς από την απόδειξη;').waitFor({ timeout: 120_000 });          // OCR στην εικόνα της 1ης σελίδας
 
-  step('iOS: μάρκα χωρίς λίστα — OCR της Apple + Wikidata (συγκατάθεση, παραλλαγή «OBLIGHT» → «Olight»), μοντέλο ως πρόταση');
+  step('iOS: μάρκα χωρίς λίστα — OCR της Apple + Wikidata (παραλλαγή «OBLIGHT» → «Olight»), μοντέλο ως πρόταση');
   const wikidataAsked = [];
   await lp.route('https://www.wikidata.org/w/api.php?**', (r) => {
     const q = new URL(r.request().url()).searchParams.get('search');
@@ -530,13 +530,9 @@ try {
     { text: 'OBLIGHT', size: 0.029, top: 0.05 }, { text: 'Baton Turbo', size: 0.026, top: 0.9 }]; });
   await lp.locator('label:has-text("Από τις φωτογραφίες") input[type=file]').setInputFiles(files.cover);
   await lp.getByRole('heading', { name: 'Τι βρήκαμε' }).waitFor({ timeout: 120_000 });
-  await lp.getByText('Να βρίσκω τη μάρκα στο διαδίκτυο;').waitFor();
-  assert.equal(wikidataAsked.length, 0);                                            // τίποτα δεν στέλνεται πριν από το «Ναι»
-  await shot('19-brand-consent', lp);
-  await lp.getByRole('button', { name: 'Ναι', exact: true }).click();
-  await lp.waitForFunction(() => document.querySelector('#sc-brand').value === 'Olight');
+  await lp.waitForFunction(() => document.querySelector('#sc-brand').value === 'Olight');   // χωρίς ερώτηση (πολιτική απορρήτου)
   assert.deepEqual(wikidataAsked, ['oblight', 'blight', 'olight']);                // ένα-ένα, σταματά στο πρώτο ταίριασμα
-  await lp.getByText('Από το Wikidata: Olight — Chinese flashlight brand').waitFor();
+  assert.equal(await lp.getByText(/Wikidata/).count(), 0);                         // η εξήγηση είναι στις «Πηγές», όχι εδώ
   await lp.getByRole('button', { name: 'Baton Turbo' }).waitFor();                // μοντέλο: μόνο πρόταση
   assert.equal(await lp.locator('#sc-model').inputValue(), '');
   assert.equal(await lp.getByRole('button', { name: 'OBLIGHT' }).count(), 0);      // η λέξη της μάρκας έφυγε από τις προτάσεις

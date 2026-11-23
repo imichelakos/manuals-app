@@ -421,19 +421,14 @@ const FR: Record<string, string> = {
   'Μόνο στην εφαρμογή για iPhone και iPad.': 'Uniquement dans l’app pour iPhone et iPad.',
   'Δοκιμή αναγνώρισης (AI)': 'Test de reconnaissance (IA)',
   'Ανάγνωση…': 'Lecture…',
-  'Επίλεξε εικόνα εξωφύλλου': 'Choisissez une image de couverture',
   'Συσκευή': 'Appareil',
   'AI στη συσκευή': 'IA sur l’appareil',
   // μάρκα από το διαδίκτυο (Wikidata)
-  'Να βρίσκω τη μάρκα στο διαδίκτυο;': 'Rechercher la marque en ligne ?',
-  'Λέξεις του εξωφύλλου (εδώ: {w}) αναζητούνται στο Wikidata, μια ανοιχτή βάση με εταιρείες και μάρκες. Στέλνονται μόνο αυτές οι λέξεις — όχι η φωτογραφία. Δωρεάν. Μπορείς να το αλλάξεις στις Ρυθμίσεις.': 'Des mots de la couverture (ici : {w}) sont recherchés sur Wikidata, une base ouverte d’entreprises et de marques. Seuls ces mots sont envoyés — pas la photo. Gratuit. Vous pouvez modifier ce choix dans les Réglages.',
-  'Όχι': 'Non',
-  'Ναι': 'Oui',
-  'Αναζήτηση της μάρκας στο Wikidata…': 'Recherche de la marque sur Wikidata…',
-  'Από το Wikidata: {b} — {d}': 'D’après Wikidata : {b} — {d}',
-  'Δεν βρέθηκε μάρκα στο Wikidata. Συμπλήρωσέ τη εσύ.': 'Aucune marque trouvée sur Wikidata. Saisissez-la vous-même.',
   'Μάρκα από το διαδίκτυο': 'Marque depuis Internet',
   'Στη σάρωση, λέξεις του εξωφύλλου (όχι η φωτογραφία) αναζητούνται στο Wikidata για να βρεθεί η μάρκα.': 'Lors du scan, des mots de la couverture (pas la photo) sont recherchés sur Wikidata pour trouver la marque.',
   'Η αναγνώριση κειμένου και η ανάγνωση QR γίνονται στη συσκευή. Η εφαρμογή συνδέεται στο διαδίκτυο μόνο όταν της ζητήσεις να κατεβάσει ένα PDF, ανοίξεις έναν σύνδεσμο ή — αν το έχεις ενεργοποιήσει — για να βρει τη μάρκα στο Wikidata.': 'La reconnaissance du texte et la lecture des QR se font sur l’appareil. L’app se connecte à Internet uniquement lorsque vous lui demandez de télécharger un PDF, lorsque vous ouvrez un lien ou — si vous l’avez activé — pour trouver la marque sur Wikidata.',
+  'Αναζήτηση της μάρκας…': 'Recherche de la marque…',
+  'Αναγνώριση μάρκας': 'Reconnaissance de la marque',
+  'Οι μεγαλύτερες λέξεις του εξωφύλλου αναζητούνται στο Wikidata, μια ανοιχτή βάση με εταιρείες και μάρκες, μαζί με παραλλαγές για λάθη ανάγνωσης (π.χ. «OBLIGHT» → «Olight»). Στέλνονται μόνο λέξεις, ποτέ η φωτογραφία. Απενεργοποιείται από τις Ρυθμίσεις.': 'Les plus grands mots de la couverture sont recherchés sur Wikidata, une base ouverte d’entreprises et de marques, avec des variantes pour les erreurs de lecture (p. ex. « OBLIGHT » → « Olight »). Seuls des mots sont envoyés, jamais la photo. Désactivable dans les Réglages.',
 };
 export default FR;
