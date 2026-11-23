@@ -114,7 +114,7 @@ try {
 
   step('εγγύηση');
   await page.locator('#w-date').fill('2025-03-14');
-  await page.getByRole('button', { name: '2 χρόνια' }).click();
+  await page.getByRole('button', { name: /^2 χρόνια/, pressed: true }).waitFor(); // νέο προϊόν: 2 χρόνια από προεπιλογή
   await page.getByText('Εγγύηση έως 14 Μαρ 2027').first().waitFor();
   assert.equal(await page.getByRole('button', { name: '1 χρόνος' }).count(), 0); // με επιλεγμένη διάρκεια οι άλλες κρύβονται
   await page.getByRole('button', { name: /^2 χρόνια/ }).click();                 // νέο πάτημα: ξανά όλες οι επιλογές
@@ -183,6 +183,7 @@ try {
   await page.getByRole('button', { name: 'Πρόταση: Κουζίνα' }).click(); // κατηγορία από το όνομα
   await page.waitForFunction(() => document.querySelector('#d-cat').value === 'kitchen');
   await page.locator('#w-date').fill('2025-10-10'); // λήγει 10/10/2026: έληξε πριν από λίγο → ειδοποιήσεις στη λίστα
+  await page.getByRole('button', { name: /^2 χρόνια/, pressed: true }).click(); // από την προεπιλογή των 2 ετών → 1 χρόνος
   await page.getByRole('button', { name: '1 χρόνος' }).click();
   // εγγύηση μέρους: η κύρια έχει λήξει, ο συμπιεστής καλύπτεται 10 χρόνια
   await page.getByRole('button', { name: 'Εγγύηση για μέρος' }).click();
@@ -203,8 +204,9 @@ try {
   assert.equal(await cards.count(), 2);
   await cards.filter({ hasText: 'Samsung' }).getByText('Κουζίνα').waitFor(); // κατηγορία με εικονίδιο στην κάρτα
   await cards.filter({ hasText: 'Samsung' }).getByText('+1 μέρος σε εγγύηση').waitFor();
-  await page.getByText('σελίδες σε ψηφιακή μορφή').waitFor();          // 3 σελίδες στο PDF → 2 φύλλα → ≈ 5 g
-  await page.getByText('≈ 5 g').waitFor();
+  await page.getByText('σελίδες ψηφιακά').waitFor();                   // 3 σελίδες στο PDF → 2 φύλλα → ≈ 5 g
+  await page.getByText('≈ 5 g χαρτί').waitFor();
+  await page.getByText('CO₂ για εκτύπωση').waitFor();                  // αποτύπωμα: CO₂ και δέντρα στην ίδια γραμμή
   await shot('08-library');
   const search = page.getByRole('searchbox');
   for (const [q, n] of [['πλυντ', 1], ['psyg', 1], ['wau28', 1], ['samsnug', 1], ['φιλτρο', 1], ['εξοχικο', 1], ['παπαδοπουλος', 1], ['zzz', 0], ['', 2]]) {
@@ -282,7 +284,7 @@ try {
   step('ρυθμίσεις, σκοτεινή εμφάνιση, αντίγραφο ασφαλείας');
   await page.getByRole('link', { name: 'Ρυθμίσεις' }).click();
   await shot('11-settings');
-  await page.getByLabel('Εμφάνιση', { exact: true }).selectOption('dark');
+  await page.getByRole('radiogroup', { name: 'Εμφάνιση' }).getByRole('radio', { name: 'Σκοτεινή' }).click();
   await page.getByRole('link', { name: 'Βιβλιοθήκη' }).click();
   await cards.first().waitFor();
   await shot('12-library-dark');
@@ -292,7 +294,7 @@ try {
   await shot('13-item-dark');
   await page.getByRole('button', { name: 'Πίσω στη βιβλιοθήκη' }).click();
   await page.getByRole('link', { name: 'Ρυθμίσεις' }).click();
-  await page.getByLabel('Εμφάνιση', { exact: true }).selectOption('light');
+  await page.getByRole('radiogroup', { name: 'Εμφάνιση' }).getByRole('radio', { name: 'Φωτεινή' }).click();
   await page.getByRole('button', { name: 'Εξαγωγή' }).click();
   const pw1 = page.getByLabel('Κωδικός', { exact: true }), pw2 = page.getByLabel('Ξανά ο κωδικός');
   await pw1.fill('abc123');
