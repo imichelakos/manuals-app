@@ -4,6 +4,7 @@
  */
 import { useEffect, useState } from 'react';
 import { FilePick, IMAGE_TYPES } from './controls';
+import { CameraPick } from './CameraPick';
 import { productReaderAvailable, productReaderStatus, readProduct, type ProductRead, type ProductReaderStatus } from '@/services/productReader';
 import { t } from '@/i18n';
 
@@ -23,7 +24,10 @@ export function AiProbe() {
     <div className="space-y-2 py-2 text-[13px]">
       <p className="font-semibold">{t('Δοκιμή αναγνώρισης (AI)')}</p>
       {status && <p className="break-all text-ink-2">iOS {status.ios} · {status.device} · SDK {status.sdk || '—'} · Xcode {status.xcode || '—'} · AI: {status.ai}</p>}
-      <FilePick accept={IMAGE_TYPES} disabled={busy} onFiles={(f) => void run(f[0]!)} className="btn btn-plain w-full">{busy ? t('Ανάγνωση…') : t('Επίλεξε εικόνα εξωφύλλου')}</FilePick>
+      <div className="grid grid-cols-2 gap-2">
+        <CameraPick mode="photo" disabled={busy} onCapture={(c) => void run(c.files[0]!)} className="btn btn-plain">{busy ? t('Ανάγνωση…') : t('Σάρωση')}</CameraPick>
+        <FilePick accept={IMAGE_TYPES} disabled={busy} onFiles={(f) => void run(f[0]!)} className="btn btn-plain">{t('Από τις φωτογραφίες')}</FilePick>
+      </div>
       {error && <p className="text-bad">{error}</p>}
       {result && (
         <div className="space-y-1.5 rounded-2xl bg-surface-2 p-3">

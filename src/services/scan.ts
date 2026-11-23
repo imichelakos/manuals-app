@@ -10,6 +10,8 @@ import { readCodes, warmCodeReader } from './codeReader';
 import { readText, warmOcr } from './ocr';
 import { readPdf } from './pdfReader';
 import { pdfPageCount } from './pdfPages';
+import { productReaderAvailable, readProduct } from './productReader';
+import { coverLayout, type CoverLayout } from '@/domain/coverLayout';
 
 export type ScanStep = 'image' | 'codes' | 'text' | 'done';
 export interface ScanResult {
@@ -19,6 +21,8 @@ export interface ScanResult {
   codes: CodePayload[];
   text: string;
   found: Identification;
+  /** iOS (OCR της Apple): υποψήφιες μάρκες για επιβεβαίωση στο web και προτάσεις μοντέλου από τις μεγάλες γραμμές */
+  layout?: CoverLayout;
   /** από «Εισαγωγή PDF»: το ίδιο το εγχειρίδιο, για να αποθηκευτεί ως ψηφιακό */
   pdf?: { blob: Blob; name: string; pages?: number };
 }
@@ -33,7 +37,11 @@ export async function scanCover(photo: Blob, onStep: (s: ScanStep, progress?: nu
 }
 
 /** QR/barcode και OCR μιας εικόνας εξωφύλλου (κοινό για φωτογραφία και για την πρώτη σελίδα PDF χωρίς κείμενο). */
-async function readImage(canvas: HTMLCanvasElement, onStep: (s: ScanStep, progress?: number) => void): Promise<Pick<ScanResult, 'codes' | 'text' | 'found'>> {
+async function readImage(canvas: HTMLCanvasElement, onStep: (s: ScanStep, progress?: number) => void): Promise<Pick<ScanResult, 'codes' | 'text' | 'found' | 'layout'>> {
+  if (productReaderAvailable) {
+    const apple = await readImageApple(canvas, onStep).catch(() => null);
+    if (apple) return apple;     // αποτυχία του OCR της Apple → ο δρόμος του web παρακάτω
+  }
   // το OCR τρέχει σε worker: ξεκινά αμέσως και οι κωδικοί διαβάζονται στο μεταξύ (όχι πρώτα ο ένας και μετά ο άλλος)
   let progress = 0, codesDone = false;
   const textP = readText(canvas, { langs: ['eng', 'ell'], sparse: true, onProgress: (p) => { progress = p; if (codesDone) onStep('text', p); } });
@@ -46,6 +54,37 @@ async function readImage(canvas: HTMLCanvasElement, onStep: (s: ScanStep, progre
   onStep('done');
   // για την αναζήτηση κρατιέται πρώτα το ελληνικό πέρασμα (λέξεις) και μετά το λατινικό (μάρκα, κωδικοί)
   return { codes, text: [text.ell, text.eng].filter(Boolean).join('\n'), found: identify({ latin: text.eng, greek: text.ell }, urls) };
+}
+
+/**
+ * iOS: λατινικό κείμενο από το OCR της Apple (Vision — ακριβέστερο, με μέγεθος γραμμής: π.χ. «Baton Turbo» ολόκληρο), και
+ * το ελληνικό πέρασμα από το Tesseract (δεν έχει επαληθευτεί ότι το OCR της Apple διαβάζει ελληνικά). Όπου υπάρχει το
+ * μοντέλο της Apple στη συσκευή (Apple Intelligence), η μάρκα/το μοντέλο του μπαίνουν όταν το κείμενο δεν έδωσε.
+ */
+async function readImageApple(canvas: HTMLCanvasElement, onStep: (s: ScanStep, progress?: number) => void): Promise<Pick<ScanResult, 'codes' | 'text' | 'found' | 'layout'>> {
+  const jpeg = await new Promise<Blob>((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('canvas'))), 'image/jpeg', 0.9));
+  const greekP = readText(canvas, { langs: ['ell'], sparse: true });
+  onStep('codes');
+  const codes = await readCodes(canvas);
+  onStep('text', 0.3);
+  const apple = await readProduct(jpeg);
+  onStep('text', 0.7);
+  const greek = (await greekP).ell;
+  const latin = apple.lines.map((l) => l.text).join('\n');
+  const urls = codes.flatMap((c) => (c.type === 'link' ? [c.url] : []));
+  const layout = coverLayout(apple.lines);
+  const base = identify({ latin, greek }, urls);
+  const ai = apple.ai;
+  const brands = base.brands.length ? base.brands : ai?.brand ? [ai.brand] : [];
+  const sameAs = (x: string) => brands.some((b) => b.toLowerCase() === x.toLowerCase());
+  const modelHints = [...new Set([...(ai?.model && !base.models.length ? [ai.model] : []), ...layout.modelHints, ...base.modelHints])].filter((m) => !sameAs(m)).slice(0, 5);
+  onStep('done');
+  return {
+    codes,
+    text: [greek, latin].filter(Boolean).join('\n'),
+    found: { ...base, brands, modelHints },
+    layout: brands.length ? { ...layout, brandCandidates: [] } : layout,   // μάρκα ήδη γνωστή → καμία αναζήτηση στο web
+  };
 }
 
 /**

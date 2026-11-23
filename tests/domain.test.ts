@@ -5,6 +5,8 @@ import { warrantyInfo } from '@/domain/warranty';
 import { latin, norm, within1 } from '@/domain/text';
 import { classifyCode, eanOk, parseHttpUrl } from '@/domain/codes';
 import { identify } from '@/domain/identify';
+import { coverLayout } from '@/domain/coverLayout';
+import { brandQueries, describesBrand, sameWord } from '@/domain/brandLookup';
 import { localManualLanguage, manualQueries } from '@/domain/manualSearch';
 import { suggestCategory } from '@/domain/categorySuggest';
 import { recyclingStats } from '@/domain/recycling';
@@ -197,4 +199,26 @@ test('identify: μοντέλο-όνομα ως πρόταση όταν δεν υ
   assert.deepEqual(r.models, []);                 // κανένας κωδικός → τίποτα δεν συμπληρώνεται μόνο του
   assert.deepEqual(r.modelHints, ['Baton']);      // μόνο ως πρόταση· όχι ο θόρυβος, όχι «USER MANUAL»
   assert.equal(r.category, 'tools');             // «flashlight» → Εργαλεία & κήπος
+});
+
+test('coverLayout: πραγματικές γραμμές OCR της Apple (iPhone, εξώφυλλο Olight Baton Turbo)', () => {
+  // από τη «Δοκιμή αναγνώρισης» στη συσκευή: [ύψος ×1000] κείμενο
+  const lines = [
+    { text: 'MANUAL', size: 0.053 }, { text: 'USER', size: 0.053 }, { text: 'Portable, long-range EDC flashlight.', size: 0.032 },
+    { text: 'OBLIGHT', size: 0.029 }, { text: 'Baton Turbo', size: 0.026 },
+  ];
+  const r = coverLayout(lines);
+  assert.deepEqual(r.brandCandidates, ['OBLIGHT']);                  // όχι USER/MANUAL, όχι η περιγραφή
+  assert.deepEqual(r.modelHints, ['OBLIGHT', 'Baton Turbo']);        // το OBLIGHT φεύγει όταν επιβεβαιωθεί ως μάρκα
+});
+
+test('brandLookup: παραλλαγές με ένα γράμμα λιγότερο και κανόνας αποδοχής', () => {
+  assert.ok(brandQueries('OBLIGHT').includes('olight'));
+  assert.ok(brandQueries('QOLIGHT').includes('olight'));
+  assert.deepEqual(brandQueries('LG'), ['lg']);
+  assert.equal(describesBrand('Chinese flashlight brand'), true);
+  assert.equal(describesBrand('German multinational engineering company'), true);
+  assert.equal(describesBrand('stick used by a conductor'), false);
+  assert.equal(sameWord('Olight', 'olight'), true);
+  assert.equal(sameWord('Olight Inc', 'olight'), false);
 });

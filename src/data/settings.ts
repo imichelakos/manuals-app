@@ -8,11 +8,12 @@ export type Theme = 'auto' | 'light' | 'dark';
 /** lock: κλείδωμα με Face ID / κωδικό συσκευής (ισχύει μόνο όπου υποστηρίζεται, δηλ. στην εφαρμογή iOS) */
 /** reminders / reminderDays: ειδοποιήσεις πριν λήξει μια εγγύηση (στην εφαρμογή iOS)· έως 5 «πόσες ημέρες πριν» */
 /** currency: νόμισμα για νέες τιμές αγοράς — το τελευταίο που διάλεξε ο χρήστης */
-export interface Settings { theme: Theme; engine: SearchEngine; lock: boolean; reminders: boolean; reminderDays: number[]; currency: string }
+/** webBrand: επιβεβαίωση μάρκας στο Wikidata με λέξεις του εξωφύλλου — null: δεν έχει ερωτηθεί ακόμη ο χρήστης */
+export interface Settings { theme: Theme; engine: SearchEngine; webBrand: boolean | null; lock: boolean; reminders: boolean; reminderDays: number[]; currency: string }
 export const REMINDER_DAY_OPTIONS = [7, 30, 60] as const;
 /** «Άλλο»: οποιοσδήποτε αριθμός ημερών 1–99 */
 export const REMINDER_DAYS_MAX = 99;
-const DEFAULTS: Settings = { theme: 'auto', engine: 'duckduckgo', lock: true, reminders: false, reminderDays: [30], currency: DEFAULT_CURRENCY };
+const DEFAULTS: Settings = { theme: 'auto', engine: 'duckduckgo', webBrand: null, lock: true, reminders: false, reminderDays: [30], currency: DEFAULT_CURRENCY };
 const KEY = 'manuals-settings-v1';
 
 function read(): Settings {
@@ -21,6 +22,7 @@ function read(): Settings {
     return {
       theme: v.theme === 'light' || v.theme === 'dark' ? v.theme : 'auto',
       engine: isSearchEngine(v.engine) ? v.engine : DEFAULTS.engine,
+      webBrand: typeof v.webBrand === 'boolean' ? v.webBrand : null,
       lock: v.lock !== false,
       reminders: v.reminders === true,
       currency: typeof v.currency === 'string' && CURRENCY_CODE.test(v.currency) ? v.currency : DEFAULTS.currency,

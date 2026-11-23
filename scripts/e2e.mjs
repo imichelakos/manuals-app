@@ -404,6 +404,7 @@ try {
         { name: 'SecureKey', methods: [{ name: 'storageKey', rtype: 'promise' }, { name: 'deleteStorageKey', rtype: 'promise' }] },
         { name: 'PdfReader', methods: [{ name: 'read', rtype: 'promise' }] },
         { name: 'DocumentScanner', methods: [{ name: 'isSupported', rtype: 'promise' }, { name: 'scan', rtype: 'promise' }] },
+        { name: 'ProductReader', methods: [{ name: 'status', rtype: 'promise' }, { name: 'read', rtype: 'promise' }] },
         { name: 'LocalNotifications', methods: [{ name: 'addListener' }, { name: 'removeListener' }, ...['checkPermissions', 'requestPermissions', 'getPending', 'schedule', 'cancel'].map((name) => ({ name, rtype: 'promise' }))] },
       ],
       nativeCallback: () => 'mock-callback',
@@ -420,6 +421,9 @@ try {
         // σαρωτής εγγράφων (VisionKit): 2 σελίδες· η 1η ως εικόνα, όλες σε PDF όταν ζητηθεί
         if (plugin === 'DocumentScanner' && method === 'isSupported') return { supported: true };
         if (plugin === 'DocumentScanner' && method === 'scan') return { cancelled: false, pages: [window.__mockScanPage], pageCount: 2, pdf: o.pdf ? window.__mockScanPdf : null };
+        // OCR της Apple (Vision): γραμμές με ύψος· εδώ οι πραγματικές γραμμές του εξωφύλλου Olight από iPhone
+        if (plugin === 'ProductReader' && method === 'status') return { ios: '27.2', device: 'iPhone14,2', xcode: '2720', sdk: 'iphoneos27.2', ai: 'deviceNotEligible' };
+        if (plugin === 'ProductReader' && method === 'read') return { lines: window.__mockLines ?? [], ocrMs: 300, ai: null, aiMs: 0, aiStatus: 'deviceNotEligible', aiError: null };
         if (plugin === 'LocalNotifications') {
           // προσομοίωση: άδεια δίνεται στο πρώτο αίτημα· οτιδήποτε άλλο (π.χ. μια «then») είναι σφάλμα
           const granted = localStorage.getItem('mock-notif') === 'granted';
@@ -511,6 +515,33 @@ try {
   await lp.locator('section:has-text("Παραστατικό αγοράς")').getByRole('button', { name: 'Σάρωση' }).click(); // κουμπί, όχι επιλογέας αρχείων
   await lp.getByText(/^scan-\d{8}-\d{6}\.pdf$/).waitFor();                                      // ένα PDF με τις σελίδες
   await lp.getByText('Ημερομηνία αγοράς από την απόδειξη;').waitFor({ timeout: 120_000 });          // OCR στην εικόνα της 1ης σελίδας
+
+  step('iOS: μάρκα χωρίς λίστα — OCR της Apple + Wikidata (συγκατάθεση, παραλλαγή «OBLIGHT» → «Olight»), μοντέλο ως πρόταση');
+  const wikidataAsked = [];
+  await lp.route('https://www.wikidata.org/w/api.php?**', (r) => {
+    const q = new URL(r.request().url()).searchParams.get('search');
+    wikidataAsked.push(q);
+    const hit = q === 'olight' ? [{ id: 'Q106179908', label: 'Olight', description: 'Chinese flashlight brand' }] : q === 'blight' ? [{ id: 'Q1', label: 'blight', description: 'plant disease' }] : [];
+    return r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ search: hit }) });
+  });
+  await lp.goto(`${BASE}#/scan`);
+  await lp.evaluate(() => { window.__mockLines = [
+    { text: 'MANUAL', size: 0.053, top: 0.2 }, { text: 'USER', size: 0.053, top: 0.15 }, { text: 'Portable, long-range EDC flashlight.', size: 0.032, top: 0.95 },
+    { text: 'OBLIGHT', size: 0.029, top: 0.05 }, { text: 'Baton Turbo', size: 0.026, top: 0.9 }]; });
+  await lp.locator('label:has-text("Από τις φωτογραφίες") input[type=file]').setInputFiles(files.cover);
+  await lp.getByRole('heading', { name: 'Τι βρήκαμε' }).waitFor({ timeout: 120_000 });
+  await lp.getByText('Να βρίσκω τη μάρκα στο διαδίκτυο;').waitFor();
+  assert.equal(wikidataAsked.length, 0);                                            // τίποτα δεν στέλνεται πριν από το «Ναι»
+  await shot('19-brand-consent', lp);
+  await lp.getByRole('button', { name: 'Ναι', exact: true }).click();
+  await lp.waitForFunction(() => document.querySelector('#sc-brand').value === 'Olight');
+  assert.deepEqual(wikidataAsked, ['oblight', 'blight', 'olight']);                // ένα-ένα, σταματά στο πρώτο ταίριασμα
+  await lp.getByText('Από το Wikidata: Olight — Chinese flashlight brand').waitFor();
+  await lp.getByRole('button', { name: 'Baton Turbo' }).waitFor();                // μοντέλο: μόνο πρόταση
+  assert.equal(await lp.locator('#sc-model').inputValue(), '');
+  assert.equal(await lp.getByRole('button', { name: 'OBLIGHT' }).count(), 0);      // η λέξη της μάρκας έφυγε από τις προτάσεις
+  await shot('20-brand-web', lp);
+  await lp.unroute('https://www.wikidata.org/w/api.php?**');
 
   step('εισαγωγή PDF στη σάρωση — web (χωρίς PDFKit): από το όνομα του αρχείου');
   const pc = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'el-GR' });

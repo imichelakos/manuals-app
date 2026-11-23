@@ -14,7 +14,7 @@ import { LANGS, LANG_INFO, getLang, setLang, t, tn, type Lang } from '@/i18n';
 import { SyncSettings } from '@/components/SyncSettings';
 import { BackupSettings } from '@/components/BackupSettings';
 import { usePrefersDark } from '@/hooks/usePrefersDark';
-import { Segmented } from '@/components/controls';
+import { Segmented, Switch } from '@/components/controls';
 import { AiProbe } from '@/components/AiProbe';
 
 declare const __APP_VERSION__: string;
@@ -79,6 +79,9 @@ export default function SettingsPage() {
           <Row title={t('Γλώσσα')}>
             <Choice<Lang> label={t('Γλώσσα')} value={getLang()} onChange={setLang} options={LANGS.map((l) => [l, LANG_INFO[l].name])} />
           </Row>
+          <Row title={t('Μάρκα από το διαδίκτυο')} hint={t('Στη σάρωση, λέξεις του εξωφύλλου (όχι η φωτογραφία) αναζητούνται στο Wikidata για να βρεθεί η μάρκα.')}>
+            <Switch label={t('Μάρκα από το διαδίκτυο')} on={s.webBrand === true} onChange={(webBrand) => setSettings({ webBrand })} />
+          </Row>
         </Group>
 
         <Group title={t('Υπενθυμίσεις')}>
@@ -132,7 +135,7 @@ export default function SettingsPage() {
         </Group>
 
         <p className="px-2 text-center text-[13px] leading-relaxed text-ink-3">
-          {t('Η αναγνώριση κειμένου και η ανάγνωση QR γίνονται στη συσκευή. Η εφαρμογή συνδέεται στο διαδίκτυο μόνο όταν της ζητήσεις να κατεβάσει ένα PDF ή ανοίξεις έναν σύνδεσμο.')}
+          {t('Η αναγνώριση κειμένου και η ανάγνωση QR γίνονται στη συσκευή. Η εφαρμογή συνδέεται στο διαδίκτυο μόνο όταν της ζητήσεις να κατεβάσει ένα PDF, ανοίξεις έναν σύνδεσμο ή — αν το έχεις ενεργοποιήσει — για να βρει τη μάρκα στο Wikidata.')}
           <br />{t('Έκδοση {v}', { v: __APP_VERSION__ })}
         </p>
       </div>

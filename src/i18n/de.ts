@@ -232,8 +232,6 @@ const DE: Record<string, string> = {
   'Διαγραφή όλων των δεδομένων': 'Alle Daten löschen',
   'Ναι, διαγραφή όλων': 'Ja, alles löschen',
   'Διαγραφή όλων': 'Alle löschen',
-  'Η αναγνώριση κειμένου και η ανάγνωση QR γίνονται στη συσκευή. Η εφαρμογή συνδέεται στο διαδίκτυο μόνο όταν της ζητήσεις να κατεβάσει ένα PDF ή ανοίξεις έναν σύνδεσμο.':
-    'Texterkennung und QR-Erkennung erfolgen auf dem Gerät. Die App verbindet sich nur dann mit dem Internet, wenn du sie ein PDF herunterladen lässt oder einen Link öffnest.',
   'Έκδοση {v}': 'Version {v}',
   '{n} νέο προϊόν': '{n} neues Produkt',
   '{n} νέα προϊόντα': '{n} neue Produkte',
@@ -426,5 +424,16 @@ const DE: Record<string, string> = {
   'Επίλεξε εικόνα εξωφύλλου': 'Wähle ein Titelbild',
   'Συσκευή': 'Gerät',
   'AI στη συσκευή': 'KI auf dem Gerät',
+  // μάρκα από το διαδίκτυο (Wikidata)
+  'Να βρίσκω τη μάρκα στο διαδίκτυο;': 'Marke online suchen?',
+  'Λέξεις του εξωφύλλου (εδώ: {w}) αναζητούνται στο Wikidata, μια ανοιχτή βάση με εταιρείες και μάρκες. Στέλνονται μόνο αυτές οι λέξεις — όχι η φωτογραφία. Δωρεάν. Μπορείς να το αλλάξεις στις Ρυθμίσεις.': 'Wörter vom Titelblatt (hier: {w}) werden in Wikidata gesucht, einer offenen Datenbank mit Firmen und Marken. Nur diese Wörter werden gesendet – nicht das Foto. Kostenlos. Du kannst das in den Einstellungen ändern.',
+  'Όχι': 'Nein',
+  'Ναι': 'Ja',
+  'Αναζήτηση της μάρκας στο Wikidata…': 'Marke wird in Wikidata gesucht…',
+  'Από το Wikidata: {b} — {d}': 'Laut Wikidata: {b} — {d}',
+  'Δεν βρέθηκε μάρκα στο Wikidata. Συμπλήρωσέ τη εσύ.': 'Keine Marke in Wikidata gefunden. Bitte selbst eintragen.',
+  'Μάρκα από το διαδίκτυο': 'Marke aus dem Internet',
+  'Στη σάρωση, λέξεις του εξωφύλλου (όχι η φωτογραφία) αναζητούνται στο Wikidata για να βρεθεί η μάρκα.': 'Beim Scannen werden Wörter vom Titelblatt (nicht das Foto) in Wikidata gesucht, um die Marke zu finden.',
+  'Η αναγνώριση κειμένου και η ανάγνωση QR γίνονται στη συσκευή. Η εφαρμογή συνδέεται στο διαδίκτυο μόνο όταν της ζητήσεις να κατεβάσει ένα PDF, ανοίξεις έναν σύνδεσμο ή — αν το έχεις ενεργοποιήσει — για να βρει τη μάρκα στο Wikidata.': 'Texterkennung und QR-Lesen erfolgen auf dem Gerät. Die App geht nur online, wenn du einen PDF-Download anforderst, einen Link öffnest oder – falls aktiviert – um die Marke in Wikidata zu finden.',
 };
 export default DE;

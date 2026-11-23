@@ -3,7 +3,7 @@
  * κείμενο) → «Τι βρήκαμε», όπου ο χρήστης ελέγχει/διορθώνει και αποθηκεύει. Μετά ανοίγει η καρτέλα του προϊόντος: στην
  * εύρεση του ψηφιακού (φωτογραφία) ή κατευθείαν (PDF: το ψηφιακό υπάρχει ήδη).
  */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { CATEGORIES, type CategoryId } from '@/domain/categories';
 import { newProduct, newId, type Item, type LinkRef } from '@/domain/model';
@@ -19,6 +19,11 @@ import { linkLabel, LinkIcon } from '@/components/item/Links';
 import { toast } from '@/components/Toast';
 import { IconBack, IconCamera, IconCheck, IconFile, IconImage, IconPlus, IconQr, IconSpark, IconWarn } from '@/components/icons';
 import { CameraPick } from '@/components/CameraPick';
+import { WebBrandLookup } from '@/components/WebBrandLookup';
+import type { BrandMatch } from '@/services/wikidata';
+
+/** σταθερός κενός πίνακας (ίδια αναφορά σε κάθε render: δεν ξαναξεκινά την αναζήτηση) */
+const NONE: string[] = [];
 
 type Source = 'photo' | 'pdf';
 /** preview: εικόνα εξωφύλλου (object URL)· null όταν δεν υπάρχει ακόμη (PDF πριν διαβαστεί, ή PDF χωρίς εικόνα) */
@@ -159,6 +164,10 @@ function Review({ preview, result, onSaved }: { preview: string | null; result: 
   const [keep, setKeep] = useState<Set<string>>(() => new Set(links.map((l) => l.url)));
   const [busy, setBusy] = useState(false);
   const nothing = !found.brands.length && !found.models.length && !found.modelHints.length && !codes.length;
+  // μάρκα που επιβεβαιώθηκε στο web: συμπληρώνεται (αν το πεδίο είναι κενό) και η λέξη της φεύγει από τις προτάσεις μοντέλου
+  const [webMatch, setWebMatch] = useState<BrandMatch | null>(null);
+  const onWebBrand = useCallback((m: BrandMatch) => { setWebMatch(m); setBrand((b) => b || m.brand); }, []);
+  const modelOptions = [...found.models, ...found.modelHints].filter((m) => !webMatch || m.toLowerCase() !== webMatch.candidate.toLowerCase());
 
   async function save() {
     setBusy(true);
@@ -205,11 +214,12 @@ function Review({ preview, result, onSaved }: { preview: string | null; result: 
           <label className="label" htmlFor="sc-brand">{t('Μάρκα')}</label>
           <input id="sc-brand" className="input" value={brand} onChange={(e) => setBrand(e.target.value)} autoComplete="off" />
           <Suggestions options={found.brands} value={brand} onPick={setBrand} />
+          {!found.brands.length && <WebBrandLookup candidates={result.layout?.brandCandidates ?? NONE} onFound={onWebBrand} />}
         </div>
         <div>
           <label className="label" htmlFor="sc-model">{t('Μοντέλο')}</label>
           <input id="sc-model" className="input" value={model} onChange={(e) => setModel(e.target.value)} autoComplete="off" autoCapitalize="off" spellCheck={false} />
-          <Suggestions options={[...found.models, ...found.modelHints]} value={model} onPick={setModel} />
+          <Suggestions options={modelOptions} value={model} onPick={setModel} />
         </div>
         <div>
           <label className="label" htmlFor="sc-name">{t('Όνομα')} <span className="font-normal text-ink-3">({t('προαιρετικό')})</span></label>
