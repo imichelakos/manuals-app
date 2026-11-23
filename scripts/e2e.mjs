@@ -340,8 +340,20 @@ try {
   await legacy.addInitScript(() => {
     window.webkit = { messageHandlers: { bridge: { postMessage() {} } } };
     window.Capacitor = {
-      PluginHeaders: [{ name: 'SecureKey', methods: [{ name: 'storageKey', rtype: 'promise' }, { name: 'deleteStorageKey', rtype: 'promise' }] }],
+      PluginHeaders: [
+        { name: 'SecureKey', methods: [{ name: 'storageKey', rtype: 'promise' }, { name: 'deleteStorageKey', rtype: 'promise' }] },
+        { name: 'LocalNotifications', methods: [{ name: 'addListener' }, { name: 'removeListener' }, ...['checkPermissions', 'requestPermissions', 'getPending', 'schedule', 'cancel'].map((name) => ({ name, rtype: 'promise' }))] },
+      ],
+      nativeCallback: () => 'mock-callback',
       nativePromise: async (plugin, method, o) => {
+        if (plugin === 'LocalNotifications') {
+          // προσομοίωση: άδεια δίνεται στο πρώτο αίτημα· οτιδήποτε άλλο (π.χ. μια «then») είναι σφάλμα
+          const granted = localStorage.getItem('mock-notif') === 'granted';
+          if (method === 'checkPermissions') return { display: granted ? 'granted' : 'prompt' };
+          if (method === 'requestPermissions') { localStorage.setItem('mock-notif', 'granted'); return { display: 'granted' }; }
+          if (method === 'getPending') return { notifications: [] };
+          if (method === 'schedule' || method === 'cancel' || method === 'removeListener') return {};
+        }
         if (plugin === 'SecureKey' && method === 'storageKey') {
           let k = localStorage.getItem('mock-keychain');
           if (!k && o.create) { k = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))); localStorage.setItem('mock-keychain', k); }
@@ -368,6 +380,12 @@ try {
   await lp.goto(BASE);
   await lp.getByText('Παλιό τοστιέρα').click();
   await lp.getByText('old.pdf').click();                        // και το αρχείο ανοίγει
+
+  step('υπενθυμίσεις: ο διακόπτης ανοίγει (προσομοίωση iOS με LocalNotifications)');
+  await lp.goto(`${BASE}#/settings`);
+  const remSwitch = lp.getByRole('switch', { name: 'Υπενθύμιση λήξης εγγύησης' });
+  await remSwitch.click();
+  await lp.waitForFunction(() => document.querySelector('[role=switch][aria-label="Υπενθύμιση λήξης εγγύησης"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 });
 
   // ---------- αγγλικά ----------
   step('αγγλικά');
