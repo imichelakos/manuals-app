@@ -5,7 +5,7 @@ import { warrantyInfo } from '@/domain/warranty';
 import { latin, norm, within1 } from '@/domain/text';
 import { classifyCode, eanOk, parseHttpUrl } from '@/domain/codes';
 import { identify } from '@/domain/identify';
-import { coverLayout } from '@/domain/coverLayout';
+import { cleanLine, coverLayout } from '@/domain/coverLayout';
 import { brandQueries, describesBrand, sameWord } from '@/domain/brandLookup';
 import { localManualLanguage, manualQueries } from '@/domain/manualSearch';
 import { suggestCategory } from '@/domain/categorySuggest';
@@ -221,4 +221,12 @@ test('brandLookup: παραλλαγές με ένα γράμμα λιγότερ�
   assert.equal(describesBrand('stick used by a conductor'), false);
   assert.equal(sameWord('Olight', 'olight'), true);
   assert.equal(sameWord('Olight Inc', 'olight'), false);
+});
+
+test('cleanLine: πλαίσιο γύρω από λέξη διαβασμένο ως παρένθεση (πραγματικό: «Baton (Turbo» από iPhone)', () => {
+  assert.equal(cleanLine('Baton (Turbo'), 'Baton Turbo');
+  assert.equal(cleanLine('Baton Turbo)'), 'Baton Turbo');
+  assert.equal(cleanLine('|Baton| Turbo'), 'Baton Turbo');
+  assert.equal(cleanLine('Galaxy S24 (2024)'), 'Galaxy S24 (2024)');   // σωστή παρένθεση μένει
+  assert.equal(coverLayout([{ text: 'Baton (Turbo', size: 0.03 }]).modelHints[0], 'Baton Turbo');
 });

@@ -20,12 +20,32 @@ const isGeneric = (s: string) => words(s).every((w) => GENERIC.has(plain(w).repl
 /** πρόταση/περιγραφή, όχι τίτλος: πολλές λέξεις ή σημεία στίξης */
 const isSentence = (s: string) => words(s).length > 4 || /[,.;:!?]\s|[,;:!?]$/.test(s);
 
+/**
+ * Καθαρισμός γραμμής OCR: πλαίσια γύρω από λέξεις διαβάζονται συχνά ως παρένθεση ή αγκύλη («Baton (Turbo» για το
+ * «Turbo» μέσα σε πλαίσιο). Φεύγουν οι αγκύλες/παρενθέσεις που δεν κλείνουν και τα «|»· οι σωστές («(2024)») μένουν.
+ */
+export function cleanLine(raw: string): string {
+  const chars = [...raw.replace(/[|¦]/g, ' ')];
+  const pairs: Record<string, string> = { ')': '(', ']': '[', '}': '{' };
+  const open: number[] = [];
+  const drop = new Set<number>();
+  chars.forEach((c, i) => {
+    if ('([{'.includes(c)) open.push(i);
+    else if (c in pairs) {
+      const j = open.length ? open[open.length - 1]! : -1;
+      if (j >= 0 && chars[j] === pairs[c]) open.pop(); else drop.add(i);
+    }
+  });
+  open.forEach((i) => drop.add(i));
+  return chars.filter((_, i) => !drop.has(i)).join('').replace(/\s+/g, ' ').trim().replace(/[.,:;]+$/, '');
+}
+
 /** πόσες από τις μεγαλύτερες γραμμές εξετάζονται */
 const TOP = 8;
 
 export function coverLayout(lines: readonly CoverLine[]): CoverLayout {
   const top = [...lines]
-    .map((l) => ({ text: l.text.trim().replace(/[.,:;]+$/, ''), size: l.size }))
+    .map((l) => ({ text: cleanLine(l.text), size: l.size }))
     .filter((l) => l.text && /\p{L}/u.test(l.text) && !isSentence(l.text) && !isGeneric(l.text))
     .sort((a, b) => b.size - a.size)
     .slice(0, TOP);
