@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { zlibSync, unzlibSync } from 'fflate';
 import { countPdfPages } from '@/domain/pdfPages';
+import { identifyPdf } from '@/services/scan';
 import { suggestGroup, groupOf } from '@/domain/groups';
 import { recyclingStats, manualPages } from '@/domain/recycling';
 import { emptyItem, type Attachment, type Item } from '@/domain/model';
@@ -45,4 +46,12 @@ test('recyclingStats: σελίδες και εκτίμηση βάρους', () =
   assert.equal(s.pagesDigital, 41 + 2 + 8);
   assert.equal(s.paperGrams, (21 + 1) * 2.5);
   assert.equal(s.paperUnknown, 1);
+});
+
+test('identifyPdf: μάρκα/μοντέλο από την πρώτη σελίδα, όχι από όλο το PDF', () => {
+  const car = identifyPdf(['TOYOTA COROLLA\nOwner’s Manual', 'Seat belts and airbags. Smart key system. Mini spare wheel.', 'Car maintenance'], 'manual.pdf', []);
+  assert.deepEqual([car.brands, car.models[0], car.category], [['Toyota'], 'COROLLA', 'vehicle']); // όχι SEAT/Smart/Mini
+  const fallback = identifyPdf(['', 'SEAT Leon Owner manual — car'], 'manual.pdf', []);          // κενό εξώφυλλο → επόμενες σελίδες
+  assert.equal(fallback.brands[0], 'SEAT');
+  assert.equal(identifyPdf([''], 'Bosch-WAU28PH9BY.pdf', []).models[0], 'WAU28PH9BY');           // και από το όνομα αρχείου
 });

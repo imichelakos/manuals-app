@@ -7,7 +7,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 import { fromBase64, toBase64 } from './base64';
 
 interface PdfReaderPlugin {
-  read(o: { data: string; maxPages?: number; coverWidth?: number }): Promise<{ pages: number; text: string; cover: string | null; locked: boolean }>;
+  read(o: { data: string; maxPages?: number; coverWidth?: number }): Promise<{ pages: number; pageTexts: string[]; cover: string | null; locked: boolean }>;
 }
 // τα plugins του Capacitor είναι Proxy που «απαντούν» και σε `then`: δηλώνονται στο επίπεδο του module, όχι μέσα σε Promise
 const PdfReader = registerPlugin<PdfReaderPlugin>('PdfReader');
@@ -17,7 +17,8 @@ export const pdfReaderAvailable = Capacitor.getPlatform() === 'ios' && Capacitor
 /** πάνω από αυτό το μέγεθος δεν στέλνεται για ανάλυση (περνά ολόκληρο, ως base64, από τη γέφυρα προς το iOS) */
 const MAX_ANALYSIS_BYTES = 60 * 1024 ** 2;
 
-export interface PdfInfo { pages: number; text: string; cover: Blob | null; locked: boolean }
+/** pageTexts: κείμενο των πρώτων σελίδων, ανά σελίδα (η πρώτη = εξώφυλλο) */
+export interface PdfInfo { pages: number; pageTexts: string[]; cover: Blob | null; locked: boolean }
 
 /** null: δεν υπάρχει ανάγνωση PDF εδώ (web), το αρχείο είναι πολύ μεγάλο ή η ανάγνωση απέτυχε. */
 export async function readPdf(pdf: Blob): Promise<PdfInfo | null> {
@@ -25,6 +26,6 @@ export async function readPdf(pdf: Blob): Promise<PdfInfo | null> {
   try {
     const r = await PdfReader.read({ data: await toBase64(pdf), maxPages: 3, coverWidth: 1400 });
     const cover = r.cover ? new Blob([fromBase64(r.cover)], { type: 'image/jpeg' }) : null;
-    return { pages: r.pages, text: r.text, cover, locked: r.locked };
+    return { pages: r.pages, pageTexts: r.pageTexts ?? [], cover, locked: r.locked };
   } catch { return null; }
 }

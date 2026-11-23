@@ -15,7 +15,7 @@ public class PdfReaderPlugin: CAPPlugin, CAPBridgedPlugin {
     ]
 
     /// data: το PDF σε base64 · maxPages: από πόσες σελίδες κείμενο (1–10) · coverWidth: πλάτος εικόνας (200–2400 px).
-    /// Απάντηση: { pages, text, cover: base64 JPEG | null, locked }.
+    /// Απάντηση: { pages, pageTexts: [κείμενο ανά σελίδα, από την 1η], cover: base64 JPEG | null, locked }.
     @objc func read(_ call: CAPPluginCall) {
         guard let b64 = call.getString("data"), let data = Data(base64Encoded: b64) else {
             call.reject("Δεν δόθηκε PDF", "bad-input")
@@ -30,12 +30,13 @@ public class PdfReaderPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             // PDF με κωδικό: μόνο το πλήθος σελίδων· ούτε κείμενο ούτε εικόνα
             if doc.isLocked {
-                call.resolve(["pages": doc.pageCount, "text": "", "cover": NSNull(), "locked": true])
+                call.resolve(["pages": doc.pageCount, "pageTexts": [String](), "cover": NSNull(), "locked": true])
                 return
             }
-            var text = ""
+            // κείμενο ανά σελίδα: η εφαρμογή ψάχνει μάρκα/μοντέλο πρώτα στην 1η (εξώφυλλο), όχι σε όλο το έγγραφο
+            var pageTexts: [String] = []
             for i in 0..<min(maxPages, doc.pageCount) {
-                if let s = doc.page(at: i)?.string { text += s + "\n" }
+                pageTexts.append(String((doc.page(at: i)?.string ?? "").prefix(20_000)))
             }
             var cover: Any = NSNull()
             if let page = doc.page(at: 0) {
@@ -44,7 +45,7 @@ public class PdfReaderPlugin: CAPPlugin, CAPBridgedPlugin {
                 let image = page.thumbnail(of: CGSize(width: width, height: height), for: .mediaBox)
                 if let jpeg = image.jpegData(compressionQuality: 0.85) { cover = jpeg.base64EncodedString() }
             }
-            call.resolve(["pages": doc.pageCount, "text": String(text.prefix(40_000)), "cover": cover, "locked": false])
+            call.resolve(["pages": doc.pageCount, "pageTexts": pageTexts, "cover": cover, "locked": false])
         }
     }
 }

@@ -48,6 +48,28 @@ async function readImage(canvas: HTMLCanvasElement, onStep: (s: ScanStep, progre
   return { codes, text: [text.ell, text.eng].filter(Boolean).join('\n'), found: identify({ latin: text.eng, greek: text.ell }, urls) };
 }
 
+/**
+ * Αναγνώριση από PDF: μάρκα και μοντέλο ΠΡΩΤΑ από την πρώτη σελίδα (εξώφυλλο) και το όνομα του αρχείου — όχι από όλο το
+ * έγγραφο, όπου λέξεις όπως «Seat belts» θα έδιναν λάθος μάρκα. Μόνο αν εκεί δεν βρεθεί τίποτα, από τις επόμενες
+ * αρχικές σελίδες. Η κατηγορία από όλες τις αρχικές σελίδες.
+ */
+export function identifyPdf(pageTexts: string[], fileName: string, urls: string[]): Identification {
+  const name = nameText(fileName);
+  const cover = `${pageTexts[0] ?? ''}\n${name}`;
+  const early = `${pageTexts.join('\n')}\n${name}`;
+  const fromCover = identify({ latin: cover, greek: cover }, urls);
+  const fromEarly = identify({ latin: early, greek: early }, urls);
+  return {
+    brands: fromCover.brands.length ? fromCover.brands : fromEarly.brands,
+    models: fromCover.models.length ? fromCover.models : fromEarly.models,
+    category: fromEarly.category,
+    productWord: fromCover.productWord || fromEarly.productWord,
+  };
+}
+
+/** «Bosch-WAU28PH9BY_manual.pdf» → «Bosch WAU28PH9BY manual» */
+const nameText = (fileName: string) => fileName.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ');
+
 /** λιγότερο κείμενο από αυτό: το PDF είναι μάλλον σκαναρισμένες εικόνες → OCR στην πρώτη σελίδα */
 const MIN_PDF_TEXT = 30;
 
@@ -60,17 +82,17 @@ export async function scanPdf(pdf: File, onStep: (s: ScanStep, progress?: number
   const info = await readPdf(pdf);
   const name = pdf.name || 'manual.pdf';
   const base = { pdf: { blob: pdf, name, pages: info?.pages || (await pdfPageCount(pdf)) } };
-  const fromName = name.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ');
+  const fromName = nameText(name);
   if (!info?.cover) {
     onStep('done');
     return { ...base, codes: [], text: fromName, found: identify({ latin: fromName, greek: fromName }, []) };
   }
   const { full, thumb, canvas } = await prepareImage(info.cover);
-  if (info.text.trim().length < MIN_PDF_TEXT) return { ...base, cover: full, thumb, ...(await readImage(canvas, onStep)) };
+  const all = info.pageTexts.join('\n');
+  if (all.trim().length < MIN_PDF_TEXT) return { ...base, cover: full, thumb, ...(await readImage(canvas, onStep)) };
   onStep('codes');
   const codes = await readCodes(canvas);
   onStep('done');
   const urls = codes.flatMap((c) => (c.type === 'link' ? [c.url] : []));
-  const text = `${info.text}\n${fromName}`;
-  return { ...base, cover: full, thumb, codes, text, found: identify({ latin: text, greek: text }, urls) };
+  return { ...base, cover: full, thumb, codes, text: all, found: identifyPdf(info.pageTexts, name, urls) };
 }

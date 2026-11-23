@@ -15,10 +15,18 @@ export const BRANDS: string[] = [
   'Sencor', 'Sennheiser', 'Severin', 'Sharp', 'Siemens', 'Singer', 'Smeg', 'Sony', 'Stihl', 'TCL', 'Tefal', 'Teka',
   'Thomson', 'Toshiba', 'Toyotomi', 'TP-Link', 'Turbo-X', 'Ubiquiti', 'Vestel', 'Vivo', 'Whirlpool', 'Xiaomi',
   'Yamaha', 'Zanussi', 'Zyxel',
-  // οχήματα, μοτοσυκλέτες, πατίνια, ποδήλατα. Παραλείπονται ονόματα που είναι και συχνές λέξεις στα εγχειρίδια
-  // αυτοκινήτων (π.χ. «Seat», «Smart», «Mini»): θα έβγαιναν λάθος μάρκες από επικεφαλίδες όπως «Seat belts».
-  'Alfa Romeo', 'Audi', 'BMW', 'BYD', 'Citroën', 'Cupra', 'Dacia', 'Ducati', 'Fiat', 'Ford', 'Honda', 'Jaguar', 'Jeep',
-  'Kawasaki', 'Kia', 'KTM', 'Lancia', 'Land Rover', 'Lexus', 'Mazda', 'Mercedes-Benz', 'Nissan', 'Opel', 'Peugeot',
-  'Piaggio', 'Polestar', 'Porsche', 'Renault', 'Segway', 'Skoda', 'Specialized', 'Subaru', 'Suzuki', 'Tesla', 'Toyota',
-  'Trek', 'Vespa', 'Volkswagen', 'Volvo',
+  // οχήματα: αυτοκίνητα, φορτηγά, μοτοσυκλέτες, σκούτερ, πατίνια, ποδήλατα. Κάποια ονόματα είναι και κοινές λέξεις
+  // (Seat, Smart, Mini, Giant, Cube…): η εισαγωγή PDF ψάχνει μάρκα πρώτα στην ΠΡΩΤΗ σελίδα (εξώφυλλο), όπου ένα «Seat
+  // belts» δεν εμφανίζεται συνήθως (απόφαση 23/11/2026: όλες οι μάρκες μέσα, χωρίς παραλείψεις).
+  'Abarth', 'Acura', 'Aiways', 'Alfa Romeo', 'Alpine', 'Aprilia', 'Aston Martin', 'Audi', 'Benelli', 'Bentley', 'Beta',
+  'Bianchi', 'BMW', 'Brompton', 'Buick', 'BYD', 'Cadillac', 'Cannondale', 'Canyon', 'CFMoto', 'Chery', 'Chevrolet',
+  'Chrysler', 'Citroën', 'Cube', 'Cupra', 'Dacia', 'DAF', 'Daihatsu', 'Dodge', 'DS', 'Ducati', 'Ferrari', 'Fiat', 'Fisker',
+  'Ford', 'Gas Gas', 'Gazelle', 'Geely', 'Genesis', 'Giant', 'GMC', 'Great Wall', 'Haibike', 'Harley-Davidson', 'Haval',
+  'Honda', 'Husqvarna', 'Infiniti', 'Isuzu', 'Iveco', 'Jaecoo', 'Jaguar', 'Jeep', 'Kawasaki', 'KGM', 'Kia', 'KTM', 'Kymco',
+  'Lada', 'Lamborghini', 'Lancia', 'Land Rover', 'Leapmotor', 'Lexus', 'Lincoln', 'Lotus', 'Lucid', 'Lynk & Co', 'MAN',
+  'Maserati', 'Mazda', 'McLaren', 'Mercedes-Benz', 'Merida', 'MG', 'Mini', 'Moto Guzzi', 'MV Agusta', 'NIO', 'Ninebot',
+  'Nissan', 'Omoda', 'Opel', 'Ora', 'Orbea', 'Peugeot', 'Piaggio', 'Pinarello', 'Polestar', 'Porsche', 'Proton', 'Ram',
+  'Renault', 'Riese & Müller', 'Rivian', 'Rolls-Royce', 'Royal Enfield', 'Saab', 'Santa Cruz', 'Scania', 'Scott', 'SEAT',
+  'Segway', 'Skoda', 'Smart', 'Specialized', 'SsangYong', 'Subaru', 'Suzuki', 'SYM', 'Tata', 'Tesla', 'Toyota', 'Trek',
+  'Triumph', 'Vespa', 'VinFast', 'Volkswagen', 'Volvo', 'XPeng', 'Zeekr', 'Zero',
 ];

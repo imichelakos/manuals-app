@@ -366,7 +366,8 @@ try {
       nativePromise: async (plugin, method, o) => {
         if (plugin === 'PdfReader' && method === 'read') {
           // «PDFKit»: κείμενο των πρώτων σελίδων και πρώτη σελίδα ως εικόνα (εδώ: το εξώφυλλο της δοκιμής)
-          return { pages: 24, locked: false, cover: window.__mockCover ?? null, text: 'Bosch Serie 6\nWashing machine\nModel: WAU28PH9BY\nInstruction manual\nΟδηγίες χρήσης πλυντηρίου ρούχων' };
+          // 1η σελίδα: εξώφυλλο· 2η: περιεχόμενα με λέξεις που ΔΕΝ πρέπει να γίνουν μάρκα («Seat», «Smart»)
+          return { pages: 24, locked: false, cover: window.__mockCover ?? null, pageTexts: ['Bosch Serie 6\nWashing machine\nModel: WAU28PH9BY\nInstruction manual', 'Seat the appliance firmly. Smart programmes. Οδηγίες χρήσης πλυντηρίου ρούχων'] };
         }
         if (plugin === 'LocalNotifications') {
           // προσομοίωση: άδεια δίνεται στο πρώτο αίτημα· οτιδήποτε άλλο (π.χ. μια «then») είναι σφάλμα
