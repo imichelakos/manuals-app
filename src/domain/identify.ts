@@ -112,10 +112,12 @@ function namedModels(text: string, brand: string): string[] {
   return out;
 }
 
-export function identify(text: CoverText, urls: string[] = []): Identification {
+/** `categoryHint`: κατηγορία που βρέθηκε αλλού (π.χ. στις επόμενες σελίδες ενός PDF), όταν αυτό το κείμενο δεν δείχνει καμία. */
+export function identify(text: CoverText, urls: string[] = [], categoryHint?: CategoryId): Identification {
   // μάρκα και μοντέλο ΜΟΝΟ από το λατινικό πέρασμα (το ελληνικό παραμορφώνει τους κωδικούς)· το είδος και από τα δύο
   const brands = findBrands(text.latin, urls);
-  const kind = findCategory(`${text.greek}\n${text.latin}`);
+  const own = findCategory(`${text.greek}\n${text.latin}`);
+  const kind = own.category === 'other' && categoryHint ? { ...own, category: categoryHint } : own;
   let models = findModels(text.latin);
   // όχημα: πρώτα το όνομα μοντέλου μετά τη μάρκα, μετά τυχόν κωδικοί
   if (kind.category === 'vehicle' && brands[0]) models = [...new Set([...namedModels(text.latin, brands[0]), ...models])].slice(0, 6);

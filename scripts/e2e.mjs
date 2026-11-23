@@ -374,6 +374,10 @@ try {
       ],
       nativeCallback: () => 'mock-callback',
       nativePromise: async (plugin, method, o) => {
+        if (plugin === 'PdfReader' && method === 'read' && window.__mockLogoOnly) {
+          // η μάρκα μόνο ως λογότυπο: το κείμενο δεν τη γράφει· το εξώφυλλο (εικόνα) τη δείχνει → OCR
+          return { pages: 12, locked: false, cover: window.__mockCover ?? null, page2: null, pageTexts: ['Owner manual\nModel: WAU28PH9BY', 'Washing machine safety instructions'] };
+        }
         if (plugin === 'PdfReader' && method === 'read') {
           // «PDFKit»: κείμενο των πρώτων σελίδων και πρώτη σελίδα ως εικόνα (εδώ: το εξώφυλλο της δοκιμής)
           // 1η σελίδα: εξώφυλλο· 2η: περιεχόμενα με λέξεις που ΔΕΝ πρέπει να γίνουν μάρκα («Seat», «Smart»)
@@ -450,6 +454,16 @@ try {
   await lp.getByRole('button', { name: /Αποθήκευση/ }).click();
   await lp.getByText('Bosch-WAU28PH9BY-manual.pdf').waitFor();                                       // το PDF έγινε το ψηφιακό
   assert.equal(await lp.getByRole('heading', { name: 'Βρες το ψηφιακό' }).count(), 0);              // χωρίς «βρες το ψηφιακό»
+
+  step('εισαγωγή PDF — iOS: η μάρκα μόνο ως λογότυπο → OCR στο εξώφυλλο');
+  writeFileSync(path.join(OUT, 'manual.pdf'), PDF_BYTES);
+  await lp.evaluate(() => { window.__mockLogoOnly = true; });
+  await lp.goto(`${BASE}#/scan`);
+  await lp.locator('label:has-text("Εισαγωγή PDF") input[type=file]').setInputFiles(path.join(OUT, 'manual.pdf'));
+  await lp.getByRole('heading', { name: 'Τι βρήκαμε' }).waitFor({ timeout: 120_000 });
+  assert.equal(await lp.locator('#sc-brand').inputValue(), 'Bosch');       // από το OCR του εξωφύλλου («BOSCH» στην εικόνα)
+  assert.equal(await lp.locator('#sc-model').inputValue(), 'WAU28PH9BY');
+  await lp.evaluate(() => { window.__mockLogoOnly = false; });
 
   step('εισαγωγή PDF στη σάρωση — web (χωρίς PDFKit): από το όνομα του αρχείου');
   const pc = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'el-GR' });

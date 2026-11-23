@@ -15,7 +15,8 @@ public class PdfReaderPlugin: CAPPlugin, CAPBridgedPlugin {
     ]
 
     /// data: το PDF σε base64 · maxPages: από πόσες σελίδες κείμενο (1–10) · coverWidth: πλάτος εικόνας (200–2400 px).
-    /// Απάντηση: { pages, pageTexts: [κείμενο ανά σελίδα, από την 1η], cover: base64 JPEG | null, locked }.
+    /// Απάντηση: { pages, pageTexts: [κείμενο ανά σελίδα, από την 1η], cover: base64 JPEG της 1ης | null,
+    /// page2: base64 JPEG της 2ης | null, locked }. Οι εικόνες χρησιμεύουν και για OCR όταν η μάρκα είναι μόνο λογότυπο.
     @objc func read(_ call: CAPPluginCall) {
         guard let b64 = call.getString("data"), let data = Data(base64Encoded: b64) else {
             call.reject("Δεν δόθηκε PDF", "bad-input")
@@ -30,7 +31,7 @@ public class PdfReaderPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             // PDF με κωδικό: μόνο το πλήθος σελίδων· ούτε κείμενο ούτε εικόνα
             if doc.isLocked {
-                call.resolve(["pages": doc.pageCount, "pageTexts": [String](), "cover": NSNull(), "locked": true])
+                call.resolve(["pages": doc.pageCount, "pageTexts": [String](), "cover": NSNull(), "page2": NSNull(), "locked": true])
                 return
             }
             // κείμενο ανά σελίδα: η εφαρμογή ψάχνει μάρκα/μοντέλο πρώτα στην 1η (εξώφυλλο), όχι σε όλο το έγγραφο
@@ -38,14 +39,15 @@ public class PdfReaderPlugin: CAPPlugin, CAPBridgedPlugin {
             for i in 0..<min(maxPages, doc.pageCount) {
                 pageTexts.append(String((doc.page(at: i)?.string ?? "").prefix(20_000)))
             }
-            var cover: Any = NSNull()
-            if let page = doc.page(at: 0) {
+            /// σελίδα → JPEG σε base64 (NSNull αν δεν υπάρχει)
+            func image(_ index: Int) -> Any {
+                guard let page = doc.page(at: index) else { return NSNull() }
                 let box = page.bounds(for: .mediaBox)
                 let height = box.width > 0 ? width * box.height / box.width : width * 1.414
-                let image = page.thumbnail(of: CGSize(width: width, height: height), for: .mediaBox)
-                if let jpeg = image.jpegData(compressionQuality: 0.85) { cover = jpeg.base64EncodedString() }
+                let picture = page.thumbnail(of: CGSize(width: width, height: height), for: .mediaBox)
+                return picture.jpegData(compressionQuality: 0.85)?.base64EncodedString() ?? NSNull()
             }
-            call.resolve(["pages": doc.pageCount, "pageTexts": pageTexts, "cover": cover, "locked": false])
+            call.resolve(["pages": doc.pageCount, "pageTexts": pageTexts, "cover": image(0), "page2": image(1), "locked": false])
         }
     }
 }

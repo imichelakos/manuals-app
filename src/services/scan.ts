@@ -57,8 +57,8 @@ export function identifyPdf(pageTexts: string[], fileName: string, urls: string[
   const name = nameText(fileName);
   const cover = `${pageTexts[0] ?? ''}\n${name}`;
   const early = `${pageTexts.join('\n')}\n${name}`;
-  const fromCover = identify({ latin: cover, greek: cover }, urls);
   const fromEarly = identify({ latin: early, greek: early }, urls);
+  const fromCover = identify({ latin: cover, greek: cover }, urls, fromEarly.category);
   return {
     brands: fromCover.brands.length ? fromCover.brands : fromEarly.brands,
     models: fromCover.models.length ? fromCover.models : fromEarly.models,
@@ -92,7 +92,30 @@ export async function scanPdf(pdf: File, onStep: (s: ScanStep, progress?: number
   if (all.trim().length < MIN_PDF_TEXT) return { ...base, cover: full, thumb, ...(await readImage(canvas, onStep)) };
   onStep('codes');
   const codes = await readCodes(canvas);
-  onStep('done');
   const urls = codes.flatMap((c) => (c.type === 'link' ? [c.url] : []));
-  return { ...base, cover: full, thumb, codes, text: all, found: identifyPdf(info.pageTexts, name, urls) };
+  let found = identifyPdf(info.pageTexts, name, urls);
+  let text = all;
+  // η μάρκα δεν είναι στο κείμενο ούτε στο όνομα του αρχείου (συχνά είναι λογότυπο-εικόνα): OCR στο εξώφυλλο και,
+  // αν ούτε εκεί βρεθεί, στη 2η σελίδα (απόφαση 23/11/2026)
+  if (!found.brands.length) {
+    const page2 = info.page2 ? async () => (await prepareImage(info.page2!)).canvas : null;
+    for (const image of [async () => canvas, page2]) {
+      if (!image) continue;
+      onStep('text', 0);
+      const ocr = (await readText(await image(), { langs: ['eng'], sparse: true, onProgress: (p) => onStep('text', p) })).eng;
+      const withLogo = identifyPdf([ocr, ...info.pageTexts], name, urls);
+      if (withLogo.brands.length) {
+        // από το OCR κυρίως η μάρκα: το κείμενο του PDF είναι ακριβέστερο για κωδικούς μοντέλου. Εξαίρεση τα οχήματα, όπου
+        // μοντέλο είναι όνομα δίπλα στο λογότυπο (Micra) και οι κωδικοί του κειμένου είναι συνήθως κωδικοί εγγράφου
+        const models = found.category === 'vehicle'
+          ? [...new Set([...withLogo.models, ...found.models])].slice(0, 6)
+          : found.models.length ? found.models : withLogo.models;
+        found = { ...found, brands: withLogo.brands, models };
+        text = `${ocr}\n${all}`;
+        break;
+      }
+    }
+  }
+  onStep('done');
+  return { ...base, cover: full, thumb, codes, text, found };
 }
