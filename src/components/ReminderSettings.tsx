@@ -1,6 +1,10 @@
-/** Ρυθμίσεις → Υπενθυμίσεις: ειδοποίηση στη συσκευή πριν λήξει μια εγγύηση (μόνο στην εφαρμογή iOS). */
+/**
+ * Ρυθμίσεις → Υπενθυμίσεις: ειδοποιήσεις στη συσκευή πριν λήξει μια εγγύηση (μόνο στην εφαρμογή iOS). Πολλαπλή επιλογή
+ * «πόσο νωρίς» (έως MAX_REMINDER_OFFSETS)· η ειδοποίηση της ημέρας λήξης στέλνεται πάντα.
+ */
 import { useState } from 'react';
 import { REMINDER_DAY_OPTIONS, REMINDER_DAYS_MAX, setSettings, useSettings } from '@/data/settings';
+import { MAX_REMINDER_OFFSETS, normalizeOffsets } from '@/domain/reminders';
 import { OtherNumber } from '@/components/controls';
 import { remindersSupported, rescheduleReminders, setRemindersEnabled } from '@/data/reminderRuntime';
 import { t, tn } from '@/i18n';
@@ -11,8 +15,11 @@ export function ReminderSettings() {
   if (!remindersSupported) {
     return <p className="text-[15px] leading-relaxed text-ink-2">{t('Οι υπενθυμίσεις λήξης εγγύησης λειτουργούν στην εφαρμογή για iPhone και iPad.')}</p>;
   }
-  const choose = (d: number) => { setSettings({ reminderDays: d }); void rescheduleReminders(); };
-  const custom = !(REMINDER_DAY_OPTIONS as readonly number[]).includes(reminderDays);
+  const save = (days: number[]) => { setSettings({ reminderDays: normalizeOffsets(days) }); void rescheduleReminders(); };
+  const toggleDay = (d: number) => save(reminderDays.includes(d) ? reminderDays.filter((x) => x !== d) : [...reminderDays, d]);
+  const full = reminderDays.length >= MAX_REMINDER_OFFSETS;
+  // chips: οι έτοιμες επιλογές + όσες πρόσθεσε ο χρήστης με το «Άλλο», από τη νωρίτερη στην πιο κοντινή
+  const chips = [...new Set([...REMINDER_DAY_OPTIONS, ...reminderDays])].sort((a, b) => b - a);
   const toggle = async () => setDenied(!(await setRemindersEnabled(!reminders)) && !reminders);
   return (
     <div className="space-y-3">
@@ -24,22 +31,27 @@ export function ReminderSettings() {
       </div>
       {denied && <p className="rounded-2xl bg-warn-soft p-3 text-[14px] leading-relaxed text-warn">{t('Οι ειδοποιήσεις δεν επιτρέπονται για την εφαρμογή. Άνοιξέ τες από τις Ρυθμίσεις της συσκευής → Ειδοποιήσεις.')}</p>}
       {reminders && (
-        <div role="radiogroup" aria-label={t('Πόσο νωρίς')} className="inline-flex flex-wrap gap-1 rounded-2xl bg-surface-2 p-1">
-          {REMINDER_DAY_OPTIONS.map((d) => (
-            <button key={d} type="button" role="radio" aria-checked={reminderDays === d}
-              onClick={() => choose(d)}
-              className={`min-h-10 rounded-xl px-4 text-sm font-semibold transition ${reminderDays === d ? 'bg-surface text-ink shadow-card' : 'text-ink-2'}`}>
-              {tn(d, '{n} ημέρα πριν', '{n} ημέρες πριν')}
-            </button>
-          ))}
-          <label className={`flex min-h-10 items-center gap-2 rounded-xl px-3 text-sm font-semibold transition ${custom ? 'bg-surface text-ink shadow-card' : 'text-ink-2'}`}>
-            <span>{t('Άλλο')}</span>
-            <OtherNumber value={reminderDays} presets={REMINDER_DAY_OPTIONS} min={1} max={REMINDER_DAYS_MAX}
-              onChange={(n) => { if (n !== undefined) choose(n); }}
-              className="w-14 rounded-lg bg-bg px-2 py-1 text-center text-base text-ink outline-hidden"
-              label={t('Ημέρες πριν από τη λήξη')} placeholder={t('ημέρες')} />
-          </label>
-        </div>
+        <fieldset>
+          <legend className="mb-2 text-[13px] text-ink-2">{t('Πόσο νωρίς (έως {n}) — και πάντα την ημέρα της λήξης', { n: MAX_REMINDER_OFFSETS })}</legend>
+          <div className="flex flex-wrap gap-2">
+            {chips.map((d) => {
+              const on = reminderDays.includes(d);
+              return (
+                <button key={d} type="button" aria-pressed={on} disabled={!on && full} onClick={() => toggleDay(d)}
+                  className={`chip disabled:opacity-40 ${on ? 'chip-on' : ''}`}>{tn(d, '{n} ημέρα πριν', '{n} ημέρες πριν')}</button>
+              );
+            })}
+            {!full && (
+              <label className="chip gap-2 pr-2">
+                <span>{t('Άλλο')}</span>
+                <OtherNumber value={undefined} presets={chips} min={1} max={REMINDER_DAYS_MAX}
+                  onChange={(n) => { if (n !== undefined) save([...reminderDays, n]); }}
+                  className="w-14 rounded-lg bg-surface-2 px-2 py-1 text-center text-base text-ink outline-hidden"
+                  label={t('Ημέρες πριν από τη λήξη')} placeholder={t('ημέρες')} />
+              </label>
+            )}
+          </div>
+        </fieldset>
       )}
     </div>
   );

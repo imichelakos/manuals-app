@@ -379,13 +379,28 @@ try {
   await lp.reload();                                            // δεύτερη εκκίνηση: μόνο με το Keychain
   await lp.goto(BASE);
   await lp.getByText('Παλιό τοστιέρα').click();
-  await lp.getByText('old.pdf').click();                        // και το αρχείο ανοίγει
+  await lp.getByText('old.pdf').waitFor();                      // το αρχείο (το μόνο blob) το επαληθεύει ήδη το openVault με το νέο κλειδί· χωρίς άνοιγμα (θέλει το plugin αρχείων)
 
   step('υπενθυμίσεις: ο διακόπτης ανοίγει (προσομοίωση iOS με LocalNotifications)');
   await lp.goto(`${BASE}#/settings`);
   const remSwitch = lp.getByRole('switch', { name: 'Υπενθύμιση λήξης εγγύησης' });
   await remSwitch.click();
   await lp.waitForFunction(() => document.querySelector('[role=switch][aria-label="Υπενθύμιση λήξης εγγύησης"]')?.getAttribute('aria-checked') === 'true', null, { timeout: 5000 });
+  // πολλαπλή επιλογή «πόσο νωρίς», έως 5
+  await lp.getByRole('button', { name: '30 ημέρες πριν', pressed: true }).waitFor();          // προεπιλογή
+  await lp.getByRole('button', { name: '7 ημέρες πριν' }).click();
+  await lp.getByRole('button', { name: '60 ημέρες πριν' }).click();
+  const otherDays = lp.getByLabel('Ημέρες πριν από τη λήξη');
+  await otherDays.pressSequentially('14'); await otherDays.press('Enter');
+  await lp.getByRole('button', { name: '14 ημέρες πριν', pressed: true }).waitFor();
+  await otherDays.pressSequentially('3'); await otherDays.press('Enter');
+  await lp.getByRole('button', { name: '3 ημέρες πριν', pressed: true }).waitFor();         // 5 επιλογές
+  assert.equal(await lp.getByLabel('Ημέρες πριν από τη λήξη').count(), 0);                 // στο όριο: όχι «Άλλο»
+  await lp.getByRole('switch', { name: 'Υπενθύμιση λήξης εγγύησης' }).scrollIntoViewIfNeeded();
+  await shot('17-reminders', lp);
+  await lp.getByRole('button', { name: '7 ημέρες πριν' }).click();                          // μία λιγότερη → ξανά «Άλλο»
+  await lp.getByLabel('Ημέρες πριν από τη λήξη').waitFor();
+  assert.deepEqual(await lp.evaluate(() => JSON.parse(localStorage.getItem('manuals-settings-v1')).reminderDays), [60, 30, 14, 3]);
 
   // ---------- αγγλικά ----------
   step('αγγλικά');
