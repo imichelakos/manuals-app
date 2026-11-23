@@ -13,6 +13,7 @@ import { openVault } from '@/data/vault';
 import { VaultProblem } from '@/components/VaultProblem';
 import { startSync } from '@/data/syncRuntime';
 import { startPagesBackfill } from '@/data/pagesBackfill';
+import { loadLanguage } from '@/i18n';
 
 applyTheme();
 // χωρίς περιεχόμενο χρήστη στην κονσόλα — μόνο ο τύπος του σφάλματος
@@ -28,6 +29,7 @@ const Router = import.meta.env.MODE === 'preview' ? MemoryRouter : HashRouter;
 
 const root = createRoot(document.getElementById('root')!);
 void (async () => {
+  await loadLanguage(); // το λεξικό της γλώσσας πριν από οποιαδήποτε οθόνη (και πριν από το μήνυμα προβλήματος)
   // πρώτα το κλειδί κρυπτογράφησης· χωρίς αυτό η εφαρμογή δεν διαβάζει ούτε γράφει τίποτα (fail-closed)
   const status = await openVault().catch(() => 'no-key' as const);
   if (status !== 'ready') { root.render(<StrictMode><VaultProblem status={status} /></StrictMode>); return; }

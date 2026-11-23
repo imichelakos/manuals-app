@@ -2,7 +2,7 @@
 import { isNative } from '@/services/platform';
 import { setSyncEnabled, syncNow, useSyncStatus, useTooBigCount } from '@/data/syncRuntime';
 import type { SyncErrorCode } from '@/data/sync';
-import { getLang, t, tn } from '@/i18n';
+import { locale, t, tn } from '@/i18n';
 
 const errorText = (code: SyncErrorCode): string =>
   code === 'no-account' ? t('Δεν υπάρχει συνδεδεμένος λογαριασμός iCloud. Συνδέσου από τις Ρυθμίσεις της συσκευής.')
@@ -11,7 +11,7 @@ const errorText = (code: SyncErrorCode): string =>
     : code === 'remote-deleted' ? t('Τα δεδομένα της εφαρμογής διαγράφηκαν από το iCloud. Ο συγχρονισμός έκλεισε· άνοιξέ τον ξανά για να ανέβουν από αυτή τη συσκευή.')
     : t('Ο συγχρονισμός απέτυχε. Δοκίμασε ξανά σε λίγο.');
 
-const when = (ms: number) => new Intl.DateTimeFormat(getLang() === 'en' ? 'en-GB' : 'el-GR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(ms));
+const when = (ms: number) => new Intl.DateTimeFormat(locale(), { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(ms));
 
 export function SyncSettings() {
   const s = useSyncStatus();

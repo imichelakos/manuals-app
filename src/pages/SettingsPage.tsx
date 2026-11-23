@@ -10,7 +10,7 @@ import { ReminderSettings } from '@/components/ReminderSettings';
 import { cancelAllScheduled } from '@/services/notifications';
 import { ENGINES, SEARCH_ENGINES, type SearchEngine } from '@/domain/manualSearch';
 import { prettySize } from '@/services/files';
-import { getLang, setLang, t, tn, type Lang } from '@/i18n';
+import { LANGS, LANG_INFO, getLang, setLang, t, tn, type Lang } from '@/i18n';
 import { SyncSettings } from '@/components/SyncSettings';
 import { BackupSettings } from '@/components/BackupSettings';
 import { usePrefersDark } from '@/hooks/usePrefersDark';
@@ -76,7 +76,7 @@ export default function SettingsPage() {
             <Segmented<Theme> label={t('Εμφάνιση')} value={s.theme} onChange={(theme) => setSettings({ theme })} options={[['light', t('Φωτεινή')], ['dark', t('Σκοτεινή')], ['auto', t('Αυτόματη')]]} />
           </Row>
           <Row title={t('Γλώσσα')}>
-            <Choice<Lang> label={t('Γλώσσα')} value={getLang()} onChange={setLang} options={[['el', 'Ελληνικά'], ['en', 'English']]} />
+            <Choice<Lang> label={t('Γλώσσα')} value={getLang()} onChange={setLang} options={LANGS.map((l) => [l, LANG_INFO[l].name])} />
           </Row>
         </Group>
 
