@@ -12,6 +12,7 @@ import LibraryPanel from '@/pages/LibraryPanel';
 const ItemPage = lazy(() => import('@/pages/ItemPage'));
 const ScanPage = lazy(() => import('@/pages/ScanPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
+const SourcesPage = lazy(() => import('@/pages/SourcesPage'));
 import { Toasts } from '@/components/Toast';
 import { LockScreen } from '@/components/LockScreen';
 import { useLocked } from '@/data/appLock';
@@ -44,6 +45,7 @@ export default function App() {
           <Route path="/item/:id" element={<ItemPage />} />
           <Route path="/scan" element={<ScanPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/sources" element={<SourcesPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         </Suspense>

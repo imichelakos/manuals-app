@@ -86,3 +86,15 @@ export function ConfirmDelete({ onConfirm, label, className = 'icon-btn' }: { on
     ? <button type="button" className="btn btn-danger min-h-9 px-3 py-1 text-sm" onClick={() => { setArmed(false); onConfirm(); }}>{t('Σίγουρα;')}</button>
     : <button type="button" className={className} aria-label={label} onClick={() => setArmed(true)}><IconTrash className="text-xl" /></button>;
 }
+
+/** Επιλογή ενός από λίγα (2–4) με κουμπιά δίπλα-δίπλα, όπως το segmented control του iOS: ένα πάτημα, χωρίς λίστα. */
+export function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: [T, string][]; onChange: (v: T) => void; label: string }) {
+  return (
+    <div role="radiogroup" aria-label={label} className="flex rounded-xl bg-surface-2 p-0.5">
+      {options.map(([v, text]) => (
+        <button key={v} type="button" role="radio" aria-checked={value === v} onClick={() => onChange(v)}
+          className={`min-h-9 flex-1 rounded-[10px] px-2.5 text-[14px] font-semibold transition ${value === v ? 'bg-surface text-ink shadow-card' : 'text-ink-2'}`}>{text}</button>
+      ))}
+    </div>
+  );
+}

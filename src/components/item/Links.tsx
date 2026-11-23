@@ -47,7 +47,7 @@ export function LinksSection({ item }: { item: Item }) {
             <div className="min-w-0 flex-1">
               <AutoField value={l.title} aria-label={t('Τίτλος συνδέσμου')} className="w-full bg-transparent text-[15px] font-semibold outline-hidden"
                 onCommit={(title) => void updateItem(item.id, (c) => ({ ...c, links: c.links.map((x) => (x.id === l.id ? { ...x, title: title.trim() || linkLabel(l.kind) } : x)) }))} />
-              <p className="mono flex items-center gap-1.5 truncate text-[13px] text-ink-2">
+              <p className="flex items-center gap-1.5 truncate text-[13px] text-ink-2">
                 {l.url.startsWith('http://') && <IconWarn className="shrink-0 text-sm text-warn" aria-label={t('Μη ασφαλής σύνδεση (http)')} />}
                 {hostOf(l.url)}
               </p>

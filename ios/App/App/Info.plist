@@ -6,6 +6,15 @@
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>el</string>
+		<string>en</string>
+		<string>fr</string>
+		<string>es</string>
+		<string>it</string>
+		<string>de</string>
+	</array>
 	<key>CFBundleDisplayName</key>
         <string>Εγχειρίδια</string>
 	<key>CFBundleExecutable</key>

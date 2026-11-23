@@ -160,6 +160,20 @@ test('recyclingStats: ανακυκλωμένα / έτοιμα / χωρίς ψη�
   const b: Item = { ...emptyItem(2), attachments: [manual] };
   const c: Item = { ...emptyItem(3) };
   const d: Item = { ...emptyItem(4), deleted: true };
-  assert.deepEqual(recyclingStats([a, b, c, d]), { total: 3, recycled: 1, ready: 1, waiting: 1, recycledPct: 33, digitalPct: 67, pagesDigital: 0, paperGrams: 0, paperUnknown: 1 });
+  assert.deepEqual(recyclingStats([a, b, c, d]), { total: 3, recycled: 1, ready: 1, waiting: 1, recycledPct: 33, digitalPct: 67, pagesDigital: 0, paperGrams: 0, paperUnknown: 1, digitalPaperGrams: 0, co2Kg: 0, trees: 0 });
   assert.equal(recyclingStats([]).recycledPct, 0);
+});
+
+test('identify: οχήματα — μάρκα και όνομα μοντέλου μετά τη μάρκα', () => {
+  const car = identify({ latin: "TOYOTA COROLLA\nOwner's Manual\nThis car is equipped with seat belts", greek: '' });
+  assert.equal(car.category, 'vehicle');
+  assert.equal(car.brands[0], 'Toyota');
+  assert.equal(car.models[0], 'COROLLA');
+  const tesla = identify({ latin: 'Tesla Model 3 Owner Manual — car', greek: '' });
+  assert.deepEqual([tesla.brands[0], tesla.models[0]], ['Tesla', 'Model 3']);
+  const vw = identify({ latin: 'Volkswagen Owner’s Manual Golf car', greek: 'Εγχειρίδιο αυτοκινήτου' });
+  assert.equal(vw.brands[0], 'Volkswagen');
+  assert.ok(!vw.models.includes('Owner’s'));                     // γενική λέξη, όχι μοντέλο
+  // σε συσκευή δεν εφαρμόζεται: εκεί μοντέλο είναι ο κωδικός
+  assert.equal(identify({ latin: 'Bosch Serie 6 washing machine WAU28PH9BY', greek: '' }).models[0], 'WAU28PH9BY');
 });

@@ -93,7 +93,33 @@ export function findCategory(text: string): { category: CategoryId; productWord:
 /** Κείμενο του εξωφύλλου ανά πέρασμα OCR: `latin` από το αγγλικό μοντέλο (μάρκες, κωδικοί), `greek` από το ελληνικό. */
 export interface CoverText { latin: string; greek: string }
 
-export function identify(text: CoverText, urls: string[] = []): Identification {
+/** λέξεις που ακολουθούν συχνά τη μάρκα σε εξώφυλλο και δεν είναι μοντέλο */
+const NOT_MODEL = /^(owner|owners|manual|user|users|guide|handbook|instruction|instructions|quick|start|service|warranty|book|the|and|for|by|group|motor|motors|automobiles|cars|ag|sa|gmbh|inc|ltd|company|co)$/i;
+
+/**
+ * Οχήματα: το μοντέλο είναι όνομα («Corolla», «Golf», «Model 3»), όχι κωδικός. Παίρνει τη λέξη (ή τις δύο, αν η δεύτερη
+ * είναι σύντομη, π.χ. «Model 3», «ID.3») που ακολουθεί τη μάρκα, όταν αρχίζει με κεφαλαίο και δεν είναι γενική λέξη.
+ */
+function namedModels(text: string, brand: string): string[] {
+  const out: string[] = [];
+  const re = new RegExp(`${brand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+([A-Z][\\p{L}\\p{N}.-]{1,19})(?:\\s+([\\p{L}\\p{N}.-]{1,4}))?`, 'giu'); // και «TOYOTA COROLLA»
+  for (const m of text.matchAll(re)) {
+    const first = m[1]!, second = m[2];
+    if (!/^\p{Lu}/u.test(first) || NOT_MODEL.test(first)) continue;
+    const name = second && /\d/.test(second) && !NOT_MODEL.test(second) ? `${first} ${second}` : first;
+    if (!out.includes(name)) out.push(name);
+  }
+  return out;
+}
+
+/** `categoryHint`: κατηγορία που βρέθηκε αλλού (π.χ. στις επόμενες σελίδες ενός PDF), όταν αυτό το κείμενο δεν δείχνει καμία. */
+export function identify(text: CoverText, urls: string[] = [], categoryHint?: CategoryId): Identification {
   // μάρκα και μοντέλο ΜΟΝΟ από το λατινικό πέρασμα (το ελληνικό παραμορφώνει τους κωδικούς)· το είδος και από τα δύο
-  return { brands: findBrands(text.latin, urls), models: findModels(text.latin), ...findCategory(`${text.greek}\n${text.latin}`) };
+  const brands = findBrands(text.latin, urls);
+  const own = findCategory(`${text.greek}\n${text.latin}`);
+  const kind = own.category === 'other' && categoryHint ? { ...own, category: categoryHint } : own;
+  let models = findModels(text.latin);
+  // όχημα: πρώτα το όνομα μοντέλου μετά τη μάρκα, μετά τυχόν κωδικοί
+  if (kind.category === 'vehicle' && brands[0]) models = [...new Set([...namedModels(text.latin, brands[0]), ...models])].slice(0, 6);
+  return { brands, models, ...kind };
 }

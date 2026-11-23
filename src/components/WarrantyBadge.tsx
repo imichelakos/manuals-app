@@ -1,6 +1,6 @@
 /** Κατάσταση εγγύησης ως ετικέτα: «Εγγύηση έως …», «Λήγει σε Ν ημέρες», «Έληξε». */
 import type { Item } from '@/domain/model';
-import { warrantyInfo, type WarrantyInfo } from '@/domain/warranty';
+import { coveredParts, warrantyInfo, type WarrantyInfo } from '@/domain/warranty';
 import { today } from '@/domain/dates';
 import { fmtDate, t, tn } from '@/i18n';
 import { IconShield } from './icons';
@@ -21,4 +21,14 @@ export function WarrantyBadge({ item, short = false }: { item: Item; short?: boo
     : w.state === 'expiring' ? tn(w.daysLeft ?? 0, '{n} ημέρα', '{n} ημέρες')
     : t('έως {date}', { date: fmtDate(w.until!) });
   return <span className={`badge ${cls}`}><IconShield className="text-sm" />{label}</span>;
+}
+
+/** «+N μέρη σε εγγύηση»: όταν η κύρια εγγύηση έχει λήξει (ή δεν υπάρχει) αλλά καλύπτονται ακόμη μέρη του προϊόντος. */
+export function PartsBadge({ item }: { item: Item }) {
+  const now = today();
+  const main = warrantyInfo(item, now).state;
+  if (main === 'active' || main === 'expiring') return null;
+  const n = coveredParts(item, now).length;
+  if (!n) return null;
+  return <span className="badge badge-ok"><IconShield className="text-sm" />{tn(n, '+{n} μέρος σε εγγύηση', '+{n} μέρη σε εγγύηση')}</span>;
 }

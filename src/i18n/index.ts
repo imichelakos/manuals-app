@@ -1,26 +1,44 @@
 /**
- * Γλώσσα εφαρμογής: ελληνικά (πηγή) ή αγγλικά.
- * Σύμβαση: το ελληνικό κείμενο μένει στον κώδικα ως κλειδί — `t('Βιβλιοθήκη')`, `t('{n} προϊόντα', { n })`. Τα αγγλικά
- * βρίσκονται στο en.ts με το ΙΔΙΟ ελληνικό κλειδί· αν λείπει μετάφραση εμφανίζεται το ελληνικό (ποτέ κενό).
- * Η αλλαγή γλώσσας ξαναφορτώνει την εφαρμογή, ώστε κάθε κείμενο να ενημερωθεί.
+ * Γλώσσα εφαρμογής (κατάλογος: languages.ts).
+ * Σύμβαση: το ελληνικό κείμενο μένει στον κώδικα ως κλειδί — `t('Βιβλιοθήκη')`, `t('{n} προϊόντα', { n })`. Κάθε άλλη
+ * γλώσσα έχει λεξικό `<code>.ts` με τα ΙΔΙΑ ελληνικά κλειδιά· φορτώνεται μόνο το λεξικό της επιλεγμένης γλώσσας, με
+ * `loadLanguage()` πριν από την πρώτη οθόνη. Αν λείπει μετάφραση εμφανίζεται το ελληνικό (ποτέ κενό)· το CI ελέγχει ότι
+ * δεν λείπει καμία (`npm run test:i18n`). Η αλλαγή γλώσσας ξαναφορτώνει την εφαρμογή.
  */
-import EN from './en';
+import { LANG_INFO, isLang, pickLang, type Lang } from './languages';
 
-export type Lang = 'el' | 'en';
+export { LANGS, LANG_INFO, type Lang } from './languages';
+type Dict = Record<string, string>;
 const KEY = 'manuals-lang-v1';
+
+/** Τα λεξικά ως ξεχωριστά κομμάτια του build: φορτώνεται μόνο εκείνο της επιλεγμένης γλώσσας. */
+const LOADERS: Record<Exclude<Lang, 'el'>, () => Promise<{ default: Dict }>> = {
+  en: () => import('./en'),
+  fr: () => import('./fr'),
+  es: () => import('./es'),
+  it: () => import('./it'),
+  de: () => import('./de'),
+};
 
 function detect(): Lang {
   try {
     const saved = localStorage.getItem(KEY);
-    if (saved === 'el' || saved === 'en') return saved;
+    if (isLang(saved)) return saved;
   } catch { /* χωρίς αποθήκευση */ }
-  const nav = typeof navigator !== 'undefined' ? (navigator.languages?.[0] ?? navigator.language ?? 'el') : 'el';
-  return nav.toLowerCase().startsWith('el') ? 'el' : 'en';
+  const nav = typeof navigator !== 'undefined' ? [...(navigator.languages ?? []), navigator.language].filter(Boolean) : [];
+  return pickLang(nav);
 }
 
 const lang: Lang = detect();
 if (typeof document !== 'undefined') document.documentElement.lang = lang;
 export const getLang = (): Lang => lang;
+let dict: Dict = {};
+
+/** Φορτώνει το λεξικό της τρέχουσας γλώσσας· μία φορά, πριν από την πρώτη οθόνη. Σε αποτυχία μένουν τα ελληνικά. */
+export async function loadLanguage(): Promise<void> {
+  if (lang === 'el') return; // η γλώσσα-πηγή δεν έχει λεξικό
+  dict = (await LOADERS[lang]().catch(() => ({ default: {} }))).default;
+}
 
 export function setLang(l: Lang): void {
   try { localStorage.setItem(KEY, l); } catch { /* χωρίς αποθήκευση */ }
@@ -32,12 +50,14 @@ const fill = (s: string, vars?: Record<string, string | number>) =>
 
 /** Μετάφραση: ελληνικό κείμενο → τρέχουσα γλώσσα, με {μεταβλητές}. */
 export function t(el: string, vars?: Record<string, string | number>): string {
-  return fill(lang === 'el' ? el : (EN[el] ?? el), vars);
+  return fill(dict[el] ?? el, vars);
 }
-/** Ενικός/πληθυντικός: tn(n, '{n} προϊόν', '{n} προϊόντα'). */
-export const tn = (n: number, one: string, many: string) => t(n === 1 ? one : many, { n });
 
-export const locale = () => (lang === 'en' ? 'en-GB' : 'el-GR');
+export const locale = () => LANG_INFO[lang].locale;
+const plural = new Intl.PluralRules(LANG_INFO[lang].locale);
+/** Ενικός/πληθυντικός με τους κανόνες της γλώσσας (στα γαλλικά και το 0 παίρνει ενικό): tn(n, '{n} προϊόν', '{n} προϊόντα'). */
+export const tn = (n: number, one: string, many: string) => t(plural.select(n) === 'one' ? one : many, { n });
+
 /** «ΕΕΕΕ-ΜΜ-ΗΗ» → «14 Μαρ 2025». */
 export function fmtDate(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number);

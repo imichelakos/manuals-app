@@ -11,8 +11,9 @@ export type TipId = 'reuse' | 'symbol' | 'cooling' | 'lamps' | 'data' | 'batteri
 export type SourceId = 'annex7' | 'annex9' | 'epa';
 export interface Tip { id: TipId; source?: SourceId }
 
-/** Διευθύνσεις των πηγών (οι ετικέτες, μεταφράσιμες, είναι στην οθόνη). Το EUR-Lex δέχεται τη γλώσσα στη διεύθυνση. */
-export function sourceUrl(id: SourceId, lang: 'el' | 'en'): string {
+/** Διευθύνσεις των πηγών (οι ετικέτες, μεταφράσιμες, είναι στην οθόνη). Το EUR-Lex δέχεται τη γλώσσα στη διεύθυνση
+ *  (κωδικός ISO 639-1 με κεφαλαία: EL, EN, FR, ES, IT, DE). */
+export function sourceUrl(id: SourceId, lang: string): string {
   return id === 'epa'
     ? 'https://www.epa.gov/recycle/electronics-donation-and-recycling'
     : `https://eur-lex.europa.eu/legal-content/${lang.toUpperCase()}/TXT/HTML/?uri=CELEX:32012L0019`;

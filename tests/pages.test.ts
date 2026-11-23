@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { zlibSync, unzlibSync } from 'fflate';
 import { countPdfPages } from '@/domain/pdfPages';
+import { identifyPdf } from '@/services/scan';
 import { suggestGroup, groupOf } from '@/domain/groups';
 import { recyclingStats, manualPages } from '@/domain/recycling';
 import { emptyItem, type Attachment, type Item } from '@/domain/model';
@@ -45,4 +46,30 @@ test('recyclingStats: σελίδες και εκτίμηση βάρους', () =
   assert.equal(s.pagesDigital, 41 + 2 + 8);
   assert.equal(s.paperGrams, (21 + 1) * 2.5);
   assert.equal(s.paperUnknown, 1);
+});
+
+test('recyclingStats: CO2 και δέντρα από το χαρτί των ψηφιακών σελίδων', () => {
+  const att: Attachment = { id: 'a'.repeat(12), kind: 'manual', name: 'm.pdf', mime: 'application/pdf', size: 1, blobId: 'b'.repeat(12), addedAt: 1, origin: 'import', pages: 400 };
+  const s = recyclingStats([{ ...emptyItem(1), attachments: [att] }]);
+  assert.equal(s.digitalPaperGrams, 200 * 2.5);                          // 400 σελίδες → 200 φύλλα → 500 g
+  assert.ok(Math.abs(s.co2Kg - 0.5 * 0.97 / 0.907) < 1e-9);              // EPA WARM: 0,97 t ανά short ton
+  assert.ok(Math.abs(s.trees - 0.5 * 24 / 907.18474) < 1e-12);           // Conservatree: 24 δέντρα ανά short ton
+  assert.equal(recyclingStats([]).co2Kg, 0);
+});
+
+test('identifyPdf: μάρκα/μοντέλο από την πρώτη σελίδα, όχι από όλο το PDF', () => {
+  const car = identifyPdf(['TOYOTA COROLLA\nOwner’s Manual', 'Seat belts and airbags. Smart key system. Mini spare wheel.', 'Car maintenance'], 'manual.pdf', []);
+  assert.deepEqual([car.brands, car.models[0], car.category], [['Toyota'], 'COROLLA', 'vehicle']); // όχι SEAT/Smart/Mini
+  const fallback = identifyPdf(['', 'SEAT Leon Owner manual — car'], 'manual.pdf', []);          // κενό εξώφυλλο → επόμενες σελίδες
+  assert.equal(fallback.brands[0], 'SEAT');
+  assert.equal(identifyPdf([''], 'Bosch-WAU28PH9BY.pdf', []).models[0], 'WAU28PH9BY');           // και από το όνομα αρχείου
+});
+
+test('identifyPdf: πραγματικό εγχειρίδιο (Nissan Micra) — η μάρκα μόνο στο όνομα του αρχείου, όχι στο κείμενο', () => {
+  // αρχή του κειμένου όπως τη δίνει το PDF (η μάρκα είναι λογότυπο-εικόνα· στο κείμενο μόνο κωδικοί και ελληνικά)
+  const page1 = 'NU 1678-3 B1322\nBIBΛIO OΔHΓIΩN XPHΣHΣΣ\nΚαλώς ήρθατε στο καινούργιο σας ηλεκτρικό αυτοκίνητο';
+  const r = identifyPdf([page1], 'Nissan Micra INFO.pdf', []);
+  assert.equal(r.brands[0], 'Nissan');
+  assert.equal(r.models[0], 'Micra');
+  assert.equal(r.category, 'vehicle');
 });

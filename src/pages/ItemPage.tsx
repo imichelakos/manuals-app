@@ -58,7 +58,7 @@ export default function ItemPage() {
         </div>
         <div className="min-w-0">
           <h1 className="text-2xl font-extrabold leading-tight">{title}</h1>
-          {item.name && (item.brand || item.model) && <p className="mt-0.5 text-[15px] text-ink-2">{item.brand} <span className="mono text-sm">{item.model}</span></p>}
+          {item.name && (item.brand || item.model) && <p className="mt-0.5 text-[15px] text-ink-2">{item.brand} {item.model}</p>}
           <div className="mt-2 flex flex-wrap gap-1.5">
             <span className="badge badge-mute"><CategoryIcon id={item.category} className="text-sm" />{t(categoryById(item.category).label)}</span>
             <WarrantyBadge item={item} short />

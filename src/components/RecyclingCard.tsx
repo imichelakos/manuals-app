@@ -1,10 +1,28 @@
 /** Βιβλιοθήκη → κάρτα ανακύκλωσης: μπάρα προόδου και τρία πλήθη· κάθε πλήθος είναι και γρήγορο φίλτρο. */
 import type { RecyclingStats } from '@/domain/recycling';
+import { Link } from 'react-router';
 import { locale, t, tn } from '@/i18n';
 import { IconRecycle } from './icons';
 
 /** 840 → «840 g», 1250 → «1,3 kg» */
 const grams = (g: number) => (g < 1000 ? `${Math.round(g).toLocaleString(locale())} g` : `${(g / 1000).toLocaleString(locale(), { maximumFractionDigits: 1 })} kg`);
+
+/** 0,55 → «0,55», 12,3 → «12» (σε kg) */
+const kgNum = (v: number) => v.toLocaleString(locale(), { maximumFractionDigits: v < 10 ? 2 : 0 });
+/** δέντρα ως [τιμή, λέξη]: κάτω από ένα ως κλάσμα («1/91», «δέντρου»), αλλιώς με ένα δεκαδικό */
+function treesParts(n: number): [string, string] {
+  if (n < 1) return [`1/${Math.max(1, Math.round(1 / n)).toLocaleString(locale())}`, t('δέντρου')];
+  const v = Math.round(n * 10) / 10;
+  return [v.toLocaleString(locale()), v === 1 ? t('δέντρο') : t('δέντρα')];
+}
+
+/** Ένα από τα τρία μεγέθη του αποτυπώματος: τιμή από πάνω, σύντομη λέξη από κάτω. */
+const Stat = ({ value, label }: { value: string; label: string }) => (
+  <div className="min-w-0 flex-1 px-2 text-center first:pl-0 last:pr-0">
+    <p className="text-[17px] font-extrabold leading-tight tabular-nums">{value}</p>
+    <p className="mt-0.5 text-[12px] leading-snug">{label}</p>
+  </div>
+);
 
 export type RecyclingFilter = 'recycled' | 'ready' | 'waiting';
 
@@ -20,7 +38,10 @@ export function RecyclingCard({ stats: s, active, onPick }: { stats: RecyclingSt
     <section className="card mb-3 p-4" aria-label={t('Ανακύκλωση')}>
       <div className="flex items-center gap-2.5">
         <IconRecycle className="text-xl text-ok" />
-        <p className="text-[15px] font-bold">{tn(s.recycled, '{n} έντυπο ανακυκλώθηκε', '{n} έντυπα ανακυκλώθηκαν')}</p>
+        <div className="min-w-0">
+          <p className="text-[15px] font-bold">{tn(s.recycled, '{n} έντυπο ανακυκλώθηκε', '{n} έντυπα ανακυκλώθηκαν')}</p>
+          {s.paperGrams > 0 && <p className="text-[13px] text-ink-2">{t('≈ {w} χαρτί', { w: grams(s.paperGrams) })}</p>}
+        </div>
         <span className="ml-auto text-sm font-semibold text-ink-2">{s.recycledPct}%</span>
       </div>
       <div className="mt-3 flex h-2.5 overflow-hidden rounded-full bg-surface-2" role="img"
@@ -36,22 +57,15 @@ export function RecyclingCard({ stats: s, active, onPick }: { stats: RecyclingSt
           </button>
         ))}
       </div>
-      {s.pagesDigital > 0 && <div className="mt-3 grid grid-cols-2 gap-2">
-        <div className="rounded-2xl bg-surface-2 px-3 py-2.5">
-          <p className="text-lg font-extrabold leading-tight">{s.pagesDigital.toLocaleString(locale())}</p>
-          <p className="text-[12px] leading-snug text-ink-2">{t('σελίδες σε ψηφιακή μορφή')}</p>
+      {s.pagesDigital > 0 && (
+        <div className="mt-3 flex divide-x divide-ok/20 rounded-2xl bg-ok-soft px-3 py-2.5 text-ok">
+          <Stat value={s.pagesDigital.toLocaleString(locale())} label={t('σελίδες ψηφιακά')} />
+          <Stat value={`≈ ${kgNum(s.co2Kg)} kg`} label={t('CO₂ για εκτύπωση')} />
+          <Stat value={`≈ ${treesParts(s.trees)[0]}`} label={treesParts(s.trees)[1]} />
         </div>
-        <div className="rounded-2xl bg-surface-2 px-3 py-2.5">
-          <p className="text-lg font-extrabold leading-tight">≈ {grams(s.paperGrams)}</p>
-          <p className="text-[12px] leading-snug text-ink-2">{t('χαρτί ανακυκλώθηκε (εκτίμηση)')}</p>
-        </div>
-      </div>}
-      <details className="mt-2 text-[12px] leading-relaxed text-ink-3">
-        <summary className="cursor-pointer font-semibold">{t('Πώς υπολογίζεται')}</summary>
-        <p className="mt-1">{t('Σελίδες: του PDF κάθε εγχειριδίου, ή όσες σελίδες φωτογράφισες. Βάρος: υποθέτουμε ότι το έντυπο είχε όσες σελίδες και το PDF, τυπωμένες και στις δύο όψεις σε χαρτί A5 80 g/m² (≈ 2,5 g το φύλλο).')}</p>
-        {s.paperUnknown > 0 && <p className="mt-1">{tn(s.paperUnknown, '{n} ανακυκλωμένο έντυπο δεν μετρά: δεν ξέρουμε τις σελίδες του.', '{n} ανακυκλωμένα έντυπα δεν μετρούν: δεν ξέρουμε τις σελίδες τους.')}</p>}
-        <p className="mt-1">{t('Ψηφιακό εγχειρίδιο: {p}% των προϊόντων', { p: s.digitalPct })}</p>
-      </details>
+      )}
+      {s.paperUnknown > 0 && <p className="mt-2 text-[12px] text-ink-3">{tn(s.paperUnknown, '{n} ανακυκλωμένο έντυπο δεν μετρά: δεν ξέρουμε τις σελίδες του.', '{n} ανακυκλωμένα έντυπα δεν μετρούν: δεν ξέρουμε τις σελίδες τους.')}</p>}
+      <Link to="/sources" className="mt-2 inline-block text-[13px] font-semibold text-accent">{t('Πώς υπολογίζεται ›')}</Link>
     </section>
   );
 }

@@ -114,23 +114,40 @@ try {
 
   step('εγγύηση');
   await page.locator('#w-date').fill('2025-03-14');
-  await page.getByRole('button', { name: '2 χρόνια' }).click();
+  await page.getByRole('button', { name: /^2 χρόνια/, pressed: true }).waitFor(); // νέο προϊόν: 2 χρόνια από προεπιλογή
   await page.getByText('Εγγύηση έως 14 Μαρ 2027').first().waitFor();
   assert.equal(await page.getByRole('button', { name: '1 χρόνος' }).count(), 0); // με επιλεγμένη διάρκεια οι άλλες κρύβονται
   await page.getByRole('button', { name: /^2 χρόνια/ }).click();                 // νέο πάτημα: ξανά όλες οι επιλογές
   await page.getByRole('button', { name: '1 χρόνος' }).waitFor();
-  // «Άλλη»: διψήφιος αριθμός πληκτρολογημένος ψηφίο-ψηφίο (το πεδίο δεν πρέπει να αδειάζει στη μέση)
+  // «Άλλη» σε χρόνια (προεπιλογή): 8 → 96 μήνες, chip «8 χρόνια»
+  const otherYears = page.getByLabel('Διάρκεια εγγύησης σε χρόνια');
+  await otherYears.pressSequentially('8');
+  await otherYears.press('Enter');
+  await page.getByRole('button', { name: /^8 χρόνια/, pressed: true }).waitFor();
+  await page.getByText('Εγγύηση έως 14 Μαρ 2033').first().waitFor();
+  await page.getByRole('button', { name: /^8 χρόνια/ }).click();
+  // «Άλλη» σε μήνες: διψήφιος αριθμός πληκτρολογημένος ψηφίο-ψηφίο (το πεδίο δεν πρέπει να αδειάζει στη μέση)
+  await page.getByLabel('Μονάδα').selectOption('months');
   const other = page.getByLabel('Διάρκεια εγγύησης σε μήνες');
   await other.pressSequentially('30');
-  assert.equal(await other.inputValue(), '30');                       // δεν αδειάζει στη μέση της πληκτρολόγησης
+  assert.equal(await other.inputValue(), '30');
   await other.press('Enter');                                          // αποθήκευση → γίνεται chip
   await page.getByRole('button', { name: /^30 μήνες/, pressed: true }).waitFor();
   await page.getByText('Εγγύηση έως 14 Σεπ 2027').first().waitFor();
-  assert.equal(await other.count(), 0);                                            // «Άλλη» κρύβεται όσο υπάρχει διάρκεια
+  assert.equal(await other.count(), 0);                                // «Άλλη» κρύβεται όσο υπάρχει διάρκεια
   await page.getByRole('button', { name: /^30 μήνες/ }).click();
   await page.getByRole('button', { name: '2 χρόνια' }).click();
   await page.getByText('Εγγύηση έως 14 Μαρ 2027').first().waitFor();
-  assert.equal(await other.count(), 0);
+  // συγκεκριμένη ημερομηνία λήξης: κρυφή μέχρι να ζητηθεί, υπερισχύει, καταργείται
+  assert.equal(await page.locator('#w-until').count(), 0);
+  await page.getByRole('button', { name: 'Λήγει σε άλλη ημερομηνία;' }).click();
+  await page.locator('#w-until').fill('2027-06-30');
+  await page.locator('#w-until').scrollIntoViewIfNeeded();
+  await shot('06b-warranty', page);
+  await page.getByText('Εγγύηση έως 30 Ιουν 2027').first().waitFor();
+  await page.getByRole('button', { name: 'Κατάργηση ημερομηνίας λήξης' }).click();
+  await page.getByText('Εγγύηση έως 14 Μαρ 2027').first().waitFor();
+  assert.equal(await page.locator('#w-until').count(), 0);
   await page.locator('#w-store').fill('Ηλεκτρικά Παπαδόπουλος');
   await page.locator('#w-price').fill('499');
   await page.locator('#w-price').blur();
@@ -166,7 +183,17 @@ try {
   await page.getByRole('button', { name: 'Πρόταση: Κουζίνα' }).click(); // κατηγορία από το όνομα
   await page.waitForFunction(() => document.querySelector('#d-cat').value === 'kitchen');
   await page.locator('#w-date').fill('2025-10-10'); // λήγει 10/10/2026: έληξε πριν από λίγο → ειδοποιήσεις στη λίστα
+  await page.getByRole('button', { name: /^2 χρόνια/, pressed: true }).click(); // από την προεπιλογή των 2 ετών → 1 χρόνος
   await page.getByRole('button', { name: '1 χρόνος' }).click();
+  // εγγύηση μέρους: η κύρια έχει λήξει, ο συμπιεστής καλύπτεται 10 χρόνια
+  await page.getByRole('button', { name: 'Εγγύηση για μέρος' }).click();
+  await page.getByLabel('Μέρος').fill('Συμπιεστής');
+  await page.getByLabel('Μέρος').blur();
+  await page.getByLabel('Διάρκεια', { exact: true }).fill('10');
+  await page.getByLabel('Διάρκεια', { exact: true }).blur();
+  await page.getByText('Εγγύηση έως 10 Οκτ 2035').waitFor();
+  await page.getByLabel('Μέρος').scrollIntoViewIfNeeded();
+  await shot('07c-part-warranty', page);
   await page.locator('#d-model').blur();
   await page.waitForTimeout(900);
   await page.getByRole('button', { name: 'Πίσω στη βιβλιοθήκη' }).click();
@@ -176,8 +203,10 @@ try {
   await cards.first().waitFor();
   assert.equal(await cards.count(), 2);
   await cards.filter({ hasText: 'Samsung' }).getByText('Κουζίνα').waitFor(); // κατηγορία με εικονίδιο στην κάρτα
-  await page.getByText('σελίδες σε ψηφιακή μορφή').waitFor();          // 3 σελίδες στο PDF → 2 φύλλα → ≈ 5 g
-  await page.getByText('≈ 5 g').waitFor();
+  await cards.filter({ hasText: 'Samsung' }).getByText('+1 μέρος σε εγγύηση').waitFor();
+  await page.getByText('σελίδες ψηφιακά').waitFor();                   // 3 σελίδες στο PDF → 2 φύλλα → ≈ 5 g
+  await page.getByText('≈ 5 g χαρτί').waitFor();
+  await page.getByText('CO₂ για εκτύπωση').waitFor();                  // αποτύπωμα: CO₂ και δέντρα στην ίδια γραμμή
   await shot('08-library');
   const search = page.getByRole('searchbox');
   for (const [q, n] of [['πλυντ', 1], ['psyg', 1], ['wau28', 1], ['samsnug', 1], ['φιλτρο', 1], ['εξοχικο', 1], ['παπαδοπουλος', 1], ['zzz', 0], ['', 2]]) {
@@ -223,6 +252,22 @@ try {
   await page.getByRole('button', { name: 'Κλείσιμο' }).click();
   await page.getByRole('button', { name: 'Ειδοποιήσεις', exact: true }).waitFor();
 
+  step('Βιβλιοθήκη: σύρσιμο αριστερά → κουμπί «Διαγραφή» (χωρίς να σβήνει μόνο του)');
+  const card = cards.first();
+  const cb = await card.boundingBox();
+  await page.mouse.move(cb.x + cb.width - 30, cb.y + cb.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(cb.x + cb.width - 90, cb.y + cb.height / 2, { steps: 5 });
+  await page.mouse.move(cb.x + cb.width - 160, cb.y + cb.height / 2, { steps: 5 });
+  await page.mouse.up();
+  const del = page.getByRole('button', { name: 'Διαγραφή', exact: true });
+  await del.waitFor();
+  await shot('10c-swipe-delete');
+  assert.equal(await cards.count(), 2);                                   // δεν σβήστηκε από το σύρσιμο
+  await card.click();                                                     // πάτημα στη γραμμή: κλείνει, δεν ανοίγει το προϊόν
+  await page.waitForTimeout(300);
+  assert.ok(!(await page.url()).includes('/item/'));
+
   step('κρυπτογράφηση: στον δίσκο δεν φαίνεται περιεχόμενο');
   const disk = await page.evaluate(async () => {
     const db = await new Promise((res, rej) => { const r = indexedDB.open('manuals-v1'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
@@ -239,7 +284,7 @@ try {
   step('ρυθμίσεις, σκοτεινή εμφάνιση, αντίγραφο ασφαλείας');
   await page.getByRole('link', { name: 'Ρυθμίσεις' }).click();
   await shot('11-settings');
-  await page.getByRole('radio', { name: 'Σκοτεινή' }).click();
+  await page.getByRole('radiogroup', { name: 'Εμφάνιση' }).getByRole('radio', { name: 'Σκοτεινή' }).click();
   await page.getByRole('link', { name: 'Βιβλιοθήκη' }).click();
   await cards.first().waitFor();
   await shot('12-library-dark');
@@ -249,7 +294,7 @@ try {
   await shot('13-item-dark');
   await page.getByRole('button', { name: 'Πίσω στη βιβλιοθήκη' }).click();
   await page.getByRole('link', { name: 'Ρυθμίσεις' }).click();
-  await page.getByRole('radio', { name: 'Φωτεινή' }).click();
+  await page.getByRole('radiogroup', { name: 'Εμφάνιση' }).getByRole('radio', { name: 'Φωτεινή' }).click();
   await page.getByRole('button', { name: 'Εξαγωγή' }).click();
   const pw1 = page.getByLabel('Κωδικός', { exact: true }), pw2 = page.getByLabel('Ξανά ο κωδικός');
   await pw1.fill('abc123');
@@ -342,10 +387,20 @@ try {
     window.Capacitor = {
       PluginHeaders: [
         { name: 'SecureKey', methods: [{ name: 'storageKey', rtype: 'promise' }, { name: 'deleteStorageKey', rtype: 'promise' }] },
+        { name: 'PdfReader', methods: [{ name: 'read', rtype: 'promise' }] },
         { name: 'LocalNotifications', methods: [{ name: 'addListener' }, { name: 'removeListener' }, ...['checkPermissions', 'requestPermissions', 'getPending', 'schedule', 'cancel'].map((name) => ({ name, rtype: 'promise' }))] },
       ],
       nativeCallback: () => 'mock-callback',
       nativePromise: async (plugin, method, o) => {
+        if (plugin === 'PdfReader' && method === 'read' && window.__mockLogoOnly) {
+          // η μάρκα μόνο ως λογότυπο: το κείμενο δεν τη γράφει· το εξώφυλλο (εικόνα) τη δείχνει → OCR
+          return { pages: 12, locked: false, cover: window.__mockCover ?? null, page2: null, pageTexts: ['Owner manual\nModel: WAU28PH9BY', 'Washing machine safety instructions'] };
+        }
+        if (plugin === 'PdfReader' && method === 'read') {
+          // «PDFKit»: κείμενο των πρώτων σελίδων και πρώτη σελίδα ως εικόνα (εδώ: το εξώφυλλο της δοκιμής)
+          // 1η σελίδα: εξώφυλλο· 2η: περιεχόμενα με λέξεις που ΔΕΝ πρέπει να γίνουν μάρκα («Seat», «Smart»)
+          return { pages: 24, locked: false, cover: window.__mockCover ?? null, pageTexts: ['Bosch Serie 6\nWashing machine\nModel: WAU28PH9BY\nInstruction manual', 'Seat the appliance firmly. Smart programmes. Οδηγίες χρήσης πλυντηρίου ρούχων'] };
+        }
         if (plugin === 'LocalNotifications') {
           // προσομοίωση: άδεια δίνεται στο πρώτο αίτημα· οτιδήποτε άλλο (π.χ. μια «then») είναι σφάλμα
           const granted = localStorage.getItem('mock-notif') === 'granted';
@@ -375,6 +430,7 @@ try {
   assert.equal(await webKeyCount(), 0);                         // το κλειδί web σβήστηκε
   assert.ok(await lp.evaluate(() => !!localStorage.getItem('mock-keychain')));
   await lp.goto(`${BASE}#/settings`);
+  await lp.getByText('Τεχνικά στοιχεία').click();
   await lp.getByText('Keychain της συσκευής').waitFor();
   await lp.reload();                                            // δεύτερη εκκίνηση: μόνο με το Keychain
   await lp.goto(BASE);
@@ -403,6 +459,43 @@ try {
   assert.deepEqual(await lp.evaluate(() => JSON.parse(localStorage.getItem('manuals-settings-v1')).reminderDays), [60, 30, 14, 3]);
 
   // ---------- αγγλικά ----------
+  step('εισαγωγή PDF στη σάρωση — iOS (PDFKit): προσυμπλήρωση από το κείμενο του PDF');
+  writeFileSync(path.join(OUT, 'Bosch-WAU28PH9BY-manual.pdf'), PDF_BYTES);
+  await lp.evaluate((b64) => { window.__mockCover = b64; }, readFileSync(files.cover).toString('base64'));
+  await lp.goto(`${BASE}#/scan`);
+  await lp.locator('label:has-text("Εισαγωγή PDF") input[type=file]').setInputFiles(path.join(OUT, 'Bosch-WAU28PH9BY-manual.pdf'));
+  await lp.getByRole('heading', { name: 'Τι βρήκαμε' }).waitFor({ timeout: 60_000 });
+  assert.equal(await lp.locator('#sc-brand').inputValue(), 'Bosch');
+  assert.equal(await lp.locator('#sc-model').inputValue(), 'WAU28PH9BY');
+  await lp.getByAltText('Η πρώτη σελίδα του PDF').waitFor();
+  await lp.waitForFunction(() => document.querySelector('#sc-cat').value === 'laundry');           // κατηγορία από το κείμενο
+  await shot('18-pdf-review-ios', lp);
+  await lp.getByRole('button', { name: /Αποθήκευση/ }).click();
+  await lp.getByText('Bosch-WAU28PH9BY-manual.pdf').waitFor();                                       // το PDF έγινε το ψηφιακό
+  assert.equal(await lp.getByRole('heading', { name: 'Βρες το ψηφιακό' }).count(), 0);              // χωρίς «βρες το ψηφιακό»
+
+  step('εισαγωγή PDF — iOS: η μάρκα μόνο ως λογότυπο → OCR στο εξώφυλλο');
+  writeFileSync(path.join(OUT, 'manual.pdf'), PDF_BYTES);
+  await lp.evaluate(() => { window.__mockLogoOnly = true; });
+  await lp.goto(`${BASE}#/scan`);
+  await lp.locator('label:has-text("Εισαγωγή PDF") input[type=file]').setInputFiles(path.join(OUT, 'manual.pdf'));
+  await lp.getByRole('heading', { name: 'Τι βρήκαμε' }).waitFor({ timeout: 120_000 });
+  assert.equal(await lp.locator('#sc-brand').inputValue(), 'Bosch');       // από το OCR του εξωφύλλου («BOSCH» στην εικόνα)
+  assert.equal(await lp.locator('#sc-model').inputValue(), 'WAU28PH9BY');
+  await lp.evaluate(() => { window.__mockLogoOnly = false; });
+
+  step('εισαγωγή PDF στη σάρωση — web (χωρίς PDFKit): από το όνομα του αρχείου');
+  const pc = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'el-GR' });
+  const pp = await pc.newPage();
+  watch(pp);
+  await pp.goto(`${BASE}#/scan`);
+  await pp.locator('label:has-text("Εισαγωγή PDF") input[type=file]').setInputFiles(path.join(OUT, 'Bosch-WAU28PH9BY-manual.pdf'));
+  await pp.getByRole('heading', { name: 'Τι βρήκαμε' }).waitFor({ timeout: 30_000 });
+  assert.equal(await pp.locator('#sc-brand').inputValue(), 'Bosch');
+  assert.equal(await pp.locator('#sc-model').inputValue(), 'WAU28PH9BY');
+  await pp.getByRole('button', { name: /Αποθήκευση/ }).click();
+  await pp.getByText('Bosch-WAU28PH9BY-manual.pdf').waitFor();
+
   step('αγγλικά');
   const en = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'en-GB' });
   const ep = await en.newPage();

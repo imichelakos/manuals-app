@@ -1,5 +1,6 @@
-/** Ρυθμίσεις: εμφάνιση, γλώσσα, αναζήτηση, προεπιλεγμένη εγγύηση, αντίγραφο ασφαλείας, συγχρονισμός, αποθήκευση. */
+/** Ρυθμίσεις σε ομάδες: Γενικά, Υπενθυμίσεις, Ασφάλεια, Δεδομένα — γραμμές με τίτλο αριστερά και τη ρύθμιση δεξιά. */
 import { useEffect, useState, type ReactNode } from 'react';
+import { Link } from 'react-router';
 import { useItems, wipeAll } from '@/data/library';
 import { setSettings, useSettings, type Theme } from '@/data/settings';
 import { resetSync } from '@/data/syncRuntime';
@@ -9,31 +10,44 @@ import { ReminderSettings } from '@/components/ReminderSettings';
 import { cancelAllScheduled } from '@/services/notifications';
 import { ENGINES, SEARCH_ENGINES, type SearchEngine } from '@/domain/manualSearch';
 import { prettySize } from '@/services/files';
-import { getLang, setLang, t, tn, type Lang } from '@/i18n';
+import { LANGS, LANG_INFO, getLang, setLang, t, tn, type Lang } from '@/i18n';
 import { SyncSettings } from '@/components/SyncSettings';
 import { BackupSettings } from '@/components/BackupSettings';
 import { usePrefersDark } from '@/hooks/usePrefersDark';
+import { Segmented } from '@/components/controls';
 
 declare const __APP_VERSION__: string;
 
-function Row({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
+/** Ομάδα ρυθμίσεων: τίτλος πάνω από την κάρτα, γραμμές μέσα (όπως στις Ρυθμίσεις του iOS). */
+function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="py-3.5 first:pt-0 last:pb-0">
-      <p className="text-[15px] font-bold">{title}</p>
-      {hint && <p className="mt-0.5 text-[13px] leading-relaxed text-ink-2">{hint}</p>}
-      <div className="mt-2.5">{children}</div>
+    <section>
+      <h2 className="mb-1.5 px-1 text-[13px] font-bold uppercase tracking-wide text-ink-3">{title}</h2>
+      <div className="card divide-y divide-line px-4">{children}</div>
+    </section>
+  );
+}
+
+/** Γραμμή: τίτλος (και σύντομη εξήγηση) αριστερά, η ρύθμιση δεξιά· ή από κάτω όταν δεν χωρά (`stack`). */
+function Row({ title, hint, children, stack = false }: { title: string; hint?: string; children: ReactNode; stack?: boolean }) {
+  return (
+    <div className={`py-3 ${stack ? '' : 'flex items-center justify-between gap-3'}`}>
+      <div className="min-w-0">
+        <p className="text-[15px] font-semibold">{title}</p>
+        {hint && <p className="mt-0.5 text-[13px] leading-snug text-ink-2">{hint}</p>}
+      </div>
+      <div className={stack ? 'mt-2.5' : 'shrink-0'}>{children}</div>
     </div>
   );
 }
 
-function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: [T, string][]; onChange: (v: T) => void; label: string }) {
+/** Επιλογή από λίστα, μικρή, στα δεξιά της γραμμής. */
+function Choice<T extends string>({ value, options, onChange, label }: { value: T; options: [T, string][]; onChange: (v: T) => void; label: string }) {
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex flex-wrap gap-1 rounded-2xl bg-surface-2 p-1">
-      {options.map(([v, text]) => (
-        <button key={v} type="button" role="radio" aria-checked={value === v} onClick={() => onChange(v)}
-          className={`min-h-10 rounded-xl px-4 text-sm font-semibold transition ${value === v ? 'bg-surface text-ink shadow-card' : 'text-ink-2'}`}>{text}</button>
-      ))}
-    </div>
+    <select aria-label={label} value={value} onChange={(e) => onChange(e.target.value as T)}
+      className="max-w-[13rem] rounded-xl bg-surface-2 py-2 pl-3 pr-2 text-[15px] font-semibold text-ink outline-hidden">
+      {options.map(([v, text]) => <option key={v} value={v}>{text}</option>)}
+    </select>
   );
 }
 
@@ -56,55 +70,37 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 pb-10 pt-[calc(1rem+env(safe-area-inset-top))]">
       <h1 className="pb-4 pt-2 text-[32px] font-extrabold leading-tight">{t('Ρυθμίσεις')}</h1>
-      <div className="flex flex-col gap-4">
-        <section className="card divide-y divide-line p-5">
-          <Row title={t('Εμφάνιση')}>
-            <Segmented<Theme> label={t('Εμφάνιση')} value={s.theme} onChange={(theme) => setSettings({ theme })} options={[['auto', t('Όπως η συσκευή')], ['light', t('Φωτεινή')], ['dark', t('Σκοτεινή')]]} />
-            {s.theme === 'auto' && <p className="mt-2 text-[13px] text-ink-2">{prefersDark ? t('Η συσκευή είναι τώρα σε σκοτεινή εμφάνιση.') : t('Η συσκευή είναι τώρα σε φωτεινή εμφάνιση.')}</p>}
+      <div className="flex flex-col gap-6">
+        <Group title={t('Γενικά')}>
+          <Row title={t('Εμφάνιση')} hint={s.theme === 'auto' ? (prefersDark ? t('Τώρα: σκοτεινή') : t('Τώρα: φωτεινή')) : undefined} stack>
+            <Segmented<Theme> label={t('Εμφάνιση')} value={s.theme} onChange={(theme) => setSettings({ theme })} options={[['light', t('Φωτεινή')], ['dark', t('Σκοτεινή')], ['auto', t('Αυτόματη')]]} />
           </Row>
           <Row title={t('Γλώσσα')}>
-            <Segmented<Lang> label={t('Γλώσσα')} value={getLang()} onChange={setLang} options={[['el', 'Ελληνικά'], ['en', 'English']]} />
+            <Choice<Lang> label={t('Γλώσσα')} value={getLang()} onChange={setLang} options={LANGS.map((l) => [l, LANG_INFO[l].name])} />
           </Row>
-        </section>
+        </Group>
 
-        <section className="card p-5">
-          <Row title={t('Ασφάλεια')}>
-            <SecuritySettings />
-          </Row>
-        </section>
+        <Group title={t('Υπενθυμίσεις')}>
+          <ReminderSettings />
+        </Group>
 
-        <section className="card divide-y divide-line p-5">
-          <Row title={t('Μηχανή αναζήτησης')} hint={t('Όταν ψάχνεις το ψηφιακό εγχειρίδιο, η αναζήτηση ανοίγει εδώ.')}>
-            <Segmented<SearchEngine> label={t('Μηχανή αναζήτησης')} value={s.engine} onChange={(engine) => setSettings({ engine })} options={SEARCH_ENGINES.map((e) => [e, ENGINES[e].name])} />
-          </Row>
-          <Row title={t('Συνήθης διάρκεια εγγύησης')} hint={t('Εμφανίζεται ως γρήγορη επιλογή στην καρτέλα κάθε προϊόντος.')}>
-            <Segmented label={t('Συνήθης διάρκεια εγγύησης')} value={String(s.warrantyMonths)} onChange={(v) => setSettings({ warrantyMonths: Number(v) })}
-              options={[['12', t('1 χρόνος')], ['24', t('{n} χρόνια', { n: 2 })], ['36', t('{n} χρόνια', { n: 3 })], ['60', t('{n} χρόνια', { n: 5 })]]} />
-          </Row>
-          <Row title={t('Υπενθύμιση λήξης εγγύησης')} hint={t('Ειδοποίηση στη συσκευή πριν λήξει μια εγγύηση και την ημέρα της λήξης, στις 10:00. Η ειδοποίηση δείχνει το όνομα του προϊόντος.')}>
-            <ReminderSettings />
-          </Row>
-        </section>
+        <Group title={t('Ασφάλεια')}>
+          <SecuritySettings />
+        </Group>
 
-        <section className="card divide-y divide-line p-5">
-          <Row title={t('Αντίγραφο ασφαλείας')} hint={t('Ένα αρχείο με όλα τα προϊόντα και τα αρχεία τους, κρυπτογραφημένο με κωδικό που διαλέγεις. Με αυτό μεταφέρεις τη βιβλιοθήκη και σε άλλη συσκευή: η εισαγωγή συγχωνεύει, δεν σβήνει.')}>
+        <Group title={t('Δεδομένα')}>
+          <Row title={t('Αντίγραφο ασφαλείας')} hint={t('Κρυπτογραφημένο με κωδικό· η εισαγωγή συγχωνεύει, δεν σβήνει.')} stack>
             <BackupSettings />
           </Row>
-          <Row title={t('Συγχρονισμός iCloud')} hint={t('Τα προϊόντα και τα αρχεία σου αποθηκεύονται στον ιδιωτικό χώρο iCloud του Apple ID σου και εμφανίζονται σε όλες τις συσκευές σου. Μετρούν στον αποθηκευτικό σου χώρο iCloud.')}>
+          <Row title={t('Συγχρονισμός iCloud')} stack>
             <SyncSettings />
           </Row>
-        </section>
-
-        <section className="card divide-y divide-line p-5">
-          <Row title={t('Αποθήκευση')} hint={t('Τα δεδομένα αποθηκεύονται κρυπτογραφημένα σε αυτή τη συσκευή.')}>
-            <p className="text-[15px] text-ink-2">
+          <Row title={t('Αποθήκευση')} hint={storage?.persisted === false ? t('Ο browser μπορεί να σβήσει δεδομένα ιστοσελίδων που δεν χρησιμοποιούνται. Κράτα αντίγραφο ασφαλείας.') : undefined}>
+            <p className="text-right text-[14px] text-ink-2">
               {tn(items.length, '{n} προϊόν', '{n} προϊόντα')}{storage ? ` · ${prettySize(storage.used)}` : ''}
-              {storage?.persisted === true && <span className="badge badge-ok ml-2">{t('Μόνιμη αποθήκευση')}</span>}
-              {storage?.persisted === false && <span className="badge badge-warn ml-2">{t('Όχι μόνιμη')}</span>}
             </p>
-            {storage?.persisted === false && <p className="mt-2 text-[13px] leading-relaxed text-ink-2">{t('Ο browser μπορεί να σβήσει δεδομένα ιστοσελίδων που δεν χρησιμοποιούνται. Πρόσθεσε την εφαρμογή στην οθόνη Αφετηρίας και κράτα αντίγραφο ασφαλείας.')}</p>}
           </Row>
-          <Row title={t('Διαγραφή όλων των δεδομένων')} hint={t('Σβήνει όλα τα προϊόντα και τα αρχεία από αυτή τη συσκευή και κλείνει τον συγχρονισμό. Ό,τι υπάρχει στο iCloud δεν σβήνεται. Δεν αναιρείται.')}>
+          <Row title={t('Διαγραφή όλων των δεδομένων')} hint={t('Από αυτή τη συσκευή· το iCloud δεν αγγίζεται. Δεν αναιρείται.')} stack>
             {wipe ? (
               <div className="flex gap-2.5">
                 <button type="button" className="btn btn-plain flex-1" onClick={() => setWipe(false)}>{t('Άκυρο')}</button>
@@ -118,7 +114,20 @@ export default function SettingsPage() {
               </div>
             ) : <button type="button" className="btn btn-danger" disabled={items.length === 0} onClick={() => setWipe(true)}>{t('Διαγραφή όλων')}</button>}
           </Row>
-        </section>
+        </Group>
+
+        <Group title={t('Πληροφορίες')}>
+          <Link to="/sources" className="flex items-center justify-between py-3 text-[15px] font-semibold">
+            {t('Πηγές και υπολογισμοί')}<span className="text-ink-3" aria-hidden="true">›</span>
+          </Link>
+          {/* μόνο για δοκιμές: ο χρήστης δεν διαλέγει μηχανή (απόφαση 23/11/2026)· η εύρεση θα γίνεται αυτόματα */}
+          <details className="py-3">
+            <summary className="cursor-pointer text-[13px] font-semibold text-ink-3">{t('Για δοκιμές')}</summary>
+            <Row title={t('Μηχανή αναζήτησης')}>
+              <Choice<SearchEngine> label={t('Μηχανή αναζήτησης')} value={s.engine} onChange={(engine) => setSettings({ engine })} options={SEARCH_ENGINES.map((e) => [e, ENGINES[e].name])} />
+            </Row>
+          </details>
+        </Group>
 
         <p className="px-2 text-center text-[13px] leading-relaxed text-ink-3">
           {t('Η αναγνώριση κειμένου και η ανάγνωση QR γίνονται στη συσκευή. Η εφαρμογή συνδέεται στο διαδίκτυο μόνο όταν της ζητήσεις να κατεβάσει ένα PDF ή ανοίξεις έναν σύνδεσμο.')}
