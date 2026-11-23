@@ -4,7 +4,7 @@
  */
 import { useDeferredValue, useMemo, useState } from 'react';
 import { Link, useMatch } from 'react-router';
-import { useItems } from '@/data/library';
+import { deleteItem, useItems } from '@/data/library';
 import { setViewState, useViewState } from '@/data/viewState';
 import { buildIndex, facets, search, activeFilterCount, NO_FILTERS, type Filters } from '@/domain/search';
 import { hasDigitalManual } from '@/domain/model';
@@ -13,6 +13,8 @@ import { today } from '@/domain/dates';
 import { recyclingStats } from '@/domain/recycling';
 import { t, tn } from '@/i18n';
 import { ItemCard } from '@/components/ItemCard';
+import { SwipeRow } from '@/components/SwipeRow';
+import { toast } from '@/components/Toast';
 import { FilterSheet } from '@/components/FilterSheet';
 import { RecyclingCard, type RecyclingFilter } from '@/components/RecyclingCard';
 import { InboxSheet } from '@/components/InboxSheet';
@@ -116,7 +118,14 @@ export default function LibraryPanel() {
             </div>
           ) : (
             <ul className="flex flex-col gap-2.5">
-              {results.map((i) => <li key={i.id}><ItemCard item={i} selected={i.id === selected} /></li>)}
+              {results.map((i) => (
+                <li key={i.id}>
+                  {/* σύρσιμο αριστερά → κουμπί «Διαγραφή» (πρέπει να πατηθεί: η διαγραφή σβήνει και τα αρχεία) */}
+                  <SwipeRow mode="reveal" actionLabel={t('Διαγραφή')} className="rounded-3xl" onAction={() => void deleteItem(i.id).then(() => toast(t('Το προϊόν διαγράφηκε')))}>
+                    <ItemCard item={i} selected={i.id === selected} />
+                  </SwipeRow>
+                </li>
+              ))}
             </ul>
           )}
         </>

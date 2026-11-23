@@ -250,6 +250,22 @@ try {
   await page.getByRole('button', { name: 'Κλείσιμο' }).click();
   await page.getByRole('button', { name: 'Ειδοποιήσεις', exact: true }).waitFor();
 
+  step('Βιβλιοθήκη: σύρσιμο αριστερά → κουμπί «Διαγραφή» (χωρίς να σβήνει μόνο του)');
+  const card = cards.first();
+  const cb = await card.boundingBox();
+  await page.mouse.move(cb.x + cb.width - 30, cb.y + cb.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(cb.x + cb.width - 90, cb.y + cb.height / 2, { steps: 5 });
+  await page.mouse.move(cb.x + cb.width - 160, cb.y + cb.height / 2, { steps: 5 });
+  await page.mouse.up();
+  const del = page.getByRole('button', { name: 'Διαγραφή', exact: true });
+  await del.waitFor();
+  await shot('10c-swipe-delete');
+  assert.equal(await cards.count(), 2);                                   // δεν σβήστηκε από το σύρσιμο
+  await card.click();                                                     // πάτημα στη γραμμή: κλείνει, δεν ανοίγει το προϊόν
+  await page.waitForTimeout(300);
+  assert.ok(!(await page.url()).includes('/item/'));
+
   step('κρυπτογράφηση: στον δίσκο δεν φαίνεται περιεχόμενο');
   const disk = await page.evaluate(async () => {
     const db = await new Promise((res, rej) => { const r = indexedDB.open('manuals-v1'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });

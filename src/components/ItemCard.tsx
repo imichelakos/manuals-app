@@ -11,7 +11,7 @@ import { IconCheck, IconRecycle } from './icons';
 export function ItemCard({ item, selected }: { item: Item; selected: boolean }) {
   const sub = [item.brand, item.model].filter(Boolean);
   return (
-    <Link to={`/item/${item.id}`} aria-current={selected ? 'page' : undefined}
+    <Link to={`/item/${item.id}`} aria-current={selected ? 'page' : undefined} draggable={false}
       className={`flex items-center gap-3.5 rounded-3xl p-3 transition active:scale-[0.99] ${selected ? 'bg-accent-soft' : 'bg-surface shadow-card'}`}>
       <Thumb item={item} className="size-16 rounded-2xl text-xl" />
       <div className="min-w-0 flex-1">

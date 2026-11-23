@@ -207,7 +207,7 @@ function Review({ preview, result, onSaved }: { preview: string | null; result: 
         </div>
         <div>
           <label className="label" htmlFor="sc-model">{t('Μοντέλο')}</label>
-          <input id="sc-model" className="input mono" value={model} onChange={(e) => setModel(e.target.value)} autoComplete="off" autoCapitalize="characters" spellCheck={false} />
+          <input id="sc-model" className="input mono" value={model} onChange={(e) => setModel(e.target.value)} autoComplete="off" autoCapitalize="off" spellCheck={false} />
           <Suggestions options={found.models} value={model} onPick={setModel} mono />
         </div>
         <div>

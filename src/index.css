@@ -60,7 +60,9 @@
   *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
   input::placeholder, textarea::placeholder { color: var(--ink-3); opacity: 1; }
   /* το εικονίδιο ημερολογίου ακολουθεί το θέμα */
-  input[type='date'] { min-height: 2.75rem; }
+  /* πεδία ημερομηνίας: στο iOS έχουν δικό τους ελάχιστο πλάτος και βγαίνουν έξω από το πλαίσιο — γεμίζουν το κουτί τους */
+  input[type='date'] { min-height: 2.75rem; display: block; width: 100%; min-width: 0; max-width: 100%; -webkit-appearance: none; appearance: none; }
+  input[type='date']::-webkit-date-and-time-value { text-align: left; }
   ::selection { background: var(--accent-soft); }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }

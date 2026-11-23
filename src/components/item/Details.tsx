@@ -21,7 +21,7 @@ export function DetailsSection({ item }: { item: Item }) {
     <div>
       <label className="label" htmlFor={`d-${key}`}>{label}</label>
       <AutoField id={`d-${key}`} value={item[key]} className={`input ${extra?.mono ? 'mono' : ''}`} placeholder={extra?.placeholder}
-        autoComplete="off" spellCheck={!extra?.mono} autoCapitalize={extra?.mono ? 'characters' : undefined} onCommit={(v) => set({ [key]: v.trim() })} />
+        autoComplete="off" spellCheck={!extra?.mono} onCommit={(v) => set({ [key]: v.trim() })} />
     </div>
   );
   return (
