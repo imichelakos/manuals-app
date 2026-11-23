@@ -342,10 +342,15 @@ try {
     window.Capacitor = {
       PluginHeaders: [
         { name: 'SecureKey', methods: [{ name: 'storageKey', rtype: 'promise' }, { name: 'deleteStorageKey', rtype: 'promise' }] },
+        { name: 'PdfReader', methods: [{ name: 'read', rtype: 'promise' }] },
         { name: 'LocalNotifications', methods: [{ name: 'addListener' }, { name: 'removeListener' }, ...['checkPermissions', 'requestPermissions', 'getPending', 'schedule', 'cancel'].map((name) => ({ name, rtype: 'promise' }))] },
       ],
       nativeCallback: () => 'mock-callback',
       nativePromise: async (plugin, method, o) => {
+        if (plugin === 'PdfReader' && method === 'read') {
+          // «PDFKit»: κείμενο των πρώτων σελίδων και πρώτη σελίδα ως εικόνα (εδώ: το εξώφυλλο της δοκιμής)
+          return { pages: 24, locked: false, cover: window.__mockCover ?? null, text: 'Bosch Serie 6\nWashing machine\nModel: WAU28PH9BY\nInstruction manual\nΟδηγίες χρήσης πλυντηρίου ρούχων' };
+        }
         if (plugin === 'LocalNotifications') {
           // προσομοίωση: άδεια δίνεται στο πρώτο αίτημα· οτιδήποτε άλλο (π.χ. μια «then») είναι σφάλμα
           const granted = localStorage.getItem('mock-notif') === 'granted';
@@ -403,6 +408,33 @@ try {
   assert.deepEqual(await lp.evaluate(() => JSON.parse(localStorage.getItem('manuals-settings-v1')).reminderDays), [60, 30, 14, 3]);
 
   // ---------- αγγλικά ----------
+  step('εισαγωγή PDF στη σάρωση — iOS (PDFKit): προσυμπλήρωση από το κείμενο του PDF');
+  writeFileSync(path.join(OUT, 'Bosch-WAU28PH9BY-manual.pdf'), PDF_BYTES);
+  await lp.evaluate((b64) => { window.__mockCover = b64; }, readFileSync(files.cover).toString('base64'));
+  await lp.goto(`${BASE}#/scan`);
+  await lp.locator('label:has-text("Εισαγωγή PDF") input[type=file]').setInputFiles(path.join(OUT, 'Bosch-WAU28PH9BY-manual.pdf'));
+  await lp.getByRole('heading', { name: 'Τι βρήκαμε' }).waitFor({ timeout: 60_000 });
+  assert.equal(await lp.locator('#sc-brand').inputValue(), 'Bosch');
+  assert.equal(await lp.locator('#sc-model').inputValue(), 'WAU28PH9BY');
+  await lp.getByAltText('Η πρώτη σελίδα του PDF').waitFor();
+  await lp.waitForFunction(() => document.querySelector('#sc-cat').value === 'laundry');           // κατηγορία από το κείμενο
+  await shot('18-pdf-review-ios', lp);
+  await lp.getByRole('button', { name: /Αποθήκευση/ }).click();
+  await lp.getByText('Bosch-WAU28PH9BY-manual.pdf').waitFor();                                       // το PDF έγινε το ψηφιακό
+  assert.equal(await lp.getByRole('heading', { name: 'Βρες το ψηφιακό' }).count(), 0);              // χωρίς «βρες το ψηφιακό»
+
+  step('εισαγωγή PDF στη σάρωση — web (χωρίς PDFKit): από το όνομα του αρχείου');
+  const pc = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'el-GR' });
+  const pp = await pc.newPage();
+  watch(pp);
+  await pp.goto(`${BASE}#/scan`);
+  await pp.locator('label:has-text("Εισαγωγή PDF") input[type=file]').setInputFiles(path.join(OUT, 'Bosch-WAU28PH9BY-manual.pdf'));
+  await pp.getByRole('heading', { name: 'Τι βρήκαμε' }).waitFor({ timeout: 30_000 });
+  assert.equal(await pp.locator('#sc-brand').inputValue(), 'Bosch');
+  assert.equal(await pp.locator('#sc-model').inputValue(), 'WAU28PH9BY');
+  await pp.getByRole('button', { name: /Αποθήκευση/ }).click();
+  await pp.getByText('Bosch-WAU28PH9BY-manual.pdf').waitFor();
+
   step('αγγλικά');
   const en = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'en-GB' });
   const ep = await en.newPage();

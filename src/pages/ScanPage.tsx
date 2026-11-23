@@ -1,6 +1,7 @@
 /**
- * Σάρωση εντύπου σε τρία βήματα: φωτογραφία του εξωφύλλου → ανάλυση στη συσκευή (QR/barcode, κείμενο) → «Τι βρήκαμε»,
- * όπου ο χρήστης ελέγχει/διορθώνει και αποθηκεύει. Μετά ανοίγει η καρτέλα του προϊόντος στην εύρεση του ψηφιακού.
+ * Σάρωση εντύπου σε τρία βήματα: φωτογραφία του εξωφύλλου ή PDF του εγχειριδίου → ανάλυση στη συσκευή (QR/barcode,
+ * κείμενο) → «Τι βρήκαμε», όπου ο χρήστης ελέγχει/διορθώνει και αποθηκεύει. Μετά ανοίγει η καρτέλα του προϊόντος: στην
+ * εύρεση του ψηφιακού (φωτογραφία) ή κατευθείαν (PDF: το ψηφιακό υπάρχει ήδη).
  */
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -10,14 +11,17 @@ import type { CodePayload } from '@/domain/codes';
 import { suggestCategory } from '@/domain/categorySuggest';
 import { saveItem, useItems } from '@/data/library';
 import { blobStore } from '@/data/blobs';
-import { scanCover, warmScan, type ScanResult, type ScanStep } from '@/services/scan';
+import { scanCover, scanPdf, warmScan, type ScanResult, type ScanStep } from '@/services/scan';
+import { isPdf, storeFile } from '@/services/files';
 import { t } from '@/i18n';
 import { FilePick, IMAGE_TYPES } from '@/components/controls';
 import { linkLabel, LinkIcon } from '@/components/item/Links';
 import { toast } from '@/components/Toast';
-import { IconBack, IconCamera, IconCheck, IconImage, IconPlus, IconQr, IconSpark, IconWarn } from '@/components/icons';
+import { IconBack, IconCamera, IconCheck, IconFile, IconImage, IconPlus, IconQr, IconSpark, IconWarn } from '@/components/icons';
 
-type Phase = { name: 'start' } | { name: 'working'; preview: string; step: ScanStep; progress: number } | { name: 'review'; preview: string; result: ScanResult };
+type Source = 'photo' | 'pdf';
+/** preview: εικόνα εξωφύλλου (object URL)· null όταν δεν υπάρχει ακόμη (PDF πριν διαβαστεί, ή PDF χωρίς εικόνα) */
+type Phase = { name: 'start' } | { name: 'working'; source: Source; preview: string | null; step: ScanStep; progress: number } | { name: 'review'; preview: string | null; result: ScanResult };
 
 export default function ScanPage() {
   const nav = useNavigate();
@@ -35,15 +39,17 @@ export default function ScanPage() {
     void saveItem(emptyItem()).then((i) => nav(`/item/${i.id}?edit=1`, { replace: true }));
   }, [manual, nav]);
 
-  async function start(photo: File) {
-    const url = URL.createObjectURL(photo);
-    setPhase({ name: 'working', preview: url, step: 'image', progress: 0 });
+  async function start(file: File) {
+    const source: Source = file.type === 'application/pdf' || (await isPdf(file)) ? 'pdf' : 'photo';
+    const url = source === 'photo' ? URL.createObjectURL(file) : null;
+    setPhase({ name: 'working', source, preview: url, step: 'image', progress: 0 });
     try {
-      const result = await scanCover(photo, (step, progress = 0) => setPhase({ name: 'working', preview: url, step, progress }));
-      setPhase({ name: 'review', preview: url, result });
+      const onStep = (step: ScanStep, progress = 0) => setPhase({ name: 'working', source, preview: url, step, progress });
+      const result = source === 'pdf' ? await scanPdf(file, onStep) : await scanCover(file, onStep);
+      setPhase({ name: 'review', preview: url ?? (result.cover ? URL.createObjectURL(result.cover) : null), result });
     } catch {
       setPhase({ name: 'start' });
-      toast(t('Δεν μπόρεσα να ανοίξω αυτή τη φωτογραφία. Δοκίμασε άλλη.'), 'error');
+      toast(source === 'pdf' ? t('Δεν μπόρεσα να ανοίξω αυτό το PDF.') : t('Δεν μπόρεσα να ανοίξω αυτή τη φωτογραφία. Δοκίμασε άλλη.'), 'error');
     }
   }
 
@@ -58,8 +64,8 @@ export default function ScanPage() {
         <h1 className="text-xl font-extrabold">{phase.name === 'review' ? t('Τι βρήκαμε') : t('Σάρωση εντύπου')}</h1>
       </div>
       {phase.name === 'start' && <Start onPhoto={start} />}
-      {phase.name === 'working' && <Working preview={phase.preview} step={phase.step} progress={phase.progress} />}
-      {phase.name === 'review' && <Review preview={phase.preview} result={phase.result} onSaved={(id) => nav(`/item/${id}?find=1`, { replace: true })} />}
+      {phase.name === 'working' && <Working source={phase.source} preview={phase.preview} step={phase.step} progress={phase.progress} />}
+      {phase.name === 'review' && <Review preview={phase.preview} result={phase.result} onSaved={(id) => nav(phase.result.pdf ? `/item/${id}` : `/item/${id}?find=1`, { replace: true })} />}
     </div>
   );
 }
@@ -92,22 +98,31 @@ function Start({ onPhoto }: { onPhoto: (f: File) => void }) {
       <FilePick accept={IMAGE_TYPES} capture onFiles={(f) => onPhoto(f[0]!)} className="btn btn-primary mt-5 w-full py-4 text-base">
         <IconCamera className="text-2xl" />{t('Άνοιγμα κάμερας')}
       </FilePick>
-      <FilePick accept={IMAGE_TYPES} onFiles={(f) => onPhoto(f[0]!)} className="btn btn-plain mt-2.5 w-full">
-        <IconImage className="text-xl" />{t('Από τις φωτογραφίες')}
-      </FilePick>
-      <p className="mt-4 text-center text-[13px] leading-relaxed text-ink-3">{t('Η ανάλυση γίνεται στη συσκευή σου. Η φωτογραφία δεν στέλνεται πουθενά.')}</p>
+      <div className="mt-2.5 grid grid-cols-2 gap-2.5">
+        <FilePick accept={IMAGE_TYPES} onFiles={(f) => onPhoto(f[0]!)} className="btn btn-plain">
+          <IconImage className="text-xl" />{t('Από τις φωτογραφίες')}
+        </FilePick>
+        <FilePick accept="application/pdf" onFiles={(f) => onPhoto(f[0]!)} className="btn btn-plain">
+          <IconFile className="text-xl" />{t('Εισαγωγή PDF')}
+        </FilePick>
+      </div>
+      <p className="mt-4 text-center text-[13px] leading-relaxed text-ink-3">{t('Η ανάλυση γίνεται στη συσκευή σου. Η φωτογραφία ή το PDF δεν στέλνονται πουθενά.')}</p>
     </div>
   );
 }
 
-function Working({ preview, step, progress }: { preview: string; step: ScanStep; progress: number }) {
+function Working({ source, preview, step, progress }: { source: Source; preview: string | null; step: ScanStep; progress: number }) {
   const order: ScanStep[] = ['image', 'codes', 'text'];
-  const labels: Record<string, string> = { image: t('Ετοιμάζω τη φωτογραφία'), codes: t('Ψάχνω QR και barcode'), text: t('Διαβάζω το κείμενο') };
+  const labels: Record<string, string> = source === 'pdf'
+    ? { image: t('Ανοίγω το PDF'), codes: t('Ψάχνω QR στην πρώτη σελίδα'), text: t('Διαβάζω το κείμενο') }
+    : { image: t('Ετοιμάζω τη φωτογραφία'), codes: t('Ψάχνω QR και barcode'), text: t('Διαβάζω το κείμενο') };
   const at = order.indexOf(step);
   return (
     <div className="pt-2">
       <div className="card relative overflow-hidden">
-        <img src={preview} alt="" className="max-h-[46dvh] w-full bg-surface-2 object-contain" />
+        {preview
+          ? <img src={preview} alt="" className="max-h-[46dvh] w-full bg-surface-2 object-contain" />
+          : <div className="flex aspect-[4/3] items-center justify-center bg-surface-2 text-7xl text-ink-3"><IconFile /></div>}
         <span className="animate-scan absolute inset-x-0 h-0.5 bg-accent shadow-[0_0_18px_4px_var(--accent)]" aria-hidden="true" />
       </div>
       <ol className="card mt-4 space-y-3 p-5" aria-live="polite">
@@ -129,7 +144,7 @@ function Working({ preview, step, progress }: { preview: string; step: ScanStep;
   );
 }
 
-function Review({ preview, result, onSaved }: { preview: string; result: ScanResult; onSaved: (id: string) => void }) {
+function Review({ preview, result, onSaved }: { preview: string | null; result: ScanResult; onSaved: (id: string) => void }) {
   const { found, codes } = result;
   const [brand, setBrand] = useState(found.brands[0] ?? '');
   const [model, setModel] = useState(found.models[0] ?? '');
@@ -149,13 +164,19 @@ function Review({ preview, result, onSaved }: { preview: string; result: ScanRes
     try {
       const now = Date.now();
       const base = emptyItem(now);
-      const blobId = newId(), thumbId = newId();
-      await blobStore.put(blobId, result.cover);
-      await blobStore.put(thumbId, result.thumb);
+      const attachments: Item['attachments'] = [];
+      if (result.cover && result.thumb) {
+        const blobId = newId(), thumbId = newId();
+        await blobStore.put(blobId, result.cover);
+        await blobStore.put(thumbId, result.thumb);
+        attachments.push({ id: newId(), kind: 'cover', name: 'cover.jpg', mime: 'image/jpeg', size: result.cover.size, blobId, thumbId, addedAt: now, origin: result.pdf ? 'import' : 'scan' });
+      }
+      // «Εισαγωγή PDF»: το ίδιο το PDF γίνεται το ψηφιακό εγχειρίδιο του προϊόντος
+      if (result.pdf) attachments.push(await storeFile(result.pdf.blob, { kind: 'manual', name: result.pdf.name, origin: 'import' }));
       const item: Item = {
         ...base, name: name.trim(), brand: brand.trim(), model: model.trim(), category, ean,
         ocrText: result.text.slice(0, 20_000) || undefined,
-        attachments: [{ id: newId(), kind: 'cover', name: 'cover.jpg', mime: 'image/jpeg', size: result.cover.size, blobId, thumbId, addedAt: now, origin: 'scan' }],
+        attachments,
         links: links.filter((l) => keep.has(l.url)).map((l): LinkRef => ({ id: newId(), url: l.url, title: linkLabel(l.kind), kind: l.kind, origin: 'qr', addedAt: now })),
       };
       onSaved((await saveItem(item)).id);
@@ -168,10 +189,12 @@ function Review({ preview, result, onSaved }: { preview: string; result: ScanRes
   return (
     <div className="pt-2">
       <div className="card flex items-center gap-4 p-3">
-        <img src={preview} alt={t('Το εξώφυλλο που φωτογράφισες')} className="size-20 rounded-2xl object-cover" />
+        {preview
+          ? <img src={preview} alt={result.pdf ? t('Η πρώτη σελίδα του PDF') : t('Το εξώφυλλο που φωτογράφισες')} className="size-20 rounded-2xl object-cover" />
+          : <span className="flex size-20 shrink-0 items-center justify-center rounded-2xl bg-surface-2 text-4xl text-ink-3"><IconFile /></span>}
         <p className="text-[15px] leading-snug text-ink-2">
           {nothing
-            ? <><IconWarn className="mr-1 inline text-lg text-warn" />{t('Δεν αναγνώρισα μάρκα ή μοντέλο. Συμπλήρωσέ τα εσύ — ή δοκίμασε πιο κοντινή φωτογραφία.')}</>
+            ? <><IconWarn className="mr-1 inline text-lg text-warn" />{result.pdf ? t('Δεν αναγνώρισα μάρκα ή μοντέλο στο PDF. Συμπλήρωσέ τα εσύ — το PDF θα αποθηκευτεί ως το ψηφιακό εγχειρίδιο.') : t('Δεν αναγνώρισα μάρκα ή μοντέλο. Συμπλήρωσέ τα εσύ — ή δοκίμασε πιο κοντινή φωτογραφία.')}</>
             : <><IconSpark className="mr-1 inline text-lg text-accent" />{t('Έλεγξε ότι τα στοιχεία είναι σωστά. Μπορείς να τα αλλάξεις και αργότερα.')}</>}
         </p>
       </div>
@@ -211,7 +234,7 @@ function Review({ preview, result, onSaved }: { preview: string; result: ScanRes
       )}
 
       <button type="button" className="btn btn-primary mt-5 w-full py-4 text-base" disabled={busy} onClick={() => void save()}>
-        <IconPlus className="text-xl" />{busy ? t('Αποθήκευση…') : t('Αποθήκευση και εύρεση ψηφιακού')}
+        <IconPlus className="text-xl" />{busy ? t('Αποθήκευση…') : result.pdf ? t('Αποθήκευση προϊόντος') : t('Αποθήκευση και εύρεση ψηφιακού')}
       </button>
     </div>
   );
