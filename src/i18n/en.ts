@@ -296,5 +296,17 @@ const EN: Record<string, string> = {
   'Θα σβηστούν τα δεδομένα αυτής της συσκευής. Αν είχες ανοιχτό τον συγχρονισμό iCloud, θα ξανακατέβουν όταν τον ανοίξεις. Συνέχεια;': 'The data on this device will be deleted. If iCloud sync was on, it will download again when you turn sync on. Continue?',
   'Ναι, διαγραφή': 'Yes, delete',
   'Συνέχεια χωρίς αυτά τα δεδομένα': 'Continue without this data',
+  // υπενθυμίσεις
+  'Υπενθύμιση λήξης εγγύησης': 'Warranty expiry reminder',
+  'Ειδοποίηση στη συσκευή πριν λήξει μια εγγύηση και την ημέρα της λήξης, στις 10:00. Η ειδοποίηση δείχνει το όνομα του προϊόντος.': 'A notification on this device before a warranty ends and on the day it ends, at 10:00. The notification shows the product name.',
+  'Οι υπενθυμίσεις λήξης εγγύησης λειτουργούν στην εφαρμογή για iPhone και iPad.': 'Warranty reminders work in the iPhone and iPad app.',
+  'Ανοιχτές': 'On',
+  'Κλειστές': 'Off',
+  'Οι ειδοποιήσεις δεν επιτρέπονται για την εφαρμογή. Άνοιξέ τες από τις Ρυθμίσεις της συσκευής → Ειδοποιήσεις.': 'Notifications are not allowed for this app. Turn them on in the device Settings → Notifications.',
+  'Πόσο νωρίς': 'How early',
+  '{n} ημέρα πριν': '{n} day before',
+  '{n} ημέρες πριν': '{n} days before',
+  'ένα προϊόν': 'a product',
+  '«{name}» — έως {date}. Έχεις το παραστατικό αγοράς;': '“{name}” — until {date}. Do you have the receipt?',
 };
 export default EN;

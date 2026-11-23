@@ -31,6 +31,14 @@ export function addMonths(s: IsoDate, n: number): IsoDate | null {
   return toIso(y, m, Math.min(p.d, daysIn(y, m)));
 }
 
+/** +n ημέρες (αρνητικό: πίσω). */
+export function addDays(s: IsoDate, n: number): IsoDate | null {
+  const p = parseIso(s);
+  if (!p) return null;
+  const d = new Date(Date.UTC(p.y, p.m - 1, p.d + n));
+  return toIso(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
+}
+
 /** Ημέρες από το a έως το b (θετικό όταν το b είναι μετά). */
 export function daysBetween(a: IsoDate, b: IsoDate): number | null {
   const x = parseIso(a), y = parseIso(b);

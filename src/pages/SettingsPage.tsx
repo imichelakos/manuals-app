@@ -6,6 +6,8 @@ import { setSettings, useSettings, type Theme } from '@/data/settings';
 import { resetSync } from '@/data/syncRuntime';
 import { confirmIdentity } from '@/data/appLock';
 import { SecuritySettings } from '@/components/SecuritySettings';
+import { ReminderSettings } from '@/components/ReminderSettings';
+import { cancelAllScheduled } from '@/services/notifications';
 import type { SearchEngine } from '@/domain/manualSearch';
 import { today } from '@/domain/dates';
 import { prettySize } from '@/services/files';
@@ -101,6 +103,9 @@ export default function SettingsPage() {
             <Segmented label={t('Συνήθης διάρκεια εγγύησης')} value={String(s.warrantyMonths)} onChange={(v) => setSettings({ warrantyMonths: Number(v) })}
               options={[['12', t('1 χρόνος')], ['24', t('{n} χρόνια', { n: 2 })], ['36', t('{n} χρόνια', { n: 3 })], ['60', t('{n} χρόνια', { n: 5 })]]} />
           </Row>
+          <Row title={t('Υπενθύμιση λήξης εγγύησης')} hint={t('Ειδοποίηση στη συσκευή πριν λήξει μια εγγύηση και την ημέρα της λήξης, στις 10:00. Η ειδοποίηση δείχνει το όνομα του προϊόντος.')}>
+            <ReminderSettings />
+          </Row>
         </section>
 
         <section className="card divide-y divide-line p-5">
@@ -131,6 +136,7 @@ export default function SettingsPage() {
                 <button type="button" className="btn btn-danger flex-1" onClick={() => void (async () => {
                   if (!(await confirmIdentity(t('Επιβεβαίωση για διαγραφή όλων των δεδομένων')))) return;
                   await resetSync();
+                  await cancelAllScheduled();
                   await wipeAll();
                   location.reload(); // νέο κλειδί κρυπτογράφησης στην εκκίνηση
                 })()}>{t('Ναι, διαγραφή όλων')}</button>
