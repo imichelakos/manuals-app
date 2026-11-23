@@ -413,5 +413,7 @@ const IT: Record<string, string> = {
     '≈ 1,07 kg CO₂e per kg di carta da ufficio vergine (0,97 t per short ton): quanto richiederebbe la stampa delle pagine digitali.',
   'Δέντρα': 'Alberi',
   '≈ 24 δέντρα ανά short ton (907 kg) χαρτιού εκτύπωσης από παρθένα ύλη. Χονδρική εκτίμηση, κατά την ίδια την πηγή.': '≈ 24 alberi per short ton (907 kg) di carta da stampa vergine. Stima approssimativa, come indica la fonte stessa.',
+  // σαρωτής εγγράφων (VisionKit)
+  'Η σάρωση απέτυχε. Δοκίμασε ξανά.': 'Scansione non riuscita. Riprova.',
 };
 export default IT;

@@ -18,6 +18,7 @@ import { FilePick, IMAGE_TYPES } from '@/components/controls';
 import { linkLabel, LinkIcon } from '@/components/item/Links';
 import { toast } from '@/components/Toast';
 import { IconBack, IconCamera, IconCheck, IconFile, IconImage, IconPlus, IconQr, IconSpark, IconWarn } from '@/components/icons';
+import { CameraPick } from '@/components/CameraPick';
 
 type Source = 'photo' | 'pdf';
 /** preview: εικόνα εξωφύλλου (object URL)· null όταν δεν υπάρχει ακόμη (PDF πριν διαβαστεί, ή PDF χωρίς εικόνα) */
@@ -95,9 +96,9 @@ function Start({ onPhoto }: { onPhoto: (f: File) => void }) {
           </ul>
         </div>
       </div>
-      <FilePick accept={IMAGE_TYPES} capture onFiles={(f) => onPhoto(f[0]!)} className="btn btn-primary mt-5 w-full py-4 text-base">
+      <CameraPick mode="photo" onCapture={(c) => onPhoto(c.files[0]!)} className="btn btn-primary mt-5 w-full py-4 text-base">
         <IconCamera className="text-2xl" />{t('Άνοιγμα κάμερας')}
-      </FilePick>
+      </CameraPick>
       <div className="mt-2.5 grid grid-cols-2 gap-2.5">
         <FilePick accept={IMAGE_TYPES} onFiles={(f) => onPhoto(f[0]!)} className="btn btn-plain">
           <IconImage className="text-xl" />{t('Από τις φωτογραφίες')}

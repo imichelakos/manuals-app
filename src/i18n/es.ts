@@ -413,5 +413,7 @@ const ES: Record<string, string> = {
     '≈ 1,07 kg CO₂e por kg de papel de oficina virgen (0,97 t por short ton): lo que haría falta para imprimir las páginas digitales.',
   'Δέντρα': 'Árboles',
   '≈ 24 δέντρα ανά short ton (907 kg) χαρτιού εκτύπωσης από παρθένα ύλη. Χονδρική εκτίμηση, κατά την ίδια την πηγή.': '≈ 24 árboles por short ton (907 kg) de papel de impresión virgen. Una estimación aproximada, según la propia fuente.',
+  // σαρωτής εγγράφων (VisionKit)
+  'Η σάρωση απέτυχε. Δοκίμασε ξανά.': 'El escaneo ha fallado. Inténtalo de nuevo.',
 };
 export default ES;

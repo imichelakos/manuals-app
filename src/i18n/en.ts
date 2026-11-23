@@ -413,5 +413,7 @@ const EN: Record<string, string> = {
     '≈ 1.07 kg CO₂e per kg of virgin office paper (0.97 t per short ton): what printing the digital pages would take.',
   'Δέντρα': 'Trees',
   '≈ 24 δέντρα ανά short ton (907 kg) χαρτιού εκτύπωσης από παρθένα ύλη. Χονδρική εκτίμηση, κατά την ίδια την πηγή.': '≈ 24 trees per short ton (907 kg) of virgin printing paper. A rough estimate, as the source itself says.',
+  // σαρωτής εγγράφων (VisionKit)
+  'Η σάρωση απέτυχε. Δοκίμασε ξανά.': 'Scanning failed. Try again.',
 };
 export default EN;

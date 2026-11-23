@@ -14,10 +14,11 @@ import { openFile } from '@/services/platform';
 import { readText } from '@/services/ocr';
 import { useBlobUrl } from '@/hooks/useBlobUrl';
 import { fmtDate, t } from '@/i18n';
-import { ConfirmDelete, DOC_TYPES, FilePick, IMAGE_TYPES } from '@/components/controls';
+import { ConfirmDelete, DOC_TYPES, FilePick } from '@/components/controls';
 import { Sheet } from '@/components/Sheet';
 import { toast } from '@/components/Toast';
 import { IconCamera, IconCheck, IconFile, IconRecycle, IconSearch, IconUpload } from '@/components/icons';
+import { CameraPick } from '@/components/CameraPick';
 
 const fileErrorText = (e: unknown) =>
   e instanceof FileError && e.code === 'too-big' ? t('Το αρχείο είναι πολύ μεγάλο (όριο 200 MB).')
@@ -113,13 +114,14 @@ export function ReceiptSection({ item }: { item: Item }) {
   const [busy, setBusy] = useState(false);
   const [dates, setDates] = useState<string[]>([]);
 
-  const add = async (files: File[], origin: Attachment['origin']) => {
+  // firstPage: εικόνα για την πρόταση ημερομηνίας όταν το αρχείο είναι PDF του σαρωτή
+  const add = async (files: File[], origin: Attachment['origin'], firstPage?: Blob | null) => {
     setBusy(true);
     try {
       const added = await addFiles(item.id, files, 'receipt', origin);
       // πρόταση ημερομηνίας αγοράς από το κείμενο της απόδειξης (μόνο εικόνες· ο χρήστης αποφασίζει)
       const img = added.find((a) => a.mime.startsWith('image/'));
-      const blob = img ? await blobStore.get(img.blobId) : null;
+      const blob = firstPage ?? (img ? await blobStore.get(img.blobId) : null);
       // ημερομηνίες = ψηφία → αγγλικό μοντέλο (το ελληνικό μπερδεύει ψηφία)
       if (blob) setDates(extractDates((await readText(blob, { langs: ['eng'], sparse: false })).eng, today()).filter((d) => d !== item.purchase.date));
     } finally { setBusy(false); }
@@ -143,7 +145,7 @@ export function ReceiptSection({ item }: { item: Item }) {
         </div>
       )}
       <div className="mt-3 grid grid-cols-2 gap-2.5">
-        <FilePick accept={IMAGE_TYPES} capture disabled={busy} onFiles={(f) => void add(f, 'scan')} className="btn btn-plain"><IconCamera className="text-xl" />{t('Σάρωση')}</FilePick>
+        <CameraPick mode="document" disabled={busy} onCapture={(c) => void add(c.files, 'scan', c.firstPage)} className="btn btn-plain"><IconCamera className="text-xl" />{t('Σάρωση')}</CameraPick>
         <FilePick accept={DOC_TYPES} multiple disabled={busy} onFiles={(f) => void add(f, 'import')} className="btn btn-plain"><IconUpload className="text-xl" />{t('Αρχείο')}</FilePick>
       </div>
       {busy && <p className="mt-2 text-center text-[13px] text-ink-3" role="status">{t('Αποθήκευση…')}</p>}

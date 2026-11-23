@@ -413,5 +413,7 @@ const DE: Record<string, string> = {
     '≈ 1,07 kg CO₂e pro kg Büropapier aus Frischfaser (0,97 t pro short ton): So viel würde der Druck der digitalen Seiten verursachen.',
   'Δέντρα': 'Bäume',
   '≈ 24 δέντρα ανά short ton (907 kg) χαρτιού εκτύπωσης από παρθένα ύλη. Χονδρική εκτίμηση, κατά την ίδια την πηγή.': '≈ 24 Bäume pro short ton (907 kg) Druckpapier aus Frischfaser. Eine grobe Schätzung, wie die Quelle selbst angibt.',
+  // σαρωτής εγγράφων (VisionKit)
+  'Η σάρωση απέτυχε. Δοκίμασε ξανά.': 'Scannen fehlgeschlagen. Versuche es erneut.',
 };
 export default DE;

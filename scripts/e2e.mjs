@@ -388,6 +388,7 @@ try {
       PluginHeaders: [
         { name: 'SecureKey', methods: [{ name: 'storageKey', rtype: 'promise' }, { name: 'deleteStorageKey', rtype: 'promise' }] },
         { name: 'PdfReader', methods: [{ name: 'read', rtype: 'promise' }] },
+        { name: 'DocumentScanner', methods: [{ name: 'isSupported', rtype: 'promise' }, { name: 'scan', rtype: 'promise' }] },
         { name: 'LocalNotifications', methods: [{ name: 'addListener' }, { name: 'removeListener' }, ...['checkPermissions', 'requestPermissions', 'getPending', 'schedule', 'cancel'].map((name) => ({ name, rtype: 'promise' }))] },
       ],
       nativeCallback: () => 'mock-callback',
@@ -401,6 +402,9 @@ try {
           // 1η σελίδα: εξώφυλλο· 2η: περιεχόμενα με λέξεις που ΔΕΝ πρέπει να γίνουν μάρκα («Seat», «Smart»)
           return { pages: 24, locked: false, cover: window.__mockCover ?? null, pageTexts: ['Bosch Serie 6\nWashing machine\nModel: WAU28PH9BY\nInstruction manual', 'Seat the appliance firmly. Smart programmes. Οδηγίες χρήσης πλυντηρίου ρούχων'] };
         }
+        // σαρωτής εγγράφων (VisionKit): 2 σελίδες· η 1η ως εικόνα, όλες σε PDF όταν ζητηθεί
+        if (plugin === 'DocumentScanner' && method === 'isSupported') return { supported: true };
+        if (plugin === 'DocumentScanner' && method === 'scan') return { cancelled: false, pages: [window.__mockScanPage], pageCount: 2, pdf: o.pdf ? window.__mockScanPdf : null };
         if (plugin === 'LocalNotifications') {
           // προσομοίωση: άδεια δίνεται στο πρώτο αίτημα· οτιδήποτε άλλο (π.χ. μια «then») είναι σφάλμα
           const granted = localStorage.getItem('mock-notif') === 'granted';
@@ -483,6 +487,15 @@ try {
   assert.equal(await lp.locator('#sc-brand').inputValue(), 'Bosch');       // από το OCR του εξωφύλλου («BOSCH» στην εικόνα)
   assert.equal(await lp.locator('#sc-model').inputValue(), 'WAU28PH9BY');
   await lp.evaluate(() => { window.__mockLogoOnly = false; });
+
+  step('σαρωτής iOS (VisionKit): παραστατικό → ένα PDF, πρόταση ημερομηνίας από την 1η σελίδα');
+  await lp.goto(BASE);
+  await lp.locator('ul > li a[href^="#/item/"]').filter({ hasText: 'Bosch' }).first().click();
+  // μετά την πλοήγηση: το goto ξαναφορτώνει τη σελίδα και σβήνει ό,τι ορίστηκε πριν
+  await lp.evaluate(([img, pdf]) => { window.__mockScanPage = img; window.__mockScanPdf = pdf; }, [readFileSync(files.receipt).toString('base64'), PDF_BYTES.toString('base64')]);
+  await lp.locator('section:has-text("Παραστατικό αγοράς")').getByRole('button', { name: 'Σάρωση' }).click(); // κουμπί, όχι επιλογέας αρχείων
+  await lp.getByText(/^scan-\d{8}-\d{6}\.pdf$/).waitFor();                                      // ένα PDF με τις σελίδες
+  await lp.getByText('Ημερομηνία αγοράς από την απόδειξη;').waitFor({ timeout: 120_000 });          // OCR στην εικόνα της 1ης σελίδας
 
   step('εισαγωγή PDF στη σάρωση — web (χωρίς PDFKit): από το όνομα του αρχείου');
   const pc = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'el-GR' });

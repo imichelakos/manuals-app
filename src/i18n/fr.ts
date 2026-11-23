@@ -413,5 +413,7 @@ const FR: Record<string, string> = {
     '≈ 1,07 kg CO₂e par kg de papier de bureau vierge (0,97 t par short ton) : ce que nécessiterait l’impression des pages numériques.',
   'Δέντρα': 'Arbres',
   '≈ 24 δέντρα ανά short ton (907 kg) χαρτιού εκτύπωσης από παρθένα ύλη. Χονδρική εκτίμηση, κατά την ίδια την πηγή.': '≈ 24 arbres par short ton (907 kg) de papier d’impression vierge. Estimation approximative, de l’aveu même de la source.',
+  // σαρωτής εγγράφων (VisionKit)
+  'Η σάρωση απέτυχε. Δοκίμασε ξανά.': 'La numérisation a échoué. Réessayez.',
 };
 export default FR;
