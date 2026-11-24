@@ -577,13 +577,13 @@ try {
   await lp.locator('section:has-text("Σύνδεσμοι και QR")').getByRole('button', { name: 'Προσθήκη' }).click();
   await lp.getByPlaceholder(/https/).fill('https://bit.ly/x7');
   await lp.getByPlaceholder(/https/).press('Enter');
-  await lp.getByRole('button', { name: 'Αλλαγή τίτλου: YouTube — X7 Usage EN' }).first().waitFor();   // κείμενο σε έως 2 γραμμές
+  await lp.getByRole('button', { name: 'Αλλαγή τίτλου: X7 Usage EN' }).first().waitFor();   // κείμενο σε έως 2 γραμμές
 
   await lp.locator('section:has-text("Σύνδεσμοι και QR") li img[src^="data:image/png"]').first().waitFor();
   await lp.getByText('bit.ly').waitFor({ state: 'detached' });                     // κρατιέται μόνο ο τελικός σύνδεσμος
   await shot('21-link-title', lp);
   // πάτημα στον τίτλο → πεδίο αλλαγής· Enter → αποθήκευση και πάλι κείμενο
-  await lp.getByRole('button', { name: 'Αλλαγή τίτλου: YouTube — X7 Usage EN' }).first().click();
+  await lp.getByRole('button', { name: 'Αλλαγή τίτλου: X7 Usage EN' }).first().click();
   await lp.getByLabel('Τίτλος συνδέσμου').fill('Οδηγίες χρήσης X7 (βίντεο)');
   await lp.getByLabel('Τίτλος συνδέσμου').press('Enter');
   await lp.getByRole('button', { name: 'Αλλαγή τίτλου: Οδηγίες χρήσης X7 (βίντεο)' }).waitFor();

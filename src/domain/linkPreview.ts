@@ -1,5 +1,5 @@
 /**
- * Τίτλος και εικονίδιο ενός συνδέσμου (π.χ. από QR του εντύπου): «YouTube — X7 Usage EN». Καθαρές συναρτήσεις· τα
+ * Τίτλος και εικονίδιο ενός συνδέσμου (π.χ. από QR του εντύπου): «X7 Usage EN». Καθαρές συναρτήσεις· τα
  * αιτήματα: services/linkPreview.
  * - Βίντεο: oEmbed (ανοιχτό πρότυπο, χωρίς κλειδί· επαληθευμένα endpoints YouTube και Vimeo, 23/11/2026).
  * - Άλλες σελίδες: <title> / og:title και τα εικονίδια που δηλώνει η ίδια η σελίδα (όχι υπηρεσία τρίτου).
@@ -47,10 +47,11 @@ export function parseHead(html: string, pageUrl: string): { title: string | null
   return { title, icons: [...new Set([...icons, ...(fallback && /^https:/.test(fallback) ? [fallback] : [])])].slice(0, 4) };
 }
 
-/** «YouTube — X7 Usage EN»· χωρίς διπλή αναφορά όταν ο τίτλος ήδη ξεκινά με την υπηρεσία */
+/**
+ * Τίτλος βίντεο χωρίς το όνομα της υπηρεσίας μπροστά (απόφαση 24/11/2026: το εικονίδιο δείχνει ήδη ότι είναι βίντεο,
+ * και έτσι χωρά περισσότερος τίτλος). Η υπηρεσία μόνο όταν λείπει τίτλος.
+ */
 export function formatTitle(provider: string | null, title: string | null): string | null {
   const t = title ? cleanText(title) : '';
-  if (!t) return provider ? cleanText(provider) : null;
-  if (!provider || t.toLowerCase().startsWith(provider.toLowerCase())) return t;
-  return `${cleanText(provider)} — ${t}`;
+  return t || (provider ? cleanText(provider) || null : null);
 }

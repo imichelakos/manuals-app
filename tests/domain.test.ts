@@ -241,7 +241,7 @@ test('linkPreview: oEmbed για βίντεο, τίτλος και εικονί�
   assert.equal(r.title, 'X7 & Co | Support');
   assert.deepEqual(r.icons, ['https://cdn.ex.com/touch.png', 'https://www.example.com/fav.png', 'https://www.example.com/favicon.ico']);
   assert.equal(parseHead('<meta property="og:title" content="Baton Turbo — Olight">', 'https://olight.com/').title, 'Baton Turbo — Olight');
-  assert.equal(formatTitle('YouTube', 'X7 Usage EN'), 'YouTube — X7 Usage EN');
-  assert.equal(formatTitle('YouTube', 'YouTube Kids'), 'YouTube Kids');
+  assert.equal(formatTitle('YouTube', 'X7 Usage EN'), 'X7 Usage EN');   // χωρίς «YouTube —» μπροστά
+  assert.equal(formatTitle('YouTube', null), 'YouTube');                // μόνο όταν λείπει τίτλος
   assert.equal(formatTitle(null, '  Οδηγίες&nbsp;χρήσης '), 'Οδηγίες χρήσης');
 });
