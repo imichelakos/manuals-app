@@ -5,11 +5,14 @@ import { warrantyInfo } from '@/domain/warranty';
 import { latin, norm, within1 } from '@/domain/text';
 import { classifyCode, eanOk, parseHttpUrl } from '@/domain/codes';
 import { identify } from '@/domain/identify';
+import { cleanLine, coverLayout } from '@/domain/coverLayout';
+import { formatTitle, oembedUrl, parseHead } from '@/domain/linkPreview';
+import { brandQueries, describesBrand, sameWord } from '@/domain/brandLookup';
 import { localManualLanguage, manualQueries } from '@/domain/manualSearch';
 import { suggestCategory } from '@/domain/categorySuggest';
 import { recyclingStats } from '@/domain/recycling';
 import { mergeItems, referencedBlobs } from '@/domain/merge';
-import { extractDates } from '@/domain/receiptHints';
+import { checkReceipt, extractDates } from '@/domain/receiptHints';
 import { emptyItem, itemSchema, newId, displayName, type Item } from '@/domain/model';
 
 test('dates: addMonths κρατά την ημέρα ή πάει στο τέλος του μήνα', () => {
@@ -176,4 +179,69 @@ test('identify: οχήματα — μάρκα και όνομα μοντέλου
   assert.ok(!vw.models.includes('Owner’s'));                     // γενική λέξη, όχι μοντέλο
   // σε συσκευή δεν εφαρμόζεται: εκεί μοντέλο είναι ο κωδικός
   assert.equal(identify({ latin: 'Bosch Serie 6 washing machine WAU28PH9BY', greek: '' }).models[0], 'WAU28PH9BY');
+});
+
+test('checkReceipt: ημερομηνία + ποσό ή λέξη παραστατικού → μοιάζει με παραστατικό', () => {
+  const today = '2026-11-23';
+  assert.equal(checkReceipt('ΗΛΕΚΤΡΙΚΑ ΠΑΠΑΔΟΠΟΥΛΟΣ\nΑΦΜ 099999999\n14/03/2025\nΣΥΝΟΛΟ 499,00 €', today).likely, true);
+  assert.equal(checkReceipt('Απόδειξη λιανικής 14-03-2025', today).likely, true);               // τόνοι και πεζά
+  assert.equal(checkReceipt('MediaMarkt  Rechnung  12.01.2026  Summe 89,99 EUR', today).likely, true);
+  assert.equal(checkReceipt('Scontrino 05/06/2025 Totale 12,50', today).likely, true);
+  assert.equal(checkReceipt('Washing machine safety instructions. Read carefully.', today).likely, false); // καμία ένδειξη
+  assert.equal(checkReceipt('Total 12,50 €', today).likely, false);                                    // χωρίς ημερομηνία
+  assert.equal(checkReceipt('Έκδοση 14/03/2025 — οδηγίες χρήσης', today).likely, false);             // ημερομηνία μόνο
+  assert.equal(checkReceipt('', today).likely, false);
+});
+
+test('identify: μοντέλο-όνομα ως πρόταση όταν δεν υπάρχει κωδικός (πραγματικό OCR εξωφύλλου Olight Baton Turbo)', () => {
+  // απόσπασμα από το OCR (eng, sparse) της σάρωσης του χρήστη· τα «LEG», «mY;», «Ny» είναι θόρυβος από το σχέδιο
+  const latin = 'QOLIGHT\nUSER\nMANUAL\na\nLEG\nmY;\nLID\nNU,\nNy\nIv\nTm NR\nBaton\nPortable, long-range EDC flashlight';
+  const r = identify({ latin, greek: '' });
+  assert.deepEqual(r.models, []);                 // κανένας κωδικός → τίποτα δεν συμπληρώνεται μόνο του
+  assert.deepEqual(r.modelHints, ['Baton']);      // μόνο ως πρόταση· όχι ο θόρυβος, όχι «USER MANUAL»
+  assert.equal(r.category, 'tools');             // «flashlight» → Εργαλεία & κήπος
+});
+
+test('coverLayout: πραγματικές γραμμές OCR της Apple (iPhone, εξώφυλλο Olight Baton Turbo)', () => {
+  // από τη «Δοκιμή αναγνώρισης» στη συσκευή: [ύψος ×1000] κείμενο
+  const lines = [
+    { text: 'MANUAL', size: 0.053 }, { text: 'USER', size: 0.053 }, { text: 'Portable, long-range EDC flashlight.', size: 0.032 },
+    { text: 'OBLIGHT', size: 0.029 }, { text: 'Baton Turbo', size: 0.026 },
+  ];
+  const r = coverLayout(lines);
+  assert.deepEqual(r.brandCandidates, ['OBLIGHT']);                  // όχι USER/MANUAL, όχι η περιγραφή
+  assert.deepEqual(r.modelHints, ['OBLIGHT', 'Baton Turbo']);        // το OBLIGHT φεύγει όταν επιβεβαιωθεί ως μάρκα
+});
+
+test('brandLookup: παραλλαγές με ένα γράμμα λιγότερο και κανόνας αποδοχής', () => {
+  assert.ok(brandQueries('OBLIGHT').includes('olight'));
+  assert.ok(brandQueries('QOLIGHT').includes('olight'));
+  assert.deepEqual(brandQueries('LG'), ['lg']);
+  assert.equal(describesBrand('Chinese flashlight brand'), true);
+  assert.equal(describesBrand('German multinational engineering company'), true);
+  assert.equal(describesBrand('stick used by a conductor'), false);
+  assert.equal(sameWord('Olight', 'olight'), true);
+  assert.equal(sameWord('Olight Inc', 'olight'), false);
+});
+
+test('cleanLine: πλαίσιο γύρω από λέξη διαβασμένο ως παρένθεση (πραγματικό: «Baton (Turbo» από iPhone)', () => {
+  assert.equal(cleanLine('Baton (Turbo'), 'Baton Turbo');
+  assert.equal(cleanLine('Baton Turbo)'), 'Baton Turbo');
+  assert.equal(cleanLine('|Baton| Turbo'), 'Baton Turbo');
+  assert.equal(cleanLine('Galaxy S24 (2024)'), 'Galaxy S24 (2024)');   // σωστή παρένθεση μένει
+  assert.equal(coverLayout([{ text: 'Baton (Turbo', size: 0.03 }]).modelHints[0], 'Baton Turbo');
+});
+
+test('linkPreview: oEmbed για βίντεο, τίτλος και εικονίδια από τη σελίδα, μορφή τίτλου', () => {
+  assert.equal(oembedUrl('https://youtu.be/abc'), 'https://www.youtube.com/oembed?format=json&url=https%3A%2F%2Fyoutu.be%2Fabc');
+  assert.ok(oembedUrl('https://vimeo.com/76979871')!.startsWith('https://vimeo.com/api/oembed.json?url='));
+  assert.equal(oembedUrl('https://www.bosch-home.gr/manual'), null);
+  const html = '<html><head><title>X7 &amp; Co | Support</title><link rel="icon" href="/fav.png"><link rel="apple-touch-icon" href="https://cdn.ex.com/touch.png"></head>';
+  const r = parseHead(html, 'https://www.example.com/p/1');
+  assert.equal(r.title, 'X7 & Co | Support');
+  assert.deepEqual(r.icons, ['https://cdn.ex.com/touch.png', 'https://www.example.com/fav.png', 'https://www.example.com/favicon.ico']);
+  assert.equal(parseHead('<meta property="og:title" content="Baton Turbo — Olight">', 'https://olight.com/').title, 'Baton Turbo — Olight');
+  assert.equal(formatTitle('YouTube', 'X7 Usage EN'), 'X7 Usage EN');   // χωρίς «YouTube —» μπροστά
+  assert.equal(formatTitle('YouTube', null), 'YouTube');                // μόνο όταν λείπει τίτλος
+  assert.equal(formatTitle(null, '  Οδηγίες&nbsp;χρήσης '), 'Οδηγίες χρήσης');
 });

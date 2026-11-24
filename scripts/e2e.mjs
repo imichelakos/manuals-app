@@ -159,11 +159,49 @@ try {
   await page.getByRole('button', { name: '14 Μαρ 2025' }).click();
   await page.waitForFunction(() => document.querySelector('#w-date').value === '2025-03-14'); // η αποθήκευση είναι ασύγχρονη
 
+  step('παραστατικό που δεν μοιάζει με παραστατικό → ερώτηση πριν από την αποθήκευση');
+  const receiptInput = page.locator('section:has-text("Παραστατικό αγοράς") label:has-text("Αρχείο") input[type=file]');
+  await receiptInput.setInputFiles(files.cover);                                   // εξώφυλλο εγχειριδίου, όχι απόδειξη
+  await page.getByText('Δεν μοιάζει με παραστατικό αγοράς').waitFor({ timeout: 120_000 });
+  assert.equal(await page.getByText('test-cover.jpg').count(), 0);                  // δεν αποθηκεύτηκε πριν απαντήσει
+  await page.getByRole('alert').getByRole('button', { name: 'Άκυρο' }).click();
+  await page.waitForTimeout(300);
+  assert.equal(await page.getByText('test-cover.jpg').count(), 0);                  // «Άκυρο»: τίποτα
+  await receiptInput.setInputFiles(files.cover);
+  await page.getByRole('alert').getByRole('button', { name: 'Αποθήκευση' }).click({ timeout: 120_000 });
+  await page.getByText('test-cover.jpg').waitFor();                                 // «Αποθήκευση»: μπαίνει
+  await page.getByRole('button', { name: 'Διαγραφή αρχείου test-cover.jpg' }).click();
+  await page.getByRole('button', { name: 'Σίγουρα;' }).click();
+  await page.getByText('test-cover.jpg').waitFor({ state: 'detached' });
+
+  step('καρτέλα: αλλαγή φωτογραφίας (από τις φωτογραφίες)');
+  const coverSrc = await page.locator('header img').getAttribute('src');
+  await page.getByRole('button', { name: 'Αλλαγή φωτογραφίας' }).click();
+  await page.getByRole('dialog').locator('label:has-text("Από τις φωτογραφίες") input[type=file]').setInputFiles(files.receipt);
+  await page.waitForFunction((old) => { const i = document.querySelector('header img'); return i && i.getAttribute('src') !== old; }, coverSrc);
+  assert.equal(await page.getByRole('dialog').count(), 0);
+
   step('σημειώσεις, χώρος, ετικέτες');
   await page.locator('#d-notes').fill('Καθάρισμα φίλτρου αντλίας κάθε 3 μήνες');
+  await page.locator('section:has-text("Στοιχεία")').getByRole('button', { name: 'Επεξεργασία' }).click();   // συμπαγής μορφή → φόρμα
   await page.locator('#d-room').fill('Μπάνιο');
   await page.locator('#d-tags').fill('δώρο, εξοχικό');
   await page.locator('#d-tags').blur();
+  await page.locator('section:has-text("Στοιχεία")').getByRole('button', { name: 'Τέλος' }).click();
+  await page.locator('section:has-text("Στοιχεία") dd', { hasText: 'Μπάνιο' }).waitFor();            // πίσω στη συμπαγή μορφή
+
+  step('άλλα έγγραφα: αρχείο, τίτλος από πρόταση, σημείωση');
+  const otherDocs = page.locator('section:has-text("Άλλα έγγραφα")');
+  await otherDocs.locator('label:has-text("Αρχείο") input[type=file]').setInputFiles(files.receipt);
+  await otherDocs.getByRole('button', { name: 'Φύλλο σέρβις' }).click();
+  await page.waitForFunction(() => document.querySelector('input[aria-label="Τίτλος εγγράφου"]')?.value === 'Φύλλο σέρβις');
+  await otherDocs.getByLabel('Σημείωση εγγράφου').fill('Σέρβις Νοεμβρίου');
+  await otherDocs.getByLabel('Σημείωση εγγράφου').blur();
+  assert.equal(await otherDocs.getByRole('button', { name: 'Δήλωση συμμόρφωσης' }).count(), 0);         // οι προτάσεις φεύγουν με τίτλο
+
+  step('σάρωση QR αργότερα (web: φωτογραφία) → οι σύνδεσμοι υπάρχουν ήδη');
+  await page.locator('section:has-text("Σύνδεσμοι και QR") label:has-text("Σάρωση QR") input[type=file]').setInputFiles(files.cover);
+  await page.getByText('Ο σύνδεσμος υπάρχει ήδη.').waitFor();
   await page.waitForTimeout(300);
   // γενικές συμβουλές ανακύκλωσης της συσκευής
   await page.getByText('Όταν δεν θα τη χρειάζεσαι').click();
@@ -388,6 +426,9 @@ try {
       PluginHeaders: [
         { name: 'SecureKey', methods: [{ name: 'storageKey', rtype: 'promise' }, { name: 'deleteStorageKey', rtype: 'promise' }] },
         { name: 'PdfReader', methods: [{ name: 'read', rtype: 'promise' }] },
+        { name: 'DocumentScanner', methods: [{ name: 'isSupported', rtype: 'promise' }, { name: 'scan', rtype: 'promise' }] },
+        { name: 'ProductReader', methods: [{ name: 'status', rtype: 'promise' }, { name: 'read', rtype: 'promise' }] },
+        { name: 'CapacitorHttp', methods: ['request', 'get'].map((name) => ({ name, rtype: 'promise' })) },
         { name: 'LocalNotifications', methods: [{ name: 'addListener' }, { name: 'removeListener' }, ...['checkPermissions', 'requestPermissions', 'getPending', 'schedule', 'cancel'].map((name) => ({ name, rtype: 'promise' }))] },
       ],
       nativeCallback: () => 'mock-callback',
@@ -400,6 +441,20 @@ try {
           // «PDFKit»: κείμενο των πρώτων σελίδων και πρώτη σελίδα ως εικόνα (εδώ: το εξώφυλλο της δοκιμής)
           // 1η σελίδα: εξώφυλλο· 2η: περιεχόμενα με λέξεις που ΔΕΝ πρέπει να γίνουν μάρκα («Seat», «Smart»)
           return { pages: 24, locked: false, cover: window.__mockCover ?? null, pageTexts: ['Bosch Serie 6\nWashing machine\nModel: WAU28PH9BY\nInstruction manual', 'Seat the appliance firmly. Smart programmes. Οδηγίες χρήσης πλυντηρίου ρούχων'] };
+        }
+        // σαρωτής εγγράφων (VisionKit): 2 σελίδες· η 1η ως εικόνα, όλες σε PDF όταν ζητηθεί
+        if (plugin === 'DocumentScanner' && method === 'isSupported') return { supported: true };
+        if (plugin === 'DocumentScanner' && method === 'scan') return { cancelled: false, pages: [window.__mockScanPage], pageCount: 2, pdf: o.pdf ? window.__mockScanPdf : null };
+        // OCR της Apple (Vision): γραμμές με ύψος· εδώ οι πραγματικές γραμμές του εξωφύλλου Olight από iPhone
+        if (plugin === 'ProductReader' && method === 'status') return { ios: '27.2', device: 'iPhone14,2', xcode: '2720', sdk: 'iphoneos27.2', ai: 'deviceNotEligible' };
+        if (plugin === 'ProductReader' && method === 'read') return { lines: window.__mockLines ?? [], ocrMs: 300, ai: null, aiMs: 0, aiStatus: 'deviceNotEligible', aiError: null };
+        // CapacitorHttp (native): oEmbed του YouTube και η μικρογραφία του
+        if (plugin === 'CapacitorHttp') {
+          // σύντομος σύνδεσμος: η ανακατεύθυνση (HEAD) καταλήγει στο YouTube
+          if (o.url.startsWith('https://bit.ly/')) return { status: 200, headers: { 'Content-Type': 'text/html' }, url: 'https://youtu.be/abc', data: '' };
+          if (o.url.startsWith('https://www.youtube.com/oembed')) return { status: 200, headers: { 'Content-Type': 'application/json' }, url: o.url, data: { provider_name: 'YouTube', title: 'X7 Usage EN', thumbnail_url: 'https://i.ytimg.com/vi/abc/hqdefault.jpg' } };
+          if (o.url.startsWith('https://i.ytimg.com/')) return { status: 200, headers: { 'Content-Type': 'image/png' }, url: o.url, data: 'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR4nGP8z8Dwn4GBgYGJAQoAAB8AAQ0iLqkAAAAASUVORK5CYII=' };
+          return { status: 404, headers: {}, url: o.url, data: '' };
         }
         if (plugin === 'LocalNotifications') {
           // προσομοίωση: άδεια δίνεται στο πρώτο αίτημα· οτιδήποτε άλλο (π.χ. μια «then») είναι σφάλμα
@@ -483,6 +538,55 @@ try {
   assert.equal(await lp.locator('#sc-brand').inputValue(), 'Bosch');       // από το OCR του εξωφύλλου («BOSCH» στην εικόνα)
   assert.equal(await lp.locator('#sc-model').inputValue(), 'WAU28PH9BY');
   await lp.evaluate(() => { window.__mockLogoOnly = false; });
+
+  step('σαρωτής iOS (VisionKit): παραστατικό → ένα PDF, πρόταση ημερομηνίας από την 1η σελίδα');
+  await lp.goto(BASE);
+  await lp.locator('ul > li a[href^="#/item/"]').filter({ hasText: 'Bosch' }).first().click();
+  // μετά την πλοήγηση: το goto ξαναφορτώνει τη σελίδα και σβήνει ό,τι ορίστηκε πριν
+  await lp.evaluate(([img, pdf]) => { window.__mockScanPage = img; window.__mockScanPdf = pdf; }, [readFileSync(files.receipt).toString('base64'), PDF_BYTES.toString('base64')]);
+  await lp.locator('section:has-text("Παραστατικό αγοράς")').getByRole('button', { name: 'Σάρωση' }).click(); // κουμπί, όχι επιλογέας αρχείων
+  await lp.getByText(/^scan-\d{8}-\d{6}\.pdf$/).waitFor();                                      // ένα PDF με τις σελίδες
+  await lp.getByText('Ημερομηνία αγοράς από την απόδειξη;').waitFor({ timeout: 120_000 });          // OCR στην εικόνα της 1ης σελίδας
+
+  step('iOS: μάρκα χωρίς λίστα — OCR της Apple + Wikidata (παραλλαγή «OBLIGHT» → «Olight»), μοντέλο ως πρόταση');
+  const wikidataAsked = [];
+  await lp.route('https://www.wikidata.org/w/api.php?**', (r) => {
+    const q = new URL(r.request().url()).searchParams.get('search');
+    wikidataAsked.push(q);
+    const hit = q === 'olight' ? [{ id: 'Q106179908', label: 'Olight', description: 'Chinese flashlight brand' }] : q === 'blight' ? [{ id: 'Q1', label: 'blight', description: 'plant disease' }] : [];
+    return r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ search: hit }) });
+  });
+  await lp.goto(`${BASE}#/scan`);
+  await lp.evaluate(() => { window.__mockLines = [
+    { text: 'MANUAL', size: 0.053, top: 0.2 }, { text: 'USER', size: 0.053, top: 0.15 }, { text: 'Portable, long-range EDC flashlight.', size: 0.032, top: 0.95 },
+    { text: 'OBLIGHT', size: 0.029, top: 0.05 }, { text: 'Baton Turbo', size: 0.026, top: 0.9 }]; });
+  await lp.locator('label:has-text("Από τις φωτογραφίες") input[type=file]').setInputFiles(files.cover);
+  await lp.getByRole('heading', { name: 'Τι βρήκαμε' }).waitFor({ timeout: 120_000 });
+  await lp.waitForFunction(() => document.querySelector('#sc-brand').value === 'Olight');   // χωρίς ερώτηση (πολιτική απορρήτου)
+  assert.deepEqual(wikidataAsked, ['oblight', 'blight', 'olight']);                // ένα-ένα, σταματά στο πρώτο ταίριασμα
+  assert.equal(await lp.getByText(/Wikidata/).count(), 0);                         // η εξήγηση είναι στις «Πηγές», όχι εδώ
+  await lp.getByRole('button', { name: 'Baton Turbo' }).waitFor();                // μοντέλο: μόνο πρόταση
+  assert.equal(await lp.locator('#sc-model').inputValue(), '');
+  assert.equal(await lp.getByRole('button', { name: 'OBLIGHT' }).count(), 0);      // η λέξη της μάρκας έφυγε από τις προτάσεις
+  await shot('20-brand-web', lp);
+  await lp.unroute('https://www.wikidata.org/w/api.php?**');
+
+  step('iOS: σύντομος σύνδεσμος bit.ly → τελικός YouTube, τίτλος και μικρογραφία (CapacitorHttp)');
+  await lp.goto(BASE);
+  await lp.locator('ul > li a[href^="#/item/"]').filter({ hasText: 'Bosch' }).first().click();
+  await lp.locator('section:has-text("Σύνδεσμοι και QR")').getByRole('button', { name: 'Προσθήκη' }).click();
+  await lp.getByPlaceholder(/https/).fill('https://bit.ly/x7');
+  await lp.getByPlaceholder(/https/).press('Enter');
+  await lp.getByRole('button', { name: 'Αλλαγή τίτλου: X7 Usage EN' }).first().waitFor();   // κείμενο σε έως 2 γραμμές
+
+  await lp.locator('section:has-text("Σύνδεσμοι και QR") li img[src^="data:image/png"]').first().waitFor();
+  await lp.getByText('bit.ly').waitFor({ state: 'detached' });                     // κρατιέται μόνο ο τελικός σύνδεσμος
+  await shot('21-link-title', lp);
+  // πάτημα στον τίτλο → πεδίο αλλαγής· Enter → αποθήκευση και πάλι κείμενο
+  await lp.getByRole('button', { name: 'Αλλαγή τίτλου: X7 Usage EN' }).first().click();
+  await lp.getByLabel('Τίτλος συνδέσμου').fill('Οδηγίες χρήσης X7 (βίντεο)');
+  await lp.getByLabel('Τίτλος συνδέσμου').press('Enter');
+  await lp.getByRole('button', { name: 'Αλλαγή τίτλου: Οδηγίες χρήσης X7 (βίντεο)' }).waitFor();
 
   step('εισαγωγή PDF στη σάρωση — web (χωρίς PDFKit): από το όνομα του αρχείου');
   const pc = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'el-GR' });

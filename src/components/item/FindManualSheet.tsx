@@ -14,10 +14,11 @@ import { storeFile } from '@/services/files';
 import { languageName, t, userLanguages } from '@/i18n';
 import { Sheet } from '@/components/Sheet';
 import { ExternalLink } from '@/components/ExternalLink';
-import { DOC_TYPES, FilePick, IMAGE_TYPES } from '@/components/controls';
+import { DOC_TYPES, FilePick } from '@/components/controls';
 import { toast } from '@/components/Toast';
 import { addFiles } from './Documents';
 import { IconCamera, IconCheck, IconDownload, IconExternal, IconQr, IconRecycle, IconSearch, IconUpload } from '@/components/icons';
+import { CameraPick } from '@/components/CameraPick';
 
 const failText = (r: DownloadFailure): string =>
   r === 'bad-url' ? t('Αυτή δεν μοιάζει με διεύθυνση ιστοσελίδας.')
@@ -126,7 +127,7 @@ export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => 
       <Step n={fromQr.length ? 4 : 3} title={t('Το έχεις ήδη ή δεν υπάρχει ψηφιακό;')} icon={<IconUpload />}>
         <div className="flex flex-col gap-2.5">
           <FilePick accept={DOC_TYPES} multiple disabled={busy} onFiles={(f) => void addLocal(f, 'import')} className="btn btn-plain"><IconUpload className="text-xl" />{t('Εισαγωγή αρχείου')}</FilePick>
-          <FilePick accept={IMAGE_TYPES} capture disabled={busy} onFiles={(f) => void addLocal(f, 'scan')} className="btn btn-plain"><IconCamera className="text-xl" />{t('Φωτογράφιση σελίδας')}</FilePick>
+          <CameraPick mode="document" disabled={busy} onCapture={(c) => void addLocal(c.files, 'scan')} className="btn btn-plain"><IconCamera className="text-xl" />{t('Φωτογράφιση σελίδας')}</CameraPick>
         </div>
       </Step>
     </Sheet>

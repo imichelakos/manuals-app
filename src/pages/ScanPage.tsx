@@ -3,7 +3,7 @@
  * κείμενο) → «Τι βρήκαμε», όπου ο χρήστης ελέγχει/διορθώνει και αποθηκεύει. Μετά ανοίγει η καρτέλα του προϊόντος: στην
  * εύρεση του ψηφιακού (φωτογραφία) ή κατευθείαν (PDF: το ψηφιακό υπάρχει ήδη).
  */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { CATEGORIES, type CategoryId } from '@/domain/categories';
 import { newProduct, newId, type Item, type LinkRef } from '@/domain/model';
@@ -18,6 +18,13 @@ import { FilePick, IMAGE_TYPES } from '@/components/controls';
 import { linkLabel, LinkIcon } from '@/components/item/Links';
 import { toast } from '@/components/Toast';
 import { IconBack, IconCamera, IconCheck, IconFile, IconImage, IconPlus, IconQr, IconSpark, IconWarn } from '@/components/icons';
+import { CameraPick } from '@/components/CameraPick';
+import { WebBrandLookup } from '@/components/WebBrandLookup';
+import type { BrandMatch } from '@/services/wikidata';
+import { enrichLinks } from '@/data/linkEnrich';
+
+/** σταθερός κενός πίνακας (ίδια αναφορά σε κάθε render: δεν ξαναξεκινά την αναζήτηση) */
+const NONE: string[] = [];
 
 type Source = 'photo' | 'pdf';
 /** preview: εικόνα εξωφύλλου (object URL)· null όταν δεν υπάρχει ακόμη (PDF πριν διαβαστεί, ή PDF χωρίς εικόνα) */
@@ -65,7 +72,7 @@ export default function ScanPage() {
       </div>
       {phase.name === 'start' && <Start onPhoto={start} />}
       {phase.name === 'working' && <Working source={phase.source} preview={phase.preview} step={phase.step} progress={phase.progress} />}
-      {phase.name === 'review' && <Review preview={phase.preview} result={phase.result} onSaved={(id) => nav(phase.result.pdf ? `/item/${id}` : `/item/${id}?find=1`, { replace: true })} />}
+      {phase.name === 'review' && <Review preview={phase.preview} result={phase.result} onRetake={(f) => void start(f)} onSaved={(id) => nav(phase.result.pdf ? `/item/${id}` : `/item/${id}?find=1`, { replace: true })} />}
     </div>
   );
 }
@@ -95,9 +102,9 @@ function Start({ onPhoto }: { onPhoto: (f: File) => void }) {
           </ul>
         </div>
       </div>
-      <FilePick accept={IMAGE_TYPES} capture onFiles={(f) => onPhoto(f[0]!)} className="btn btn-primary mt-5 w-full py-4 text-base">
+      <CameraPick mode="photo" onCapture={(c) => onPhoto(c.files[0]!)} className="btn btn-primary mt-5 w-full py-4 text-base">
         <IconCamera className="text-2xl" />{t('Άνοιγμα κάμερας')}
-      </FilePick>
+      </CameraPick>
       <div className="mt-2.5 grid grid-cols-2 gap-2.5">
         <FilePick accept={IMAGE_TYPES} onFiles={(f) => onPhoto(f[0]!)} className="btn btn-plain">
           <IconImage className="text-xl" />{t('Από τις φωτογραφίες')}
@@ -144,7 +151,7 @@ function Working({ source, preview, step, progress }: { source: Source; preview:
   );
 }
 
-function Review({ preview, result, onSaved }: { preview: string | null; result: ScanResult; onSaved: (id: string) => void }) {
+function Review({ preview, result, onSaved, onRetake }: { preview: string | null; result: ScanResult; onSaved: (id: string) => void; onRetake: (f: File) => void }) {
   const { found, codes } = result;
   const [brand, setBrand] = useState(found.brands[0] ?? '');
   const [model, setModel] = useState(found.models[0] ?? '');
@@ -157,7 +164,11 @@ function Review({ preview, result, onSaved }: { preview: string | null; result: 
   const ean = codes.find((c) => c.type === 'ean')?.code;
   const [keep, setKeep] = useState<Set<string>>(() => new Set(links.map((l) => l.url)));
   const [busy, setBusy] = useState(false);
-  const nothing = !found.brands.length && !found.models.length && !codes.length;
+  const nothing = !found.brands.length && !found.models.length && !found.modelHints.length && !codes.length;
+  // μάρκα που επιβεβαιώθηκε στο web: συμπληρώνεται (αν το πεδίο είναι κενό) και η λέξη της φεύγει από τις προτάσεις μοντέλου
+  const [webMatch, setWebMatch] = useState<BrandMatch | null>(null);
+  const onWebBrand = useCallback((m: BrandMatch) => { setWebMatch(m); setBrand((b) => b || m.brand); }, []);
+  const modelOptions = [...found.models, ...found.modelHints].filter((m) => !webMatch || m.toLowerCase() !== webMatch.candidate.toLowerCase());
 
   async function save() {
     setBusy(true);
@@ -179,7 +190,9 @@ function Review({ preview, result, onSaved }: { preview: string | null; result: 
         attachments,
         links: links.filter((l) => keep.has(l.url)).map((l): LinkRef => ({ id: newId(), url: l.url, title: linkLabel(l.kind), kind: l.kind, origin: 'qr', addedAt: now })),
       };
-      onSaved((await saveItem(item)).id);
+      const saved = await saveItem(item);
+      void enrichLinks(saved.id, linkLabel);   // τίτλοι και εικονίδια των συνδέσμων των QR, στο παρασκήνιο
+      onSaved(saved.id);
     } catch {
       setBusy(false);
       toast(t('Η αποθήκευση απέτυχε. Ίσως δεν υπάρχει ελεύθερος χώρος.'), 'error');
@@ -198,17 +211,23 @@ function Review({ preview, result, onSaved }: { preview: string | null; result: 
             : <><IconSpark className="mr-1 inline text-lg text-accent" />{t('Έλεγξε ότι τα στοιχεία είναι σωστά. Μπορείς να τα αλλάξεις και αργότερα.')}</>}
         </p>
       </div>
+      {!result.pdf && (
+        <CameraPick mode="photo" onCapture={(c) => onRetake(c.files[0]!)} className="btn btn-plain mt-2.5 w-full">
+          <IconCamera className="text-xl" />{t('Ξανά φωτογραφία')}
+        </CameraPick>
+      )}
 
       <div className="card mt-4 space-y-4 p-5">
         <div>
           <label className="label" htmlFor="sc-brand">{t('Μάρκα')}</label>
           <input id="sc-brand" className="input" value={brand} onChange={(e) => setBrand(e.target.value)} autoComplete="off" />
           <Suggestions options={found.brands} value={brand} onPick={setBrand} />
+          {!found.brands.length && <WebBrandLookup candidates={result.layout?.brandCandidates ?? NONE} onFound={onWebBrand} />}
         </div>
         <div>
           <label className="label" htmlFor="sc-model">{t('Μοντέλο')}</label>
           <input id="sc-model" className="input" value={model} onChange={(e) => setModel(e.target.value)} autoComplete="off" autoCapitalize="off" spellCheck={false} />
-          <Suggestions options={found.models} value={model} onPick={setModel} />
+          <Suggestions options={modelOptions} value={model} onPick={setModel} />
         </div>
         <div>
           <label className="label" htmlFor="sc-name">{t('Όνομα')} <span className="font-normal text-ink-3">({t('προαιρετικό')})</span></label>

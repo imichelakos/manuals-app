@@ -32,6 +32,8 @@ export const attachmentSchema = z.object({
   sourceUrl: z.string().max(2000).optional(),
   /** σελίδες: του PDF (μετρημένες κατά την αποθήκευση) ή 1 για φωτογραφία σελίδας */
   pages: z.number().int().min(1).max(100_000).optional(),
+  /** σύντομη περιγραφή από τον χρήστη (κυρίως στα «Άλλα έγγραφα», π.χ. «για το σέρβις του 2026») */
+  note: z.string().max(500).optional(),
 });
 export type Attachment = z.infer<typeof attachmentSchema>;
 
@@ -46,6 +48,8 @@ export const linkSchema = z.object({
   kind: z.enum(linkKinds),
   origin: z.enum(['qr', 'manual']),
   addedAt: z.number().int(),
+  /** εικονίδιο της σελίδας ή μικρογραφία του βίντεο, σμικρυμένο (≤128 px) μέσα στην εγγραφή — όχι ξεχωριστό αρχείο */
+  icon: z.string().max(24_000).regex(/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/).optional(),
 });
 export type LinkRef = z.infer<typeof linkSchema>;
 

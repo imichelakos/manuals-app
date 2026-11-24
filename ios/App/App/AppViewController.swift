@@ -14,6 +14,9 @@ class AppViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(SecureKeyPlugin())  // κλειδί κρυπτογράφησης στο Keychain
         bridge?.registerPluginInstance(BiometricPlugin())  // Face ID / Touch ID
         bridge?.registerPluginInstance(PdfReaderPlugin())  // ανάγνωση PDF (PDFKit) για την εισαγωγή στη σάρωση
+        bridge?.registerPluginInstance(DocumentScannerPlugin())  // σαρωτής εγγράφων του iOS (VisionKit)
+        bridge?.registerPluginInstance(ProductReaderPlugin())  // αναγνώριση προϊόντος στη συσκευή (Vision + Apple Foundation Models)
+        bridge?.registerPluginInstance(QrScannerPlugin())  // ζωντανή σάρωση QR (VisionKit DataScanner)
         exportBuildInfo()
     }
 
