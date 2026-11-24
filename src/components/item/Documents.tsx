@@ -10,12 +10,11 @@ import { today } from '@/domain/dates';
 import { updateItem } from '@/data/library';
 import { blobStore } from '@/data/blobs';
 import { FileError, prettySize, storeFile } from '@/services/files';
-import { openFile } from '@/services/platform';
 import { readReceipt } from '@/services/receiptReader';
 import { useBlobUrl } from '@/hooks/useBlobUrl';
+import { useFileViewer } from '@/components/FileViewer';
 import { fmtDate, t } from '@/i18n';
-import { AutoField, ConfirmDelete, DOC_TYPES, FilePick } from '@/components/controls';
-import { Sheet } from '@/components/Sheet';
+import { AutoField, ConfirmDelete, DOC_TYPES, FilePick, TitleField } from '@/components/controls';
 import { toast } from '@/components/Toast';
 import { IconCamera, IconCheck, IconFile, IconRecycle, IconSearch, IconUpload } from '@/components/icons';
 import { CameraPick } from '@/components/CameraPick';
@@ -50,15 +49,23 @@ const genericName = (name: string) => titleOf(name) === t('Έγγραφο') || /
 /** νέος τίτλος → όνομα αρχείου με την ίδια κατάληξη, χωρίς χαρακτήρες που δεν επιτρέπονται σε ονόματα αρχείων */
 const renamed = (name: string, title: string) => `${[...title].map((ch) => (ch.charCodeAt(0) < 32 || '\\/:*?"<>|'.includes(ch) ? ' ' : ch)).join('').trim().slice(0, 120) || t('Έγγραφο')}${name.match(EXT)?.[0] ?? ''}`;
 
+/**
+ * Το αντίγραφο με τις σημειώσεις (QuickLook) μπαίνει ως νέο έγγραφο στα «Άλλα έγγραφα», με τον τίτλο του αρχικού και
+ * «(με σημειώσεις)»· το αρχικό μένει όπως ήταν.
+ */
+async function addMarkedCopy(itemId: string, a: Attachment, marked: Blob) {
+  const name = renamed(a.name, t('{title} (με σημειώσεις)', { title: titleOf(a.name) }));
+  const added = await addFiles(itemId, [new File([marked], name, { type: marked.type })], 'other', a.origin);
+  if (added.length) toast(t('Το αντίγραφο με τις σημειώσεις μπήκε στα «Άλλα έγγραφα».'));
+}
+
 /** Γραμμή αρχείου: άνοιγμα και διαγραφή· με `editable`, και τίτλος / σημείωση που αλλάζουν επιτόπου. */
 function AttachmentRow({ itemId, a, editable = false }: { itemId: string; a: Attachment; editable?: boolean }) {
   const thumb = useBlobUrl(a.thumbId);
-  const [view, setView] = useState(false);
+  const { open: view, viewer } = useFileViewer();
   const open = async () => {
-    if (a.mime.startsWith('image/')) { setView(true); return; }
-    const b = await blobStore.get(a.blobId);
-    if (!b) { toast(t('Το αρχείο δεν βρέθηκε σε αυτή τη συσκευή.'), 'error'); return; }
-    try { await openFile(b, a.name); } catch { toast(t('Το αρχείο δεν μπόρεσε να ανοίξει εδώ.'), 'error'); }
+    const marked = await view(a, { title: titleOf(a.name), editable: true });
+    if (marked) await addMarkedCopy(itemId, a, marked);
   };
   const patch = (p: Partial<Attachment>) => void updateItem(itemId, (c) => ({ ...c, attachments: c.attachments.map((x) => (x.id === a.id ? { ...x, ...p } : x)) }));
   const kindLine = `${a.mime === 'application/pdf' ? 'PDF' : t('Εικόνα')} · ${prettySize(a.size)}`;
@@ -74,8 +81,8 @@ function AttachmentRow({ itemId, a, editable = false }: { itemId: string; a: Att
           <>
             <button type="button" className="shrink-0" onClick={() => void open()} aria-label={t('Άνοιγμα {name}', { name: a.name })}>{icon}</button>
             <span className="min-w-0 flex-1">
-              <AutoField value={genericName(a.name) ? '' : titleOf(a.name)} placeholder={t('Τίτλος εγγράφου')} aria-label={t('Τίτλος εγγράφου')}
-                className="w-full bg-transparent text-[15px] font-semibold outline-hidden" onCommit={(v) => patch({ name: renamed(a.name, v) })} />
+              <TitleField title={genericName(a.name) ? '' : titleOf(a.name)} placeholder={t('Τίτλος εγγράφου')} fieldLabel={t('Τίτλος εγγράφου')}
+                onCommit={(v) => patch({ name: renamed(a.name, v) })} />
               <span className="block text-[13px] text-ink-2">{kindLine}</span>
             </span>
           </>
@@ -101,17 +108,8 @@ function AttachmentRow({ itemId, a, editable = false }: { itemId: string; a: Att
             className="w-full rounded-lg bg-surface px-2.5 py-1.5 text-[14px] outline-hidden" onCommit={(v) => patch({ note: v.trim() || undefined })} />
         </div>
       )}
-      {view && <ImageView a={a} onClose={() => setView(false)} />}
+      {viewer}
     </li>
-  );
-}
-
-function ImageView({ a, onClose }: { a: Attachment; onClose: () => void }) {
-  const url = useBlobUrl(a.blobId);
-  return (
-    <Sheet title={a.name} onClose={onClose}>
-      {url ? <img src={url} alt={a.name} className="w-full rounded-2xl" /> : <p className="py-10 text-center text-ink-2">{t('Φόρτωση…')}</p>}
-    </Sheet>
   );
 }
 

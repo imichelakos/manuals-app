@@ -1,9 +1,31 @@
-/** Μικρά κοινά στοιχεία φόρμας: πεδίο κειμένου με αυτόματη αποθήκευση, επιλογή αρχείου, κουμπί διαγραφής με επιβεβαίωση. */
+/** Μικρά κοινά στοιχεία φόρμας: πεδίο κειμένου με αυτόματη αποθήκευση, τίτλος με πάτημα για αλλαγή, επιλογή αρχείου, κουμπί διαγραφής με επιβεβαίωση. */
 import { useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
 import { useLatest } from '@/hooks/useLatest';
 import { expectAppSwitch } from '@/services/appSwitch';
 import { t } from '@/i18n';
 import { IconTrash } from './icons';
+
+/**
+ * Τίτλος που διαβάζεται ολόκληρος: κείμενο σε έως 2 γραμμές (οι μακριοί τίτλοι δεν κόβονται αθόρυβα στην άκρη ενός
+ * πεδίου)· πάτημα → πεδίο αλλαγής, Enter ή έξοδος → αποθήκευση και πάλι κείμενο. Κενός τίτλος: φαίνεται το `placeholder`.
+ */
+export function TitleField({ title, placeholder, fieldLabel, onCommit }: {
+  title: string; placeholder?: string; fieldLabel: string; onCommit: (v: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  if (!editing) {
+    return (
+      <button type="button" onClick={() => setEditing(true)} aria-label={t('Αλλαγή τίτλου: {title}', { title: title || placeholder || '' })}
+        className={`line-clamp-2 w-full break-words text-left text-[15px] font-semibold leading-snug ${title ? '' : 'text-ink-3'}`}>{title || placeholder}</button>
+    );
+  }
+  return (
+    <div onBlur={() => setEditing(false)}>
+      <AutoField value={title} autoFocus placeholder={placeholder} aria-label={fieldLabel} className="w-full bg-transparent text-[15px] font-semibold outline-hidden"
+        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} onCommit={onCommit} />
+    </div>
+  );
+}
 
 /**
  * Πεδίο που αποθηκεύει μόνο του: στο blur ή λίγο αφότου σταματήσει η πληκτρολόγηση. Η τιμή από έξω (`value`) το

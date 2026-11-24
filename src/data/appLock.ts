@@ -17,6 +17,8 @@ const EXPECTED_SWITCH_MAX_MS = 10 * 60_000;
 
 export const lockSupported = biometricSupported;
 const active = () => lockSupported && getSettings().lock;
+/** ενεργό κλείδωμα (υποστηρίζεται και είναι ανοιχτό στις Ρυθμίσεις) */
+export const lockActive = (): boolean => active();
 
 let locked = active();
 /** πότε έφυγε η εφαρμογή για έξοδο που ζήτησε η ίδια (null: δεν είναι σε τέτοια έξοδο) */

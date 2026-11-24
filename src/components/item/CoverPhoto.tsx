@@ -1,6 +1,7 @@
 /**
- * Καρτέλα προϊόντος → φωτογραφία: πάτημα → νέα φωτογραφία (σαρωτής/κάμερα), από τις φωτογραφίες, ή αφαίρεση. Η νέα
- * αντικαθιστά την παλιά (και τα αρχεία της)· δεν ξαναγίνεται αναγνώριση — τα στοιχεία του προϊόντος μένουν ως έχουν.
+ * Καρτέλα προϊόντος → φωτογραφία: πάτημα → προβολή σε πλήρη οθόνη (QuickLook στο iPhone)· το κουμπί κάμερας στη γωνία →
+ * νέα φωτογραφία (σαρωτής/κάμερα), από τις φωτογραφίες, ή αφαίρεση. Χωρίς φωτογραφία, το πάτημα ανοίγει κατευθείαν την
+ * προσθήκη. Η νέα αντικαθιστά την παλιά (και τα αρχεία της)· δεν ξαναγίνεται αναγνώριση — τα στοιχεία μένουν ως έχουν.
  */
 import { useState, type ReactNode } from 'react';
 import { coverOf, type Item } from '@/domain/model';
@@ -8,6 +9,7 @@ import { updateItem } from '@/data/library';
 import { blobStore } from '@/data/blobs';
 import { storeFile } from '@/services/files';
 import { CameraPick } from '@/components/CameraPick';
+import { useFileViewer } from '@/components/FileViewer';
 import { FilePick, IMAGE_TYPES } from '@/components/controls';
 import { Sheet } from '@/components/Sheet';
 import { toast } from '@/components/Toast';
@@ -21,11 +23,13 @@ async function setCover(item: Item, file: Blob | null, origin: 'scan' | 'import'
   if (old) await blobStore.remove(old.thumbId ? [old.blobId, old.thumbId] : [old.blobId]);
 }
 
-/** Το πλακίδιο της φωτογραφίας στην κεφαλίδα· `children`: η εικόνα ή το εικονίδιο κατηγορίας. */
-export function CoverPhoto({ item, children }: { item: Item; children: ReactNode }) {
+/** Το πλακίδιο της φωτογραφίας στην κεφαλίδα· `children`: η εικόνα ή το εικονίδιο κατηγορίας· `title`: για την προβολή. */
+export function CoverPhoto({ item, title, children }: { item: Item; title: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const has = !!coverOf(item);
+  const cover = coverOf(item);
+  const has = !!cover;
+  const { open: view, viewer } = useFileViewer();
   const run = async (file: Blob | null, origin: 'scan' | 'import') => {
     setBusy(true);
     try { await setCover(item, file, origin); setOpen(false); }
@@ -34,10 +38,20 @@ export function CoverPhoto({ item, children }: { item: Item; children: ReactNode
   };
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} aria-label={has ? t('Αλλαγή φωτογραφίας') : t('Προσθήκη φωτογραφίας')}
-        className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-3xl bg-surface text-4xl text-ink-3 shadow-card">
-        {children}
-      </button>
+      <div className="relative shrink-0">
+        <button type="button" onClick={() => (cover ? void view(cover, { title }) : setOpen(true))}
+          aria-label={cover ? t('Προβολή φωτογραφίας') : t('Προσθήκη φωτογραφίας')}
+          className="flex size-24 items-center justify-center overflow-hidden rounded-3xl bg-surface text-4xl text-ink-3 shadow-card">
+          {children}
+        </button>
+        {has && (
+          <button type="button" onClick={() => setOpen(true)} aria-label={t('Αλλαγή φωτογραφίας')}
+            className="absolute -bottom-1.5 -right-1.5 flex size-9 items-center justify-center rounded-full border-2 border-bg bg-surface text-lg text-accent shadow-card">
+            <IconCamera />
+          </button>
+        )}
+      </div>
+      {viewer}
       {open && (
         <Sheet title={has ? t('Αλλαγή φωτογραφίας') : t('Προσθήκη φωτογραφίας')} onClose={() => setOpen(false)}>
           <div className="flex flex-col gap-2.5">

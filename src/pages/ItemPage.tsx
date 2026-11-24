@@ -56,7 +56,7 @@ export default function ItemPage() {
       </div>
 
       <header className="flex items-center gap-4 pb-5 pt-1">
-        <CoverPhoto item={item}>
+        <CoverPhoto item={item} title={title}>
           {coverUrl ? <img src={coverUrl} alt={t('Εξώφυλλο εντύπου')} className="size-full object-cover" /> : <CategoryIcon id={item.category} />}
         </CoverPhoto>
         <div className="min-w-0">

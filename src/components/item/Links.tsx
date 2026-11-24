@@ -8,7 +8,7 @@ import { updateItem } from '@/data/library';
 import { enrichLinks } from '@/data/linkEnrich';
 import { ExternalLink } from '@/components/ExternalLink';
 import { t, tn } from '@/i18n';
-import { AutoField, ConfirmDelete } from '@/components/controls';
+import { ConfirmDelete, TitleField } from '@/components/controls';
 import { toast } from '@/components/Toast';
 import { IconApp, IconExternal, IconFile, IconLink, IconPlus, IconQr, IconVideo, IconWarn } from '@/components/icons';
 
@@ -70,7 +70,7 @@ export function LinksSection({ item }: { item: Item }) {
               ? <img src={l.icon} alt="" className="size-9 shrink-0 rounded-lg bg-surface object-cover" />
               : <span className="text-2xl text-accent"><LinkIcon kind={l.kind} /></span>}
             <div className="min-w-0 flex-1">
-              <LinkTitle title={l.title}
+              <TitleField title={l.title} fieldLabel={t('Τίτλος συνδέσμου')}
                 onCommit={(title) => void updateItem(item.id, (c) => ({ ...c, links: c.links.map((x) => (x.id === l.id ? { ...x, title: title.trim() || linkLabel(l.kind) } : x)) }))} />
               <p className="flex items-center gap-1.5 truncate text-[13px] text-ink-2">
                 {l.url.startsWith('http://') && <IconWarn className="shrink-0 text-sm text-warn" aria-label={t('Μη ασφαλής σύνδεση (http)')} />}
@@ -108,22 +108,3 @@ function QrButton({ onCodes }: { onCodes: (c: CodePayload[] | null) => void }) {
   return <CameraPick mode="photo" className={cls} onCapture={(c) => void codesFromPhoto(c.files[0]!).then(onCodes, () => onCodes([]))}>{label}</CameraPick>;
 }
 
-/**
- * Τίτλος συνδέσμου: κείμενο σε έως 2 γραμμές (οι μακριοί τίτλοι δεν κόβονται αθόρυβα στην άκρη του πεδίου)· πάτημα →
- * πεδίο αλλαγής, που κλείνει όταν βγει η εστίαση ή με Enter (απόφαση 24/11/2026).
- */
-function LinkTitle({ title, onCommit }: { title: string; onCommit: (v: string) => void }) {
-  const [editing, setEditing] = useState(false);
-  if (!editing) {
-    return (
-      <button type="button" onClick={() => setEditing(true)} aria-label={t('Αλλαγή τίτλου: {title}', { title })}
-        className="line-clamp-2 w-full break-words text-left text-[15px] font-semibold leading-snug">{title}</button>
-    );
-  }
-  return (
-    <div onBlur={() => setEditing(false)}>
-      <AutoField value={title} autoFocus aria-label={t('Τίτλος συνδέσμου')} className="w-full bg-transparent text-[15px] font-semibold outline-hidden"
-        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} onCommit={onCommit} />
-    </div>
-  );
-}

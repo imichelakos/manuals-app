@@ -194,10 +194,15 @@ try {
   const otherDocs = page.locator('section:has-text("Άλλα έγγραφα")');
   await otherDocs.locator('label:has-text("Αρχείο") input[type=file]').setInputFiles(files.receipt);
   await otherDocs.getByRole('button', { name: 'Φύλλο σέρβις' }).click();
-  await page.waitForFunction(() => document.querySelector('input[aria-label="Τίτλος εγγράφου"]')?.value === 'Φύλλο σέρβις');
+  await otherDocs.getByRole('button', { name: 'Αλλαγή τίτλου: Φύλλο σέρβις' }).waitFor();       // κείμενο σε έως 2 γραμμές
   await otherDocs.getByLabel('Σημείωση εγγράφου').fill('Σέρβις Νοεμβρίου');
   await otherDocs.getByLabel('Σημείωση εγγράφου').blur();
   assert.equal(await otherDocs.getByRole('button', { name: 'Δήλωση συμμόρφωσης' }).count(), 0);         // οι προτάσεις φεύγουν με τίτλο
+  await otherDocs.getByRole('button', { name: 'Αλλαγή τίτλου: Φύλλο σέρβις' }).click();          // πάτημα → πεδίο· Enter → πάλι κείμενο
+  await otherDocs.getByLabel('Τίτλος εγγράφου').fill('Φύλλο σέρβις Νοεμβρίου 2026 από το εξουσιοδοτημένο κατάστημα');
+  await otherDocs.getByLabel('Τίτλος εγγράφου').press('Enter');
+  await otherDocs.getByRole('button', { name: 'Αλλαγή τίτλου: Φύλλο σέρβις Νοεμβρίου 2026 από το εξουσιοδοτημένο κατάστημα' }).waitFor();
+  await page.getByText('Φύλλο σέρβις Νοεμβρίου 2026 από το εξουσιοδοτημένο κατάστημα.jpg').waitFor({ state: 'detached' }); // η κατάληξη δεν φαίνεται
 
   step('σάρωση QR αργότερα (web: φωτογραφία) → οι σύνδεσμοι υπάρχουν ήδη');
   await page.locator('section:has-text("Σύνδεσμοι και QR") label:has-text("Σάρωση QR") input[type=file]').setInputFiles(files.cover);
@@ -429,6 +434,8 @@ try {
         { name: 'DocumentScanner', methods: [{ name: 'isSupported', rtype: 'promise' }, { name: 'scan', rtype: 'promise' }] },
         { name: 'ProductReader', methods: [{ name: 'status', rtype: 'promise' }, { name: 'read', rtype: 'promise' }] },
         { name: 'CapacitorHttp', methods: ['request', 'get'].map((name) => ({ name, rtype: 'promise' })) },
+        { name: 'Filesystem', methods: ['writeFile', 'rmdir'].map((name) => ({ name, rtype: 'promise' })) },
+        { name: 'FilePreview', methods: [{ name: 'preview', rtype: 'promise' }] },
         { name: 'LocalNotifications', methods: [{ name: 'addListener' }, { name: 'removeListener' }, ...['checkPermissions', 'requestPermissions', 'getPending', 'schedule', 'cancel'].map((name) => ({ name, rtype: 'promise' }))] },
       ],
       nativeCallback: () => 'mock-callback',
@@ -456,6 +463,10 @@ try {
           if (o.url.startsWith('https://i.ytimg.com/')) return { status: 200, headers: { 'Content-Type': 'image/png' }, url: o.url, data: 'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR4nGP8z8Dwn4GBgYGJAQoAAB8AAQ0iLqkAAAAASUVORK5CYII=' };
           return { status: 404, headers: {}, url: o.url, data: '' };
         }
+        // αρχεία στο cache και QuickLook: καταγράφονται οι κλήσεις· το «αντίγραφο με σημειώσεις» το ορίζει το σενάριο
+        if (plugin === 'Filesystem' && method === 'writeFile') { (window.__files ??= []).push(o.path); return { uri: `file:///cache/${o.path}` }; }
+        if (plugin === 'Filesystem' && method === 'rmdir') { (window.__rmdirs ??= []).push(o.path); return {}; }
+        if (plugin === 'FilePreview' && method === 'preview') { (window.__previews ??= []).push(o); return { edited: window.__mockEdited ?? null }; }
         if (plugin === 'LocalNotifications') {
           // προσομοίωση: άδεια δίνεται στο πρώτο αίτημα· οτιδήποτε άλλο (π.χ. μια «then») είναι σφάλμα
           const granted = localStorage.getItem('mock-notif') === 'granted';
@@ -587,6 +598,35 @@ try {
   await lp.getByLabel('Τίτλος συνδέσμου').fill('Οδηγίες χρήσης X7 (βίντεο)');
   await lp.getByLabel('Τίτλος συνδέσμου').press('Enter');
   await lp.getByRole('button', { name: 'Αλλαγή τίτλου: Οδηγίες χρήσης X7 (βίντεο)' }).waitFor();
+
+  step('iOS: προβολή με QuickLook — σημειώσεις σε αντίγραφο στα «Άλλα έγγραφα»· φωτογραφία: προβολή, αλλαγή από τη γωνία');
+  await lp.evaluate((pdf) => { window.__mockEdited = pdf; }, PDF_BYTES.toString('base64'));
+  const scanned = lp.getByText(/^scan-\d{8}-\d{6}\.pdf$/).first();
+  const scannedName = await scanned.textContent();
+  await scanned.click();
+  await lp.getByText('Το αντίγραφο με τις σημειώσεις μπήκε στα «Άλλα έγγραφα».').waitFor();
+  const marked = lp.locator('section:has-text("Άλλα έγγραφα")').getByRole('button', { name: `Αλλαγή τίτλου: ${scannedName.replace(/\.pdf$/, '')} (με σημειώσεις)` });
+  await marked.waitFor();
+  const firstPreview = await lp.evaluate(() => ({ p: window.__previews[0], files: window.__files, rmdirs: window.__rmdirs }));
+  assert.equal(firstPreview.p.editable, true);
+  assert.equal(firstPreview.p.title, scannedName.replace(/\.pdf$/, ''));
+  assert.ok(firstPreview.p.path.startsWith('file:///cache/preview/') && firstPreview.p.path.endsWith(`/${scannedName}`));
+  assert.equal(firstPreview.rmdirs.length, 1);                                       // το προσωρινό αρχείο σβήνεται
+  assert.ok(firstPreview.files[0].startsWith(`${firstPreview.rmdirs[0]}/`));
+  await lp.evaluate(() => { window.__mockEdited = null; });
+  await lp.getByRole('button', { name: 'Προβολή φωτογραφίας' }).click();            // πάτημα στη φωτογραφία → προβολή, χωρίς σημειώσεις
+  await lp.waitForFunction(() => window.__previews.length === 2);
+  const coverPreview = await lp.evaluate(() => window.__previews[1]);
+  assert.equal(coverPreview.editable, false);
+  assert.ok(coverPreview.path.endsWith('/cover.jpg'));
+  assert.equal(await lp.getByRole('dialog').count(), 0);                             // όχι φύλλο αλλαγής
+  await shot('22-quicklook-item', lp);
+  await marked.scrollIntoViewIfNeeded();
+  await shot('23-quicklook-copy', lp);
+  await lp.evaluate(() => window.scrollTo(0, 0));
+  await lp.getByRole('button', { name: 'Αλλαγή φωτογραφίας' }).click();             // κουμπί κάμερας στη γωνία → αλλαγή
+  await lp.getByRole('dialog').getByText('Από τις φωτογραφίες').waitFor();
+  await lp.getByRole('button', { name: 'Κλείσιμο' }).click();
 
   step('εισαγωγή PDF στη σάρωση — web (χωρίς PDFKit): από το όνομα του αρχείου');
   const pc = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'el-GR' });

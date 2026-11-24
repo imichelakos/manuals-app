@@ -460,5 +460,9 @@ const IT: Record<string, string> = {
   'Φύλλο σέρβις': 'Scheda di assistenza',
   'Πιστοποιητικό εγγύησης': 'Certificato di garanzia',
   'Αλλαγή τίτλου: {title}': 'Modifica titolo: {title}',
+  // προβολή αρχείων (QuickLook)
+  '{title} (με σημειώσεις)': '{title} (con note)',
+  'Το αντίγραφο με τις σημειώσεις μπήκε στα «Άλλα έγγραφα».': 'La copia con le note è stata aggiunta ad «Altri documenti».',
+  'Προβολή φωτογραφίας': 'Vedi foto',
 };
 export default IT;
