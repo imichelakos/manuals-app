@@ -5,7 +5,6 @@
  * ΣΗΜ.: ο κώδικας Swift δεν έχει μεταγλωττιστεί ούτε τρέξει ακόμη σε συσκευή.
  */
 import { Capacitor, registerPlugin } from '@capacitor/core';
-import { clearAppSwitch, expectAppSwitch } from './appSwitch';
 
 const onIos = Capacitor.getPlatform() === 'ios';
 
@@ -65,6 +64,5 @@ export async function biometricInfo(): Promise<{ available: boolean; label: stri
 /** Ζητά Face ID (ή κωδικό συσκευής). true μόνο αν πέτυχε· ακύρωση ή σφάλμα → false. */
 export async function biometricAuth(reason: string): Promise<boolean> {
   if (!biometricSupported) return false;
-  expectAppSwitch(); // το παράθυρο του Face ID / του κωδικού δεν μετρά ως έξοδος από την εφαρμογή
-  try { return (await Biometric.authenticate({ reason })).ok; } catch { return false; } finally { clearAppSwitch(); }
+  try { return (await Biometric.authenticate({ reason })).ok; } catch { return false; }
 }

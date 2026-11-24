@@ -184,7 +184,6 @@ const EN: Record<string, string> = {
   'Βίντεο και σελίδες από τα QR του εντύπου αποθηκεύονται εδώ.': 'Videos and pages from the manual’s QR codes are saved here.',
   'Τίτλος συνδέσμου': 'Link title',
   'Μη ασφαλής σύνδεση (http)': 'Insecure connection (http)',
-  'Άνοιγμα {host}': 'Open {host}',
   'Διαγραφή συνδέσμου': 'Delete link',
   'Διεύθυνση συνδέσμου': 'Link address',
 
@@ -446,7 +445,6 @@ const EN: Record<string, string> = {
   'Άνοιγμα {name}': 'Open {name}',
   'Τίτλος εγγράφου': 'Document title',
   'Σημείωση (προαιρετική)': 'Note (optional)',
-  'Σημείωση εγγράφου': 'Document note',
   'Άλλα έγγραφα': 'Other documents',
   'Δήλωση συμμόρφωσης, φύλλο σέρβις, οδηγίες εγκατάστασης — ό,τι άλλο συνοδεύει το προϊόν.': 'Declaration of conformity, service sheet, installation guide — anything else that comes with the product.',
   'Δεν βρέθηκε QR. Δοκίμασε πιο κοντά.': 'No QR found. Try closer.',
@@ -460,5 +458,15 @@ const EN: Record<string, string> = {
   'Φύλλο σέρβις': 'Service sheet',
   'Πιστοποιητικό εγγύησης': 'Warranty certificate',
   'Αλλαγή τίτλου: {title}': 'Edit title: {title}',
+  // προβολή αρχείων (QuickLook)
+  '{title} (με σημειώσεις)': '{title} (with notes)',
+  'Το αντίγραφο με τις σημειώσεις μπήκε στα «Άλλα έγγραφα».': 'The copy with your notes was added to “Other documents”.',
+  'Προβολή φωτογραφίας': 'View photo',
+  // γραμμές εγγράφων και συνδέσμων: πάτημα = άνοιγμα, μολύβι = στοιχεία
+  'Χωρίς τίτλο': 'Untitled',
+  'Στοιχεία εγγράφου {name}': 'Document details: {name}',
+  'Στοιχεία εγγράφου': 'Document details',
+  'Π.χ. σέρβις από το κατάστημα': 'E.g. serviced by the store',
+  'Άνοιγμα {title}': 'Open {title}',
 };
 export default EN;

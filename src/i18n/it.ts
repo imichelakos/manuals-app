@@ -184,7 +184,6 @@ const IT: Record<string, string> = {
   'Βίντεο και σελίδες από τα QR του εντύπου αποθηκεύονται εδώ.': 'Video e pagine dai QR del manuale vengono salvati qui.',
   'Τίτλος συνδέσμου': 'Titolo del link',
   'Μη ασφαλής σύνδεση (http)': 'Connessione non sicura (http)',
-  'Άνοιγμα {host}': 'Apri {host}',
   'Διαγραφή συνδέσμου': 'Elimina link',
   'Διεύθυνση συνδέσμου': 'Indirizzo del link',
 
@@ -446,7 +445,6 @@ const IT: Record<string, string> = {
   'Άνοιγμα {name}': 'Apri {name}',
   'Τίτλος εγγράφου': 'Titolo del documento',
   'Σημείωση (προαιρετική)': 'Nota (facoltativa)',
-  'Σημείωση εγγράφου': 'Nota del documento',
   'Άλλα έγγραφα': 'Altri documenti',
   'Δήλωση συμμόρφωσης, φύλλο σέρβις, οδηγίες εγκατάστασης — ό,τι άλλο συνοδεύει το προϊόν.': 'Dichiarazione di conformità, scheda di assistenza, istruzioni di installazione: tutto ciò che accompagna il prodotto.',
   'Δεν βρέθηκε QR. Δοκίμασε πιο κοντά.': 'Nessun QR trovato. Avvicinati.',
@@ -460,5 +458,15 @@ const IT: Record<string, string> = {
   'Φύλλο σέρβις': 'Scheda di assistenza',
   'Πιστοποιητικό εγγύησης': 'Certificato di garanzia',
   'Αλλαγή τίτλου: {title}': 'Modifica titolo: {title}',
+  // προβολή αρχείων (QuickLook)
+  '{title} (με σημειώσεις)': '{title} (con note)',
+  'Το αντίγραφο με τις σημειώσεις μπήκε στα «Άλλα έγγραφα».': 'La copia con le note è stata aggiunta ad «Altri documenti».',
+  'Προβολή φωτογραφίας': 'Vedi foto',
+  // γραμμές εγγράφων και συνδέσμων: πάτημα = άνοιγμα, μολύβι = στοιχεία
+  'Χωρίς τίτλο': 'Senza titolo',
+  'Στοιχεία εγγράφου {name}': 'Dettagli del documento: {name}',
+  'Στοιχεία εγγράφου': 'Dettagli del documento',
+  'Π.χ. σέρβις από το κατάστημα': 'Es. assistenza in negozio',
+  'Άνοιγμα {title}': 'Apri {title}',
 };
 export default IT;

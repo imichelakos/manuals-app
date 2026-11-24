@@ -7,7 +7,6 @@
  * μάρκα, μοντέλο, ημερομηνίες από το πέρασμα «eng»· ελληνικές λέξεις από το «ell».
  */
 import type { Worker } from 'tesseract.js';
-import { appSwitchExpected } from './appSwitch';
 
 export type OcrLang = 'eng' | 'ell';
 export interface OcrOptions {
@@ -47,8 +46,9 @@ function release() {
   loaded = null;
   void w?.then((x) => x.terminate()).catch(() => {});
 }
-// στο παρασκήνιο ο worker κλείνει — όχι όταν η εφαρμογή βγήκε για την κάμερα / τον επιλογέα φωτογραφιών (services/appSwitch)
-if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && !busy && !appSwitchExpected()) release(); });
+// στο παρασκήνιο ο worker κλείνει: «appbackground» του iOS (ios/App/App/AppViewController.swift) = πραγματική έξοδος από την εφαρμογή (όχι η κάμερα ή ο επιλογέας
+// φωτογραφιών, που απλώς κρύβουν τη σελίδα). Στο web δεν υπάρχει τέτοιο σήμα· εκεί αρκεί το κλείσιμο μετά από αδράνεια.
+if (typeof document !== 'undefined') document.addEventListener('appbackground', () => { if (!busy) release(); });
 
 /**
  * Προθέρμανση: φορτώνει worker, WASM και αγγλικό μοντέλο όσο ο χρήστης φωτογραφίζει, ώστε η ανάγνωση να ξεκινά αμέσως.

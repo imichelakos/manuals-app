@@ -24,6 +24,8 @@
 		7A51C0142F00000100C10AD5 /* DocumentScannerPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A51C0132F00000100C10AD5 /* DocumentScannerPlugin.swift */; };
 		7A51C0162F00000100C10AD5 /* ProductReaderPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A51C0152F00000100C10AD5 /* ProductReaderPlugin.swift */; };
 		7A51C0182F00000100C10AD5 /* QrScannerPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A51C0172F00000100C10AD5 /* QrScannerPlugin.swift */; };
+		7A51C01A2F00000100C10AD5 /* FilePreviewPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A51C0192F00000100C10AD5 /* FilePreviewPlugin.swift */; };
+		7A51C01C2F00000100C10AD5 /* CloseOnBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A51C01B2F00000100C10AD5 /* CloseOnBackground.swift */; };
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
 /* End PBXBuildFile section */
 
@@ -51,6 +53,8 @@
 		7A51C0132F00000100C10AD5 /* DocumentScannerPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentScannerPlugin.swift; sourceTree = "<group>"; };
 		7A51C0152F00000100C10AD5 /* ProductReaderPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductReaderPlugin.swift; sourceTree = "<group>"; };
 		7A51C0172F00000100C10AD5 /* QrScannerPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QrScannerPlugin.swift; sourceTree = "<group>"; };
+		7A51C0192F00000100C10AD5 /* FilePreviewPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilePreviewPlugin.swift; sourceTree = "<group>"; };
+		7A51C01B2F00000100C10AD5 /* CloseOnBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloseOnBackground.swift; sourceTree = "<group>"; };
 		9582B6822FE993A50072D4E8 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -91,6 +95,8 @@
 				7A51C0132F00000100C10AD5 /* DocumentScannerPlugin.swift */,
 				7A51C0152F00000100C10AD5 /* ProductReaderPlugin.swift */,
 				7A51C0172F00000100C10AD5 /* QrScannerPlugin.swift */,
+				7A51C0192F00000100C10AD5 /* FilePreviewPlugin.swift */,
+				7A51C01B2F00000100C10AD5 /* CloseOnBackground.swift */,
 				7A51C0092F00000100C10AD5 /* PdfReaderPlugin.swift */,
 				7A51C0072F00000100C10AD5 /* BiometricPlugin.swift */,
 				7A51C0052F00000100C10AD5 /* SecureKeyPlugin.swift */,
@@ -201,6 +207,8 @@
 				7A51C0142F00000100C10AD5 /* DocumentScannerPlugin.swift in Sources */,
 				7A51C0162F00000100C10AD5 /* ProductReaderPlugin.swift in Sources */,
 				7A51C0182F00000100C10AD5 /* QrScannerPlugin.swift in Sources */,
+				7A51C01A2F00000100C10AD5 /* FilePreviewPlugin.swift in Sources */,
+				7A51C01C2F00000100C10AD5 /* CloseOnBackground.swift in Sources */,
 				7A51C00A2F00000100C10AD5 /* PdfReaderPlugin.swift in Sources */,
 				7A51C0082F00000100C10AD5 /* BiometricPlugin.swift in Sources */,
 				7A51C0062F00000100C10AD5 /* SecureKeyPlugin.swift in Sources */,

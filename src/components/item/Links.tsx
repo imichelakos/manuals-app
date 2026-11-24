@@ -9,8 +9,9 @@ import { enrichLinks } from '@/data/linkEnrich';
 import { ExternalLink } from '@/components/ExternalLink';
 import { t, tn } from '@/i18n';
 import { AutoField, ConfirmDelete } from '@/components/controls';
+import { Sheet } from '@/components/Sheet';
 import { toast } from '@/components/Toast';
-import { IconApp, IconExternal, IconFile, IconLink, IconPlus, IconQr, IconVideo, IconWarn } from '@/components/icons';
+import { IconApp, IconFile, IconLink, IconPencil, IconPlus, IconQr, IconVideo, IconWarn } from '@/components/icons';
 
 export const linkLabel = (kind: LinkKind): string =>
   kind === 'video' ? t('Βίντεο') : kind === 'pdf' ? t('Έγγραφο PDF') : kind === 'app' ? t('Εφαρμογή') : t('Ιστοσελίδα');
@@ -64,23 +65,7 @@ export function LinksSection({ item }: { item: Item }) {
       </div>
       {item.links.length === 0 && !adding && <p className="mt-2 text-[15px] text-ink-2">{t('Βίντεο και σελίδες από τα QR του εντύπου αποθηκεύονται εδώ.')}</p>}
       <ul className="mt-3 space-y-2.5">
-        {item.links.map((l) => (
-          <li key={l.id} className="flex items-center gap-3 rounded-2xl bg-surface-2 p-2 pl-3.5">
-            {l.icon
-              ? <img src={l.icon} alt="" className="size-9 shrink-0 rounded-lg bg-surface object-cover" />
-              : <span className="text-2xl text-accent"><LinkIcon kind={l.kind} /></span>}
-            <div className="min-w-0 flex-1">
-              <LinkTitle title={l.title}
-                onCommit={(title) => void updateItem(item.id, (c) => ({ ...c, links: c.links.map((x) => (x.id === l.id ? { ...x, title: title.trim() || linkLabel(l.kind) } : x)) }))} />
-              <p className="flex items-center gap-1.5 truncate text-[13px] text-ink-2">
-                {l.url.startsWith('http://') && <IconWarn className="shrink-0 text-sm text-warn" aria-label={t('Μη ασφαλής σύνδεση (http)')} />}
-                {hostOf(l.url)}
-              </p>
-            </div>
-            <ExternalLink href={l.url} className="icon-btn" label={t('Άνοιγμα {host}', { host: hostOf(l.url) })}><IconExternal className="text-xl" /></ExternalLink>
-            <ConfirmDelete label={t('Διαγραφή συνδέσμου')} onConfirm={() => void updateItem(item.id, (c) => ({ ...c, links: c.links.filter((x) => x.id !== l.id) }))} />
-          </li>
-        ))}
+        {item.links.map((l) => <LinkRow key={l.id} item={item} l={l} />)}
       </ul>
       {!adding && (
         <div className="mt-3 grid grid-cols-2 gap-2.5">
@@ -98,6 +83,43 @@ export function LinksSection({ item }: { item: Item }) {
   );
 }
 
+/**
+ * Γραμμή συνδέσμου: πάτημα οπουδήποτε → άνοιγμα (φύλλο Safari στην εφαρμογή)· το μολύβι αλλάζει τον τίτλο — ίδιος
+ * κανόνας με τα έγγραφα (απόφαση 24/11/2026).
+ */
+function LinkRow({ item, l }: { item: Item; l: LinkRef }) {
+  const [editing, setEditing] = useState(false);
+  const setTitle = (title: string) => void updateItem(item.id, (c) => ({ ...c, links: c.links.map((x) => (x.id === l.id ? { ...x, title: title.trim() || linkLabel(l.kind) } : x)) }));
+  return (
+    <li className="flex items-center gap-1 rounded-2xl bg-surface-2 p-2 pl-3.5">
+      <ExternalLink href={l.url} className="flex min-w-0 flex-1 items-center gap-3" label={t('Άνοιγμα {title}', { title: l.title })}>
+        {l.icon
+          ? <img src={l.icon} alt="" className="size-9 shrink-0 rounded-lg bg-surface object-cover" />
+          : <span className="text-2xl text-accent"><LinkIcon kind={l.kind} /></span>}
+        <span className="min-w-0">
+          <span className="line-clamp-2 break-words text-[15px] font-semibold leading-snug">{l.title}</span>
+          <span className="flex items-center gap-1.5 truncate text-[13px] text-ink-2">
+            {l.url.startsWith('http://') && <IconWarn className="shrink-0 text-sm text-warn" aria-label={t('Μη ασφαλής σύνδεση (http)')} />}
+            {hostOf(l.url)}
+          </span>
+        </span>
+      </ExternalLink>
+      <button type="button" className="icon-btn" onClick={() => setEditing(true)} aria-label={t('Αλλαγή τίτλου: {title}', { title: l.title })}>
+        <IconPencil className="text-xl" />
+      </button>
+      <ConfirmDelete label={t('Διαγραφή συνδέσμου')} onConfirm={() => void updateItem(item.id, (c) => ({ ...c, links: c.links.filter((x) => x.id !== l.id) }))} />
+      {editing && (
+        <Sheet title={t('Τίτλος συνδέσμου')} onClose={() => setEditing(false)}
+          footer={<button type="button" className="btn btn-primary w-full" onClick={() => setEditing(false)}>{t('Τέλος')}</button>}>
+          <AutoField value={l.title} autoFocus aria-label={t('Τίτλος συνδέσμου')} className="input" onCommit={setTitle}
+            onKeyDown={(e) => { if (e.key === 'Enter') setEditing(false); }} />
+          <p className="mt-2 truncate text-[13px] text-ink-2">{l.url}</p>
+        </Sheet>
+      )}
+    </li>
+  );
+}
+
 /** «Σάρωση QR»: ζωντανή σάρωση όπου υπάρχει, αλλιώς φωτογραφία (σαρωτής/κάμερα) και ανάγνωση. */
 function QrButton({ onCodes }: { onCodes: (c: CodePayload[] | null) => void }) {
   const [live, setLive] = useState(false);
@@ -108,22 +130,3 @@ function QrButton({ onCodes }: { onCodes: (c: CodePayload[] | null) => void }) {
   return <CameraPick mode="photo" className={cls} onCapture={(c) => void codesFromPhoto(c.files[0]!).then(onCodes, () => onCodes([]))}>{label}</CameraPick>;
 }
 
-/**
- * Τίτλος συνδέσμου: κείμενο σε έως 2 γραμμές (οι μακριοί τίτλοι δεν κόβονται αθόρυβα στην άκρη του πεδίου)· πάτημα →
- * πεδίο αλλαγής, που κλείνει όταν βγει η εστίαση ή με Enter (απόφαση 24/11/2026).
- */
-function LinkTitle({ title, onCommit }: { title: string; onCommit: (v: string) => void }) {
-  const [editing, setEditing] = useState(false);
-  if (!editing) {
-    return (
-      <button type="button" onClick={() => setEditing(true)} aria-label={t('Αλλαγή τίτλου: {title}', { title })}
-        className="line-clamp-2 w-full break-words text-left text-[15px] font-semibold leading-snug">{title}</button>
-    );
-  }
-  return (
-    <div onBlur={() => setEditing(false)}>
-      <AutoField value={title} autoFocus aria-label={t('Τίτλος συνδέσμου')} className="w-full bg-transparent text-[15px] font-semibold outline-hidden"
-        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} onCommit={onCommit} />
-    </div>
-  );
-}

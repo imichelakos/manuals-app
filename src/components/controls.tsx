@@ -1,7 +1,6 @@
 /** Μικρά κοινά στοιχεία φόρμας: πεδίο κειμένου με αυτόματη αποθήκευση, επιλογή αρχείου, κουμπί διαγραφής με επιβεβαίωση. */
 import { useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
 import { useLatest } from '@/hooks/useLatest';
-import { expectAppSwitch } from '@/services/appSwitch';
 import { t } from '@/i18n';
 import { IconTrash } from './icons';
 
@@ -67,7 +66,7 @@ export function FilePick({ onFiles, accept, capture, multiple, className, childr
   onFiles: (files: File[]) => void; accept: string; capture?: boolean; multiple?: boolean; className?: string; children: ReactNode; disabled?: boolean;
 }) {
   return (
-    <label onClick={expectAppSwitch} className={`${className ?? ''} ${disabled ? 'pointer-events-none opacity-40' : 'cursor-pointer'} focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent`}>
+    <label className={`${className ?? ''} ${disabled ? 'pointer-events-none opacity-40' : 'cursor-pointer'} focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent`}>
       {children}
       <input type="file" className="sr-only" accept={accept} multiple={multiple} disabled={disabled}
         {...(capture ? { capture: 'environment' as const } : {})}
