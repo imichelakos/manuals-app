@@ -21,7 +21,7 @@ public class FilePreviewPlugin: CAPPlugin, CAPBridgedPlugin {
     private var pending: CAPPluginCall?
     private var session: PreviewSession?
     private weak var controller: QLPreviewController?
-    private var backgroundObserver: NSObjectProtocol?
+    private var closer: CloseOnBackground?
 
     /// path: file:// URL του αρχείου (το γράφει και το σβήνει η εφαρμογή). title: τίτλος στη γραμμή της προβολής.
     /// Απάντηση: { edited } — το αντίγραφο με τις σημειώσεις σε base64, ή null αν δεν έγιναν σημειώσεις.
@@ -48,11 +48,8 @@ public class FilePreviewPlugin: CAPPlugin, CAPBridgedPlugin {
             ql.dataSource = session
             ql.delegate = session
             self.controller = ql
-            if closeOnBackground {
-                self.backgroundObserver = NotificationCenter.default.addObserver(
-                    forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
-                    self?.controller?.dismiss(animated: false) { self?.finish() }
-                }
+            self.closer = CloseOnBackground(enabled: closeOnBackground) { [weak self] in
+                self?.controller?.dismiss(animated: false) { self?.finish() }
             }
             self.bridge?.viewController?.present(ql, animated: true)
         }
@@ -64,8 +61,7 @@ public class FilePreviewPlugin: CAPPlugin, CAPBridgedPlugin {
         pending = nil
         self.session = nil
         controller = nil
-        if let o = backgroundObserver { NotificationCenter.default.removeObserver(o) }
-        backgroundObserver = nil
+        closer = nil
         let edited = session.editedBase64()
         session.cleanUp()
         call.resolve(["edited": edited ?? NSNull()])

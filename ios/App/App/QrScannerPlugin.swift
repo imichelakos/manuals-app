@@ -19,6 +19,8 @@ public class QrScannerPlugin: CAPPlugin, CAPBridgedPlugin {
     private var pending: CAPPluginCall?
     private var host: UIViewController?
     private var delegateBox: AnyObject?
+    /// closeOnBackground (ενεργό κλείδωμα): ο σαρωτής κλείνει στο παρασκήνιο, σαν ακύρωση
+    private var closer: CloseOnBackground?
 
     @objc func isSupported(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
@@ -30,6 +32,7 @@ public class QrScannerPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
+    /// closeOnBackground: κλείσιμο στο παρασκήνιο (ενεργό κλείδωμα).
     /// Απάντηση: { cancelled, value } — value: το κείμενο του QR (π.χ. διεύθυνση)
     @objc func scan(_ call: CAPPluginCall) {
         guard pending == nil else { call.reject("Ο σαρωτής είναι ήδη ανοιχτός", "busy"); return }
@@ -49,6 +52,7 @@ public class QrScannerPlugin: CAPPlugin, CAPBridgedPlugin {
             let nav = UINavigationController(rootViewController: scanner)
             nav.modalPresentationStyle = .fullScreen
             self.host = nav
+            self.closer = CloseOnBackground(enabled: call.getBool("closeOnBackground") ?? false) { [weak self] in self?.finish(nil, animated: false) }
             self.bridge?.viewController?.present(nav, animated: true) {
                 do { try scanner.startScanning() } catch { self.finish(nil, failed: true) }
             }
@@ -56,16 +60,17 @@ public class QrScannerPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     /// value nil: ακύρωση (ή αποτυχία με failed)
-    private func finish(_ value: String?, failed: Bool = false) {
+    private func finish(_ value: String?, failed: Bool = false, animated: Bool = true) {
         DispatchQueue.main.async {
             guard let call = self.pending else { return }
             self.pending = nil
             if #available(iOS 16.0, *), let nav = self.host as? UINavigationController, let scanner = nav.viewControllers.first as? DataScannerViewController {
                 scanner.stopScanning()
             }
-            self.host?.dismiss(animated: true)
+            self.host?.dismiss(animated: animated)
             self.host = nil
             self.delegateBox = nil
+            self.closer = nil
             if failed { call.reject("Η σάρωση απέτυχε", "failed") }
             else { call.resolve(["cancelled": value == nil, "value": value ?? NSNull()]) }
         }

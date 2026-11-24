@@ -7,11 +7,11 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 import { classifyCode, type CodePayload } from '@/domain/codes';
 import { prepareImage } from './image';
 import { readCodes } from './codeReader';
-import { expectAppSwitch } from './appSwitch';
+import { closeScreensOnBackground } from './nativeScreens';
 
 interface QrScannerPlugin {
   isSupported(): Promise<{ supported: boolean }>;
-  scan(): Promise<{ cancelled: boolean; value: string | null }>;
+  scan(o: { closeOnBackground: boolean }): Promise<{ cancelled: boolean; value: string | null }>;
 }
 // τα plugins του Capacitor είναι Proxy που «απαντούν» και σε `then`: δηλώνονται στο επίπεδο του module, όχι μέσα σε Promise
 const QrScanner = registerPlugin<QrScannerPlugin>('QrScanner');
@@ -25,9 +25,7 @@ export function liveQrSupported(): Promise<boolean> {
 
 /** Ζωντανή σάρωση· null: ακύρωση. */
 export async function scanQrLive(): Promise<CodePayload[] | null> {
-  // ο σαρωτής καλύπτει την εφαρμογή: αναμενόμενη έξοδος, όχι λόγος για κλείδωμα με Face ID
-  expectAppSwitch();
-  const r = await QrScanner.scan();
+  const r = await QrScanner.scan({ closeOnBackground: closeScreensOnBackground() });
   return r.cancelled || !r.value ? null : [classifyCode(r.value)];
 }
 

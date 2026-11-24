@@ -14,9 +14,10 @@ import { readReceipt } from '@/services/receiptReader';
 import { useBlobUrl } from '@/hooks/useBlobUrl';
 import { useFileViewer } from '@/components/FileViewer';
 import { fmtDate, t } from '@/i18n';
-import { AutoField, ConfirmDelete, DOC_TYPES, FilePick, TitleField } from '@/components/controls';
+import { AutoField, ConfirmDelete, DOC_TYPES, FilePick } from '@/components/controls';
+import { Sheet } from '@/components/Sheet';
 import { toast } from '@/components/Toast';
-import { IconCamera, IconCheck, IconFile, IconRecycle, IconSearch, IconUpload } from '@/components/icons';
+import { IconCamera, IconCheck, IconFile, IconPencil, IconRecycle, IconSearch, IconUpload } from '@/components/icons';
 import { CameraPick } from '@/components/CameraPick';
 
 const fileErrorText = (e: unknown) =>
@@ -50,66 +51,78 @@ const genericName = (name: string) => titleOf(name) === t('Έγγραφο') || /
 const renamed = (name: string, title: string) => `${[...title].map((ch) => (ch.charCodeAt(0) < 32 || '\\/:*?"<>|'.includes(ch) ? ' ' : ch)).join('').trim().slice(0, 120) || t('Έγγραφο')}${name.match(EXT)?.[0] ?? ''}`;
 
 /**
- * Το αντίγραφο με τις σημειώσεις (QuickLook) μπαίνει ως νέο έγγραφο στα «Άλλα έγγραφα», με τον τίτλο του αρχικού και
- * «(με σημειώσεις)»· το αρχικό μένει όπως ήταν.
+ * Το αντίγραφο με τις σημειώσεις (QuickLook) μπαίνει ως νέο έγγραφο στα «Άλλα έγγραφα», με τον τίτλο του αρχικού (ή το
+ * είδος του, αν το όνομα είναι αυτόματο) και «(με σημειώσεις)»· το αρχικό μένει όπως ήταν.
  */
 async function addMarkedCopy(itemId: string, a: Attachment, marked: Blob) {
-  const name = renamed(a.name, t('{title} (με σημειώσεις)', { title: titleOf(a.name) }));
+  // αυτόματο όνομα («scan-…», «Έγγραφο») → το είδος του εγγράφου, ώστε ο τίτλος να διαβάζεται και να χωρά
+  const base = !genericName(a.name) ? titleOf(a.name) : a.kind === 'receipt' ? t('Παραστατικό') : a.kind === 'manual' ? t('Εγχειρίδιο') : t('Έγγραφο');
+  const name = renamed(a.name, t('{title} (με σημειώσεις)', { title: base }));
   const added = await addFiles(itemId, [new File([marked], name, { type: marked.type })], 'other', a.origin);
   if (added.length) toast(t('Το αντίγραφο με τις σημειώσεις μπήκε στα «Άλλα έγγραφα».'));
 }
 
-/** Γραμμή αρχείου: άνοιγμα και διαγραφή· με `editable`, και τίτλος / σημείωση που αλλάζουν επιτόπου. */
-function AttachmentRow({ itemId, a, editable = false }: { itemId: string; a: Attachment; editable?: boolean }) {
+/**
+ * Γραμμή αρχείου: πάτημα οπουδήποτε → άνοιγμα (ίδιο σε όλη την καρτέλα, όπως και στους συνδέσμους)· κάτω από τον τίτλο,
+ * η σημείωση ως κείμενο. Με `editable`, το μολύβι ανοίγει τα «Στοιχεία εγγράφου» (τίτλος, προτάσεις, σημείωση)·
+ * `askDetails`: ανοίγουν μόνα τους μόλις μπει το έγγραφο, για να δοθεί τίτλος (απόφαση 24/11/2026).
+ */
+function AttachmentRow({ itemId, a, editable = false, askDetails = false, onAsked }: {
+  itemId: string; a: Attachment; editable?: boolean; askDetails?: boolean; onAsked?: () => void;
+}) {
   const thumb = useBlobUrl(a.thumbId);
   const { open: view, viewer } = useFileViewer();
+  const [details, setDetails] = useState(false);
+  const showDetails = editable && (details || askDetails);
+  const closeDetails = () => { setDetails(false); onAsked?.(); };
+  // άλλα έγγραφα: τίτλος χωρίς κατάληξη (κενός όσο είναι γενικός)· εγχειρίδιο / παραστατικό: το όνομα του αρχείου όπως πριν
+  const title = editable ? (genericName(a.name) ? '' : titleOf(a.name)) : a.name;
   const open = async () => {
     const marked = await view(a, { title: titleOf(a.name), editable: true });
     if (marked) await addMarkedCopy(itemId, a, marked);
   };
-  const patch = (p: Partial<Attachment>) => void updateItem(itemId, (c) => ({ ...c, attachments: c.attachments.map((x) => (x.id === a.id ? { ...x, ...p } : x)) }));
   const kindLine = `${a.mime === 'application/pdf' ? 'PDF' : t('Εικόνα')} · ${prettySize(a.size)}`;
-  const icon = (
-    <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface text-2xl text-accent">
-      {thumb ? <img src={thumb} alt="" className="size-full object-cover" /> : <IconFile />}
-    </span>
-  );
   return (
-    <li className="rounded-2xl bg-surface-2 p-2">
-      <div className="flex items-center gap-3">
-        {editable ? (
-          <>
-            <button type="button" className="shrink-0" onClick={() => void open()} aria-label={t('Άνοιγμα {name}', { name: a.name })}>{icon}</button>
-            <span className="min-w-0 flex-1">
-              <TitleField title={genericName(a.name) ? '' : titleOf(a.name)} placeholder={t('Τίτλος εγγράφου')} fieldLabel={t('Τίτλος εγγράφου')}
-                onCommit={(v) => patch({ name: renamed(a.name, v) })} />
-              <span className="block text-[13px] text-ink-2">{kindLine}</span>
-            </span>
-          </>
-        ) : (
-          <button type="button" className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={() => void open()}>
-            {icon}
-            <span className="min-w-0">
-              <span className="block truncate text-[15px] font-semibold">{a.name}</span>
-              <span className="block text-[13px] text-ink-2">{kindLine}</span>
-            </span>
-          </button>
-        )}
-        <ConfirmDelete label={t('Διαγραφή αρχείου {name}', { name: a.name })} onConfirm={() => void removeAttachment(itemId, a)} />
-      </div>
+    <li className="flex items-center gap-1 rounded-2xl bg-surface-2 p-2">
+      <button type="button" className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={() => void open()}
+        aria-label={t('Άνοιγμα {name}', { name: title || t('Έγγραφο') })}>
+        <span className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface text-2xl text-accent">
+          {thumb ? <img src={thumb} alt="" className="size-full object-cover" /> : <IconFile />}
+        </span>
+        <span className="min-w-0">
+          <span className={`line-clamp-2 break-words text-[15px] font-semibold leading-snug ${title ? '' : 'text-ink-3'}`}>{title || t('Χωρίς τίτλο')}</span>
+          <span className="block text-[13px] text-ink-2">{kindLine}</span>
+          {a.note && <span className="mt-0.5 line-clamp-2 block break-words text-[13px] text-ink-2">{a.note}</span>}
+        </span>
+      </button>
       {editable && (
-        <div className="mt-1.5 px-1">
-          {genericName(a.name) && (
-            <div className="mb-1.5 flex flex-wrap gap-1.5">
-              {otherTitles().map((x) => <button key={x} type="button" className="chip min-h-8 px-3 text-[13px]" onClick={() => patch({ name: renamed(a.name, x) })}>{x}</button>)}
-            </div>
-          )}
-          <AutoField value={a.note ?? ''} placeholder={t('Σημείωση (προαιρετική)')} aria-label={t('Σημείωση εγγράφου')}
-            className="w-full rounded-lg bg-surface px-2.5 py-1.5 text-[14px] outline-hidden" onCommit={(v) => patch({ note: v.trim() || undefined })} />
-        </div>
+        <button type="button" className="icon-btn" onClick={() => setDetails(true)} aria-label={t('Στοιχεία εγγράφου {name}', { name: title || t('Έγγραφο') })}>
+          <IconPencil className="text-xl" />
+        </button>
       )}
+      <ConfirmDelete label={t('Διαγραφή αρχείου {name}', { name: a.name })} onConfirm={() => void removeAttachment(itemId, a)} />
+      {showDetails && <DocDetails itemId={itemId} a={a} onClose={closeDetails} />}
       {viewer}
     </li>
+  );
+}
+
+/** «Στοιχεία εγγράφου»: τίτλος (προτάσεις ή ελεύθερος) και σημείωση· αποθηκεύονται μόλις αλλάξουν. */
+function DocDetails({ itemId, a, onClose }: { itemId: string; a: Attachment; onClose: () => void }) {
+  const patch = (p: Partial<Attachment>) => void updateItem(itemId, (c) => ({ ...c, attachments: c.attachments.map((x) => (x.id === a.id ? { ...x, ...p } : x)) }));
+  return (
+    <Sheet title={t('Στοιχεία εγγράφου')} onClose={onClose}
+      footer={<button type="button" className="btn btn-primary w-full" onClick={onClose}>{t('Τέλος')}</button>}>
+      <label className="block text-[13px] font-semibold text-ink-2" htmlFor="doc-title">{t('Τίτλος εγγράφου')}</label>
+      <AutoField id="doc-title" value={genericName(a.name) ? '' : titleOf(a.name)} placeholder={t('Τίτλος εγγράφου')}
+        className="input mt-1.5" onCommit={(v) => patch({ name: renamed(a.name, v) })} />
+      <div className="mt-2.5 flex flex-wrap gap-1.5">
+        {otherTitles().map((x) => <button key={x} type="button" className="chip min-h-8 px-3 text-[13px]" onClick={() => patch({ name: renamed(a.name, x) })}>{x}</button>)}
+      </div>
+      <label className="mt-4 block text-[13px] font-semibold text-ink-2" htmlFor="doc-note">{t('Σημείωση (προαιρετική)')}</label>
+      <AutoField id="doc-note" value={a.note ?? ''} placeholder={t('Π.χ. σέρβις από το κατάστημα')}
+        className="input mt-1.5" onCommit={(v) => patch({ note: v.trim() || undefined })} />
+    </Sheet>
   );
 }
 
@@ -221,11 +234,14 @@ export function ReceiptSection({ item }: { item: Item }) {
 export function OtherDocsSection({ item }: { item: Item }) {
   const docs = item.attachments.filter((a) => a.kind === 'other');
   const [busy, setBusy] = useState(false);
+  /** το έγγραφο που μόλις μπήκε: ανοίγουν τα στοιχεία του, για να δοθεί τίτλος */
+  const [fresh, setFresh] = useState<string | null>(null);
   const add = async (files: File[], origin: Attachment['origin']) => {
     setBusy(true);
     try {
       // ο τίτλος αρχίζει γενικός («Έγγραφο»): ο χρήστης διαλέγει από τις προτάσεις ή γράφει δικό του
-      await addFiles(item.id, files.map((f) => new File([f], t('Έγγραφο'), { type: f.type })), 'other', origin);
+      const added = await addFiles(item.id, files.map((f) => new File([f], t('Έγγραφο'), { type: f.type })), 'other', origin);
+      if (added.length === 1) setFresh(added[0]!.id);
     } finally { setBusy(false); }
   };
   return (
@@ -233,7 +249,7 @@ export function OtherDocsSection({ item }: { item: Item }) {
       <h2 className="section-title">{t('Άλλα έγγραφα')}</h2>
       {docs.length === 0
         ? <p className="mt-2 text-[15px] leading-relaxed text-ink-2">{t('Δήλωση συμμόρφωσης, φύλλο σέρβις, οδηγίες εγκατάστασης — ό,τι άλλο συνοδεύει το προϊόν.')}</p>
-        : <ul className="mt-3 space-y-2.5">{docs.map((a) => <AttachmentRow key={a.id} itemId={item.id} a={a} editable />)}</ul>}
+        : <ul className="mt-3 space-y-2.5">{docs.map((a) => <AttachmentRow key={a.id} itemId={item.id} a={a} editable askDetails={a.id === fresh} onAsked={() => setFresh(null)} />)}</ul>}
       <div className="mt-3 grid grid-cols-2 gap-2.5">
         <CameraPick mode="document" disabled={busy} onCapture={(c) => void add(c.files, 'scan')} className="btn btn-plain"><IconCamera className="text-xl" />{t('Σάρωση')}</CameraPick>
         <FilePick accept={DOC_TYPES} multiple disabled={busy} onFiles={(f) => void add(f, 'import')} className="btn btn-plain"><IconUpload className="text-xl" />{t('Αρχείο')}</FilePick>

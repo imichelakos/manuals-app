@@ -6,6 +6,7 @@
  */
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { fromBase64, toBase64 } from './base64';
+import { closeScreensOnBackground } from './nativeScreens';
 
 interface FilePreviewPlugin {
   preview(o: { path: string; title?: string; editable: boolean; closeOnBackground: boolean }): Promise<{ edited: string | null }>;
@@ -20,8 +21,6 @@ export interface PreviewOptions {
   title?: string;
   /** σημειώσεις σε αντίγραφο */
   editable?: boolean;
-  /** κλείσιμο της προβολής όταν η εφαρμογή πάει στο παρασκήνιο (όταν είναι ενεργό το κλείδωμα) */
-  closeOnBackground?: boolean;
 }
 
 /** Ανοίγει την προβολή και περιμένει να κλείσει· επιστρέφει το αντίγραφο με τις σημειώσεις ή null. */
@@ -31,7 +30,7 @@ export async function previewFile(blob: Blob, name: string, o: PreviewOptions = 
   const path = `preview/${Date.now().toString(36)}/${name}`;
   const { uri } = await Filesystem.writeFile({ path, data: await toBase64(blob), directory: Directory.Cache, recursive: true });
   try {
-    const r = await FilePreview.preview({ path: uri, title: o.title, editable: !!o.editable, closeOnBackground: !!o.closeOnBackground });
+    const r = await FilePreview.preview({ path: uri, title: o.title, editable: !!o.editable, closeOnBackground: closeScreensOnBackground() });
     return r.edited ? new Blob([fromBase64(r.edited)], { type: blob.type }) : null;
   } finally {
     await Filesystem.rmdir({ path: path.slice(0, path.lastIndexOf('/')), directory: Directory.Cache, recursive: true }).catch(() => {});

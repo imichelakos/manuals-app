@@ -28,6 +28,7 @@ export const IconCheck = (p: P) => <I {...p}><path d="m5 12.5 4.5 4.5L19 7.5" />
 export const IconTrash = (p: P) => <I {...p}><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></I>;
 export const IconFilter = (p: P) => <I {...p}><path d="M4 6h16M7 12h10M10 18h4" /></I>;
 export const IconExternal = (p: P) => <I {...p}><path d="M14 4h6v6M20 4l-9 9" /><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4" /></I>;
+export const IconPencil = (p: P) => <I {...p}><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z" /><path d="m13.5 6.5 4 4" /></I>;
 export const IconNote = (p: P) => <I {...p}><path d="M5 5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v9l-5 5H7a2 2 0 0 1-2-2z" /><path d="M14 19v-3a2 2 0 0 1 2-2h3M9 8h6M9 12h3" /></I>;
 export const IconDownload = (p: P) => <I {...p}><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14" /></I>;
 export const IconUpload = (p: P) => <I {...p}><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 19h14" /></I>;

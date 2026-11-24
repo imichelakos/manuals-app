@@ -5,11 +5,11 @@
  */
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { fromBase64 } from './base64';
-import { expectAppSwitch } from './appSwitch';
+import { closeScreensOnBackground } from './nativeScreens';
 
 interface DocumentScannerPlugin {
   isSupported(): Promise<{ supported: boolean }>;
-  scan(o: { pdf?: boolean; maxPages?: number; maxSide?: number }): Promise<{ cancelled: boolean; pages: string[]; pageCount: number; pdf: string | null }>;
+  scan(o: { pdf?: boolean; maxPages?: number; maxSide?: number; closeOnBackground?: boolean }): Promise<{ cancelled: boolean; pages: string[]; pageCount: number; pdf: string | null }>;
 }
 // τα plugins του Capacitor είναι Proxy που «απαντούν» και σε `then`: δηλώνονται στο επίπεδο του module, όχι μέσα σε Promise
 const DocumentScanner = registerPlugin<DocumentScannerPlugin>('DocumentScanner');
@@ -31,9 +31,7 @@ const stamp = () => new Date().toISOString().slice(0, 19).replace(/[-:]/g, '').r
 
 /** null: ο χρήστης ακύρωσε. Σε αποτυχία πετά σφάλμα. */
 export async function scanDocument(mode: ScanMode): Promise<ScanCapture | null> {
-  // ο σαρωτής καλύπτει την εφαρμογή: αναμενόμενη έξοδος, όχι λόγος για κλείδωμα με Face ID
-  expectAppSwitch();
-  const r = await DocumentScanner.scan({ pdf: mode === 'document', maxPages: 1, maxSide: 2000 });
+  const r = await DocumentScanner.scan({ pdf: mode === 'document', maxPages: 1, maxSide: 2000, closeOnBackground: closeScreensOnBackground() });
   if (r.cancelled || !r.pages.length) return null;
   const first = new Blob([fromBase64(r.pages[0]!)], { type: 'image/jpeg' });
   if (mode === 'photo' || !r.pdf) return { files: [new File([first], `scan-${stamp()}.jpg`, { type: 'image/jpeg' })], firstPage: first, pages: r.pageCount };

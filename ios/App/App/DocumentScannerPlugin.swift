@@ -18,13 +18,16 @@ public class DocumentScannerPlugin: CAPPlugin, CAPBridgedPlugin, VNDocumentCamer
 
     /// η κλήση που περιμένει τον σαρωτή (ένας σαρωτής τη φορά)
     private var pending: CAPPluginCall?
+    private weak var scanner: VNDocumentCameraViewController?
+    /// closeOnBackground (ενεργό κλείδωμα): ο σαρωτής κλείνει στο παρασκήνιο, σαν ακύρωση
+    private var closer: CloseOnBackground?
 
     @objc func isSupported(_ call: CAPPluginCall) {
         call.resolve(["supported": VNDocumentCameraViewController.isSupported])
     }
 
     /// pdf: και PDF με όλες τις σελίδες · maxPages: πόσες σελίδες επιστρέφονται ως εικόνες (1–50) ·
-    /// maxSide: μέγιστη πλευρά εικόνας σε px (800–3000).
+    /// maxSide: μέγιστη πλευρά εικόνας σε px (800–3000) · closeOnBackground: κλείσιμο στο παρασκήνιο (ενεργό κλείδωμα).
     /// Απάντηση: { cancelled, pages: [base64 JPEG], pageCount, pdf: base64 | null }.
     @objc func scan(_ call: CAPPluginCall) {
         guard VNDocumentCameraViewController.isSupported else {
@@ -39,12 +42,18 @@ public class DocumentScannerPlugin: CAPPlugin, CAPBridgedPlugin, VNDocumentCamer
         DispatchQueue.main.async {
             let scanner = VNDocumentCameraViewController()
             scanner.delegate = self
+            self.scanner = scanner
+            self.closer = CloseOnBackground(enabled: call.getBool("closeOnBackground") ?? false) { [weak self] in
+                guard let self, let scanner = self.scanner else { return }
+                self.documentCameraViewControllerDidCancel(scanner)
+            }
             self.bridge?.viewController?.present(scanner, animated: true)
         }
     }
 
     public func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFinishWith scan: VNDocumentCameraScan) {
         controller.dismiss(animated: true)
+        closer = nil
         guard let call = pending else { return }
         pending = nil
         let wantPdf = call.getBool("pdf") ?? false
@@ -68,13 +77,15 @@ public class DocumentScannerPlugin: CAPPlugin, CAPBridgedPlugin, VNDocumentCamer
     }
 
     public func documentCameraViewControllerDidCancel(_ controller: VNDocumentCameraViewController) {
-        controller.dismiss(animated: true)
+        controller.dismiss(animated: false)
+        closer = nil
         pending?.resolve(["cancelled": true, "pages": [String](), "pageCount": 0, "pdf": NSNull()])
         pending = nil
     }
 
     public func documentCameraViewController(_ controller: VNDocumentCameraViewController, didFailWithError error: Error) {
         controller.dismiss(animated: true)
+        closer = nil
         pending?.reject("Η σάρωση απέτυχε", "failed")
         pending = nil
     }

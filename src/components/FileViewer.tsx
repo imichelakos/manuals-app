@@ -6,7 +6,6 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import type { Attachment } from '@/domain/model';
 import { blobStore } from '@/data/blobs';
-import { lockActive } from '@/data/appLock';
 import { previewAvailable, previewFile } from '@/services/filePreview';
 import { openFile } from '@/services/platform';
 import { useBlobUrl } from '@/hooks/useBlobUrl';
@@ -23,7 +22,7 @@ export function useFileViewer(): { open: (a: Attachment, o: ViewOptions) => Prom
     const b = await blobStore.get(a.blobId);
     if (!b) { toast(t('Το αρχείο δεν βρέθηκε σε αυτή τη συσκευή.'), 'error'); return null; }
     try {
-      if (previewAvailable) return await previewFile(b, a.name, { title: o.title, editable: o.editable, closeOnBackground: lockActive() });
+      if (previewAvailable) return await previewFile(b, a.name, { title: o.title, editable: o.editable });
       await openFile(b, a.name);
     } catch { toast(t('Το αρχείο δεν μπόρεσε να ανοίξει εδώ.'), 'error'); }
     return null;

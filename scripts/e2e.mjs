@@ -193,16 +193,22 @@ try {
   step('άλλα έγγραφα: αρχείο, τίτλος από πρόταση, σημείωση');
   const otherDocs = page.locator('section:has-text("Άλλα έγγραφα")');
   await otherDocs.locator('label:has-text("Αρχείο") input[type=file]').setInputFiles(files.receipt);
-  await otherDocs.getByRole('button', { name: 'Φύλλο σέρβις' }).click();
-  await otherDocs.getByRole('button', { name: 'Αλλαγή τίτλου: Φύλλο σέρβις' }).waitFor();       // κείμενο σε έως 2 γραμμές
-  await otherDocs.getByLabel('Σημείωση εγγράφου').fill('Σέρβις Νοεμβρίου');
-  await otherDocs.getByLabel('Σημείωση εγγράφου').blur();
-  assert.equal(await otherDocs.getByRole('button', { name: 'Δήλωση συμμόρφωσης' }).count(), 0);         // οι προτάσεις φεύγουν με τίτλο
-  await otherDocs.getByRole('button', { name: 'Αλλαγή τίτλου: Φύλλο σέρβις' }).click();          // πάτημα → πεδίο· Enter → πάλι κείμενο
-  await otherDocs.getByLabel('Τίτλος εγγράφου').fill('Φύλλο σέρβις Νοεμβρίου 2026 από το εξουσιοδοτημένο κατάστημα');
-  await otherDocs.getByLabel('Τίτλος εγγράφου').press('Enter');
-  await otherDocs.getByRole('button', { name: 'Αλλαγή τίτλου: Φύλλο σέρβις Νοεμβρίου 2026 από το εξουσιοδοτημένο κατάστημα' }).waitFor();
-  await page.getByText('Φύλλο σέρβις Νοεμβρίου 2026 από το εξουσιοδοτημένο κατάστημα.jpg').waitFor({ state: 'detached' }); // η κατάληξη δεν φαίνεται
+  // μόλις μπει, ανοίγουν τα «Στοιχεία εγγράφου»: τίτλος από πρόταση, σημείωση
+  const docSheet = page.getByRole('dialog', { name: 'Στοιχεία εγγράφου' });
+  await docSheet.getByRole('button', { name: 'Φύλλο σέρβις' }).click();
+  await page.waitForFunction(() => document.querySelector('#doc-title')?.value === 'Φύλλο σέρβις');
+  await docSheet.getByLabel('Σημείωση (προαιρετική)').fill('Σέρβις Νοεμβρίου');
+  await shot('24-doc-details', page);
+  await docSheet.getByRole('button', { name: 'Τέλος' }).click();
+  await otherDocs.getByRole('button', { name: 'Άνοιγμα Φύλλο σέρβις' }).waitFor();             // πάτημα στη γραμμή = άνοιγμα
+  await otherDocs.getByText('Σέρβις Νοεμβρίου').waitFor();                                       // η σημείωση ως κείμενο
+  assert.equal(await otherDocs.getByRole('textbox').count(), 0);                                 // κανένα πεδίο στη γραμμή
+  // μολύβι → ξανά τα στοιχεία· μεγάλος τίτλος σε έως 2 γραμμές, χωρίς κατάληξη
+  await otherDocs.getByRole('button', { name: 'Στοιχεία εγγράφου Φύλλο σέρβις' }).click();
+  await docSheet.getByLabel('Τίτλος εγγράφου').fill('Φύλλο σέρβις Νοεμβρίου 2026 από το εξουσιοδοτημένο κατάστημα');
+  await docSheet.getByRole('button', { name: 'Τέλος' }).click();
+  await otherDocs.getByRole('button', { name: 'Άνοιγμα Φύλλο σέρβις Νοεμβρίου 2026 από το εξουσιοδοτημένο κατάστημα' }).waitFor();
+  assert.equal(await page.getByText('Φύλλο σέρβις Νοεμβρίου 2026 από το εξουσιοδοτημένο κατάστημα.jpg').count(), 0); // η κατάληξη δεν φαίνεται
 
   step('σάρωση QR αργότερα (web: φωτογραφία) → οι σύνδεσμοι υπάρχουν ήδη');
   await page.locator('section:has-text("Σύνδεσμοι και QR") label:has-text("Σάρωση QR") input[type=file]').setInputFiles(files.cover);
@@ -436,6 +442,8 @@ try {
         { name: 'CapacitorHttp', methods: ['request', 'get'].map((name) => ({ name, rtype: 'promise' })) },
         { name: 'Filesystem', methods: ['writeFile', 'rmdir'].map((name) => ({ name, rtype: 'promise' })) },
         { name: 'FilePreview', methods: [{ name: 'preview', rtype: 'promise' }] },
+        // Face ID: μόνο στο σενάριο του κλειδώματος (αλλιώς η εφαρμογή θα ξεκινούσε κλειδωμένη σε όλα τα σενάρια iOS)
+        ...(localStorage.getItem('mock-bio') ? [{ name: 'Biometric', methods: ['info', 'authenticate'].map((name) => ({ name, rtype: 'promise' })) }] : []),
         { name: 'LocalNotifications', methods: [{ name: 'addListener' }, { name: 'removeListener' }, ...['checkPermissions', 'requestPermissions', 'getPending', 'schedule', 'cancel'].map((name) => ({ name, rtype: 'promise' }))] },
       ],
       nativeCallback: () => 'mock-callback',
@@ -466,6 +474,8 @@ try {
         // αρχεία στο cache και QuickLook: καταγράφονται οι κλήσεις· το «αντίγραφο με σημειώσεις» το ορίζει το σενάριο
         if (plugin === 'Filesystem' && method === 'writeFile') { (window.__files ??= []).push(o.path); return { uri: `file:///cache/${o.path}` }; }
         if (plugin === 'Filesystem' && method === 'rmdir') { (window.__rmdirs ??= []).push(o.path); return {}; }
+        if (plugin === 'Biometric' && method === 'info') return { available: true, type: 'faceID' };
+        if (plugin === 'Biometric' && method === 'authenticate') { window.__faceId = (window.__faceId ?? 0) + 1; return { ok: true }; }
         if (plugin === 'FilePreview' && method === 'preview') { (window.__previews ??= []).push(o); return { edited: window.__mockEdited ?? null }; }
         if (plugin === 'LocalNotifications') {
           // προσομοίωση: άδεια δίνεται στο πρώτο αίτημα· οτιδήποτε άλλο (π.χ. μια «then») είναι σφάλμα
@@ -588,16 +598,17 @@ try {
   await lp.locator('section:has-text("Σύνδεσμοι και QR")').getByRole('button', { name: 'Προσθήκη' }).click();
   await lp.getByPlaceholder(/https/).fill('https://bit.ly/x7');
   await lp.getByPlaceholder(/https/).press('Enter');
-  await lp.getByRole('button', { name: 'Αλλαγή τίτλου: X7 Usage EN' }).first().waitFor();   // κείμενο σε έως 2 γραμμές
+  await lp.getByRole('link', { name: 'Άνοιγμα X7 Usage EN' }).first().waitFor();          // όλη η γραμμή ανοίγει τον σύνδεσμο
 
   await lp.locator('section:has-text("Σύνδεσμοι και QR") li img[src^="data:image/png"]').first().waitFor();
   await lp.getByText('bit.ly').waitFor({ state: 'detached' });                     // κρατιέται μόνο ο τελικός σύνδεσμος
   await shot('21-link-title', lp);
-  // πάτημα στον τίτλο → πεδίο αλλαγής· Enter → αποθήκευση και πάλι κείμενο
+  // μολύβι → φύλλο με τον τίτλο· Enter → αποθήκευση και κλείσιμο
   await lp.getByRole('button', { name: 'Αλλαγή τίτλου: X7 Usage EN' }).first().click();
-  await lp.getByLabel('Τίτλος συνδέσμου').fill('Οδηγίες χρήσης X7 (βίντεο)');
-  await lp.getByLabel('Τίτλος συνδέσμου').press('Enter');
-  await lp.getByRole('button', { name: 'Αλλαγή τίτλου: Οδηγίες χρήσης X7 (βίντεο)' }).waitFor();
+  await lp.getByRole('dialog').getByLabel('Τίτλος συνδέσμου').fill('Οδηγίες χρήσης X7 (βίντεο)');
+  await lp.getByRole('dialog').getByLabel('Τίτλος συνδέσμου').press('Enter');
+  await lp.getByRole('link', { name: 'Άνοιγμα Οδηγίες χρήσης X7 (βίντεο)' }).waitFor();
+  assert.equal(await lp.getByRole('dialog').count(), 0);
 
   step('iOS: προβολή με QuickLook — σημειώσεις σε αντίγραφο στα «Άλλα έγγραφα»· φωτογραφία: προβολή, αλλαγή από τη γωνία');
   await lp.evaluate((pdf) => { window.__mockEdited = pdf; }, PDF_BYTES.toString('base64'));
@@ -605,7 +616,7 @@ try {
   const scannedName = await scanned.textContent();
   await scanned.click();
   await lp.getByText('Το αντίγραφο με τις σημειώσεις μπήκε στα «Άλλα έγγραφα».').waitFor();
-  const marked = lp.locator('section:has-text("Άλλα έγγραφα")').getByRole('button', { name: `Αλλαγή τίτλου: ${scannedName.replace(/\.pdf$/, '')} (με σημειώσεις)` });
+  const marked = lp.locator('section:has-text("Άλλα έγγραφα")').getByRole('button', { name: 'Άνοιγμα Παραστατικό (με σημειώσεις)' });   // όχι «scan-…»: το είδος του εγγράφου
   await marked.waitFor();
   const firstPreview = await lp.evaluate(() => ({ p: window.__previews[0], files: window.__files, rmdirs: window.__rmdirs }));
   assert.equal(firstPreview.p.editable, true);
@@ -627,6 +638,38 @@ try {
   await lp.getByRole('button', { name: 'Αλλαγή φωτογραφίας' }).click();             // κουμπί κάμερας στη γωνία → αλλαγή
   await lp.getByRole('dialog').getByText('Από τις φωτογραφίες').waitFor();
   await lp.getByRole('button', { name: 'Κλείσιμο' }).click();
+
+  step('iOS: κλείδωμα — Face ID μόνο σε πραγματική έξοδο («pause»), όχι όταν ανοίγει η προβολή αρχείου');
+  await lp.evaluate(() => localStorage.setItem('mock-bio', '1'));
+  await lp.goto(BASE);                                                               // εκκίνηση: κλειδωμένη → Face ID → ξεκλείδωμα
+  await lp.waitForFunction(() => window.__faceId === 1);
+  await lp.getByRole('dialog', { name: 'Κλειδωμένο' }).waitFor({ state: 'detached' });
+  await lp.locator('ul > li a[href^="#/item/"]').filter({ hasText: 'Bosch' }).first().click();
+  // η προβολή κρύβει τη σελίδα (hidden → visible): ούτε κλείδωμα ούτε Face ID
+  await lp.evaluate(() => {
+    window.__previews = [];
+    const realPreview = window.Capacitor.nativePromise;
+    window.Capacitor.nativePromise = async (plugin, method, o) => {
+      if (plugin === 'FilePreview') {
+        for (const v of ['hidden', 'visible']) {
+          Object.defineProperty(document, 'visibilityState', { value: v, configurable: true });
+          document.dispatchEvent(new Event('visibilitychange'));
+        }
+      }
+      return realPreview(plugin, method, o);
+    };
+  });
+  await lp.getByRole('button', { name: 'Προβολή φωτογραφίας' }).click();
+  await lp.waitForFunction(() => window.__previews.length === 1);
+  assert.equal(await lp.evaluate(() => window.__previews[0].closeOnBackground), true);   // ενεργό κλείδωμα → κλείνει στο παρασκήνιο
+  await lp.waitForTimeout(300);
+  assert.equal(await lp.getByRole('dialog', { name: 'Κλειδωμένο' }).count(), 0);
+  assert.equal(await lp.evaluate(() => window.__faceId), 1);
+  // πραγματική έξοδος (pause του iOS) → κλειδώνει· στην επιστροφή ζητείται Face ID
+  await lp.evaluate(() => document.dispatchEvent(new Event('pause')));
+  await lp.waitForFunction(() => window.__faceId === 2);
+  await lp.getByRole('dialog', { name: 'Κλειδωμένο' }).waitFor({ state: 'detached' });
+  await lp.evaluate(() => localStorage.removeItem('mock-bio'));
 
   step('εισαγωγή PDF στη σάρωση — web (χωρίς PDFKit): από το όνομα του αρχείου');
   const pc = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'el-GR' });

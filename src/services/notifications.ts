@@ -4,7 +4,6 @@
  * ΣΗΜ.: δεν έχει δοκιμαστεί ακόμη σε συσκευή ή simulator.
  */
 import { Capacitor } from '@capacitor/core';
-import { expectAppSwitch } from './appSwitch';
 
 export const notificationsSupported = Capacitor.isNativePlatform() && Capacitor.isPluginAvailable('LocalNotifications');
 
@@ -22,7 +21,6 @@ export async function requestNotificationPermission(): Promise<boolean> {
     const p = (await mod()).LocalNotifications;
     const cur = await p.checkPermissions();
     if (cur.display === 'granted') return true;
-    expectAppSwitch(); // το ερώτημα άδειας του iOS
     return (await p.requestPermissions()).display === 'granted';
   } catch { return false; }
 }
