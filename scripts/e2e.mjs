@@ -639,7 +639,7 @@ try {
   await lp.getByRole('dialog').getByText('Από τις φωτογραφίες').waitFor();
   await lp.getByRole('button', { name: 'Κλείσιμο' }).click();
 
-  step('iOS: κλείδωμα — Face ID μόνο σε πραγματική έξοδο («pause»), όχι όταν ανοίγει η προβολή αρχείου');
+  step('iOS: κλείδωμα — Face ID μόνο σε πραγματική έξοδο («appbackground»), όχι όταν ανοίγει η προβολή αρχείου');
   await lp.evaluate(() => localStorage.setItem('mock-bio', '1'));
   await lp.goto(BASE);                                                               // εκκίνηση: κλειδωμένη → Face ID → ξεκλείδωμα
   await lp.waitForFunction(() => window.__faceId === 1);
@@ -665,8 +665,8 @@ try {
   await lp.waitForTimeout(300);
   assert.equal(await lp.getByRole('dialog', { name: 'Κλειδωμένο' }).count(), 0);
   assert.equal(await lp.evaluate(() => window.__faceId), 1);
-  // πραγματική έξοδος (pause του iOS) → κλειδώνει· στην επιστροφή ζητείται Face ID
-  await lp.evaluate(() => document.dispatchEvent(new Event('pause')));
+  // πραγματική έξοδος (appbackground του iOS) → κλειδώνει· στην επιστροφή ζητείται Face ID
+  await lp.evaluate(() => document.dispatchEvent(new Event('appbackground')));
   await lp.waitForFunction(() => window.__faceId === 2);
   await lp.getByRole('dialog', { name: 'Κλειδωμένο' }).waitFor({ state: 'detached' });
   await lp.evaluate(() => localStorage.removeItem('mock-bio'));

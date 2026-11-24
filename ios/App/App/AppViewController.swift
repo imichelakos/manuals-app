@@ -4,6 +4,8 @@ import Capacitor
 
 /// Ο κεντρικός view controller της εφαρμογής: καταχωρίζει τα δικά μας plugins (αυτά που δεν έρχονται από πακέτο npm).
 class AppViewController: CAPBridgeViewController {
+    private var backgroundObserver: NSObjectProtocol?
+
     override open func capacitorDidLoad() {
         super.capacitorDidLoad()
         // συγχρονισμός iCloud: ΜΟΝΟ όταν έχει ενεργοποιηθεί το capability iCloud/CloudKit (Info.plist: ManualsICloudSyncEnabled).
@@ -19,6 +21,19 @@ class AppViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(QrScannerPlugin())  // ζωντανή σάρωση QR (VisionKit DataScanner)
         bridge?.registerPluginInstance(FilePreviewPlugin())  // προβολή αρχείων μέσα στην εφαρμογή (QuickLook)
         exportBuildInfo()
+        reportBackground()
+    }
+
+    /// Πραγματική έξοδος στο παρασκήνιο → γεγονός «appbackground» στη σελίδα (κλείδωμα με Face ID, data/appLock).
+    /// Δεν αρκεί το «pause» του Capacitor: στέλνεται μόνο όταν η σελίδα είναι στο παράθυρο, και μια οθόνη πλήρους
+    /// οθόνης (προβολή αρχείου, σαρωτής, QR) την αφαιρεί από αυτό όσο είναι ανοιχτή (UIModalPresentationStyle.fullScreen:
+    /// «the views belonging to the presenting view controller are removed») — τότε η εφαρμογή δεν κλείδωνε (24/11/2026).
+    /// APIs: UIApplication.didEnterBackgroundNotification, CAPBridgeProtocol.triggerDocumentJSEvent(eventName:).
+    private func reportBackground() {
+        backgroundObserver = NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
+            guard let self, self.webView?.isLoading == false else { return }
+            self.bridge?.triggerDocumentJSEvent(eventName: "appbackground")
+        }
     }
 
     /// Διάγνωση (Ρυθμίσεις → Ασφάλεια): αποδεικνύει στη σελίδα ότι τρέχει ΑΥΤΟΣ ο view controller και πότε χτίστηκε το

@@ -46,9 +46,9 @@ function release() {
   loaded = null;
   void w?.then((x) => x.terminate()).catch(() => {});
 }
-// στο παρασκήνιο ο worker κλείνει: «pause» του iOS = πραγματική έξοδος από την εφαρμογή (όχι η κάμερα ή ο επιλογέας
+// στο παρασκήνιο ο worker κλείνει: «appbackground» του iOS (ios/App/App/AppViewController.swift) = πραγματική έξοδος από την εφαρμογή (όχι η κάμερα ή ο επιλογέας
 // φωτογραφιών, που απλώς κρύβουν τη σελίδα). Στο web δεν υπάρχει τέτοιο σήμα· εκεί αρκεί το κλείσιμο μετά από αδράνεια.
-if (typeof document !== 'undefined') document.addEventListener('pause', () => { if (!busy) release(); });
+if (typeof document !== 'undefined') document.addEventListener('appbackground', () => { if (!busy) release(); });
 
 /**
  * Προθέρμανση: φορτώνει worker, WASM και αγγλικό μοντέλο όσο ο χρήστης φωτογραφίζει, ώστε η ανάγνωση να ξεκινά αμέσως.

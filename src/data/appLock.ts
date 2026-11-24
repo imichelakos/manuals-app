@@ -2,7 +2,8 @@
  * Κλείδωμα της εφαρμογής με Face ID / Touch ID (ή κωδικό συσκευής), όταν είναι ενεργό στις Ρυθμίσεις και η συσκευή
  * το υποστηρίζει. Κλειδώνει στην εκκίνηση και ΑΜΕΣΩΣ μόλις η εφαρμογή πάει στο παρασκήνιο — έτσι η οθόνη κλειδώματος
  * είναι ήδη εκεί όταν επιστρέφεις (και στην εικόνα του app switcher, όσο προλαβαίνει να σχεδιαστεί).
- * «Παρασκήνιο» = το «pause» του iOS (Capacitor: UIScene.didEnterBackgroundNotification), ΟΧΙ η ορατότητα της σελίδας:
+ * «Παρασκήνιο» = το «appbackground» του iOS (AppViewController: UIApplication.didEnterBackgroundNotification· όχι το «pause»
+ * του Capacitor, που χάνεται όσο μια οθόνη πλήρους οθόνης είναι ανοιχτή), ΟΧΙ η ορατότητα της σελίδας:
  * η σελίδα κρύβεται και όταν ανοίγει μια οθόνη μέσα στην εφαρμογή (προβολή αρχείου, σαρωτής, κάμερα, Face ID), και
  * τότε δεν ζητείται Face ID, όση ώρα κι αν μείνει ανοιχτή. Οι οθόνες αυτές κλείνουν στο παρασκήνιο (services/nativeScreens).
  *
@@ -23,7 +24,7 @@ const lock = () => { if (!locked) { locked = true; listeners.forEach((l) => l())
 
 // με ενεργό κλείδωμα, οι οθόνες του iOS κλείνουν στο παρασκήνιο (αλλιώς θα έμεναν πάνω από την οθόνη κλειδώματος)
 setCloseOnBackground(active);
-if (typeof document !== 'undefined') document.addEventListener('pause', () => { if (active()) lock(); });
+if (typeof document !== 'undefined') document.addEventListener('appbackground', () => { if (active()) lock(); });
 
 export const useLocked = (): boolean => useSyncExternalStore((l) => { listeners.add(l); return () => { listeners.delete(l); }; }, () => locked && active());
 
