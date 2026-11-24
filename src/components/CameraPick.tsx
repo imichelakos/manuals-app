@@ -6,7 +6,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { FilePick, IMAGE_TYPES } from './controls';
 import { scanDocument, scannerSupported, type ScanCapture, type ScanMode } from '@/services/documentScanner';
-import { expectAppSwitch } from '@/services/appSwitch';
 import { toast } from './Toast';
 import { t } from '@/i18n';
 
@@ -25,7 +24,6 @@ export function CameraPick({ mode, onCapture, className, children, disabled }: {
     );
   }
   const open = async () => {
-    expectAppSwitch();
     try {
       const c = await scanDocument(mode);
       if (c) onCapture(c);

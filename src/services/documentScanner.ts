@@ -5,6 +5,7 @@
  */
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { fromBase64 } from './base64';
+import { expectAppSwitch } from './appSwitch';
 
 interface DocumentScannerPlugin {
   isSupported(): Promise<{ supported: boolean }>;
@@ -30,6 +31,8 @@ const stamp = () => new Date().toISOString().slice(0, 19).replace(/[-:]/g, '').r
 
 /** null: ο χρήστης ακύρωσε. Σε αποτυχία πετά σφάλμα. */
 export async function scanDocument(mode: ScanMode): Promise<ScanCapture | null> {
+  // ο σαρωτής καλύπτει την εφαρμογή: αναμενόμενη έξοδος, όχι λόγος για κλείδωμα με Face ID
+  expectAppSwitch();
   const r = await DocumentScanner.scan({ pdf: mode === 'document', maxPages: 1, maxSide: 2000 });
   if (r.cancelled || !r.pages.length) return null;
   const first = new Blob([fromBase64(r.pages[0]!)], { type: 'image/jpeg' });
