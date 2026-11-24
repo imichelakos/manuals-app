@@ -459,5 +459,6 @@ const EN: Record<string, string> = {
   'Οδηγίες εγκατάστασης': 'Installation guide',
   'Φύλλο σέρβις': 'Service sheet',
   'Πιστοποιητικό εγγύησης': 'Warranty certificate',
+  'Αλλαγή τίτλου: {title}': 'Edit title: {title}',
 };
 export default EN;

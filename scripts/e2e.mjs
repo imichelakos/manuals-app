@@ -577,10 +577,16 @@ try {
   await lp.locator('section:has-text("Σύνδεσμοι και QR")').getByRole('button', { name: 'Προσθήκη' }).click();
   await lp.getByPlaceholder(/https/).fill('https://bit.ly/x7');
   await lp.getByPlaceholder(/https/).press('Enter');
-  await lp.locator('input[aria-label="Τίτλος συνδέσμου"]').and(lp.locator('[value="YouTube — X7 Usage EN"]')).waitFor();
+  await lp.getByRole('button', { name: 'Αλλαγή τίτλου: YouTube — X7 Usage EN' }).first().waitFor();   // κείμενο σε έως 2 γραμμές
+
   await lp.locator('section:has-text("Σύνδεσμοι και QR") li img[src^="data:image/png"]').first().waitFor();
-  assert.equal(await lp.getByText('bit.ly').count(), 0);                             // κρατιέται μόνο ο τελικός σύνδεσμος
+  await lp.getByText('bit.ly').waitFor({ state: 'detached' });                     // κρατιέται μόνο ο τελικός σύνδεσμος
   await shot('21-link-title', lp);
+  // πάτημα στον τίτλο → πεδίο αλλαγής· Enter → αποθήκευση και πάλι κείμενο
+  await lp.getByRole('button', { name: 'Αλλαγή τίτλου: YouTube — X7 Usage EN' }).first().click();
+  await lp.getByLabel('Τίτλος συνδέσμου').fill('Οδηγίες χρήσης X7 (βίντεο)');
+  await lp.getByLabel('Τίτλος συνδέσμου').press('Enter');
+  await lp.getByRole('button', { name: 'Αλλαγή τίτλου: Οδηγίες χρήσης X7 (βίντεο)' }).waitFor();
 
   step('εισαγωγή PDF στη σάρωση — web (χωρίς PDFKit): από το όνομα του αρχείου');
   const pc = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'el-GR' });

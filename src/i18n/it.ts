@@ -459,5 +459,6 @@ const IT: Record<string, string> = {
   'Οδηγίες εγκατάστασης': 'Istruzioni di installazione',
   'Φύλλο σέρβις': 'Scheda di assistenza',
   'Πιστοποιητικό εγγύησης': 'Certificato di garanzia',
+  'Αλλαγή τίτλου: {title}': 'Modifica titolo: {title}',
 };
 export default IT;
