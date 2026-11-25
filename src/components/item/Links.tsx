@@ -1,9 +1,8 @@
 /** Σύνδεσμοι του προϊόντος (από QR του εντύπου ή με επικόλληση): βίντεο, PDF, εφαρμογές, σελίδες υποστήριξης. */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { newId, type Item, type LinkKind, type LinkRef } from '@/domain/model';
 import { linkKind, parseHttpUrl, type CodePayload } from '@/domain/codes';
-import { codesFromPhoto, liveQrSupported, scanQrLive } from '@/services/qrScanner';
-import { CameraPick } from '@/components/CameraPick';
+import { QrButton, noLinkMessage } from '@/components/QrButton';
 import { updateItem } from '@/data/library';
 import { enrichLinks } from '@/data/linkEnrich';
 import { ExternalLink } from '@/components/ExternalLink';
@@ -11,7 +10,7 @@ import { t, tn } from '@/i18n';
 import { AutoField, ConfirmDelete } from '@/components/controls';
 import { Sheet } from '@/components/Sheet';
 import { toast } from '@/components/Toast';
-import { IconApp, IconFile, IconLink, IconPencil, IconPlus, IconQr, IconVideo, IconWarn } from '@/components/icons';
+import { IconApp, IconFile, IconLink, IconPencil, IconPlus, IconVideo, IconWarn } from '@/components/icons';
 
 export const linkLabel = (kind: LinkKind): string =>
   kind === 'video' ? t('Βίντεο') : kind === 'pdf' ? t('Έγγραφο PDF') : kind === 'app' ? t('Εφαρμογή') : t('Ιστοσελίδα');
@@ -53,8 +52,7 @@ export function LinksSection({ item }: { item: Item }) {
       toast(n ? tn(n, 'Προστέθηκε {n} σύνδεσμος', 'Προστέθηκαν {n} σύνδεσμοι') : t('Ο σύνδεσμος υπάρχει ήδη.'), n ? 'ok' : 'error');
       return;
     }
-    const other = codes[0];
-    toast(!other ? t('Δεν βρέθηκε QR. Δοκίμασε πιο κοντά.') : other.type === 'ean' ? t('Είναι barcode προϊόντος ({c}), όχι σύνδεσμος.', { c: other.code }) : t('Το QR δεν περιέχει σύνδεσμο.'), 'error');
+    toast(noLinkMessage(codes), 'error');
   };
 
   return (
@@ -119,14 +117,3 @@ function LinkRow({ item, l }: { item: Item; l: LinkRef }) {
     </li>
   );
 }
-
-/** «Σάρωση QR»: ζωντανή σάρωση όπου υπάρχει, αλλιώς φωτογραφία (σαρωτής/κάμερα) και ανάγνωση. */
-function QrButton({ onCodes }: { onCodes: (c: CodePayload[] | null) => void }) {
-  const [live, setLive] = useState(false);
-  useEffect(() => { let on = true; void liveQrSupported().then((s) => { if (on) setLive(s); }); return () => { on = false; }; }, []);
-  const cls = 'btn btn-plain';
-  const label = <><IconQr className="text-xl" />{t('Σάρωση QR')}</>;
-  if (live) return <button type="button" className={cls} onClick={() => void scanQrLive().then(onCodes, () => toast(t('Η σάρωση απέτυχε. Δοκίμασε ξανά.'), 'error'))}>{label}</button>;
-  return <CameraPick mode="photo" className={cls} onCapture={(c) => void codesFromPhoto(c.files[0]!).then(onCodes, () => onCodes([]))}>{label}</CameraPick>;
-}
-

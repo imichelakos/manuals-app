@@ -164,8 +164,6 @@ const DE: Record<string, string> = {
   'Συμπλήρωσε πρώτα μάρκα, μοντέλο ή όνομα στην καρτέλα του προϊόντος.': 'Ergänze zuerst Marke, Modell oder Namen auf der Produktseite.',
   'Ανοίγει στο {engine}. Προτίμησε τη σελίδα του κατασκευαστή. Αντίγραψε τη διεύθυνση του PDF και γύρνα εδώ.':
     'Öffnet sich in {engine}. Bevorzuge die Seite des Herstellers. Kopiere die PDF-Adresse und kehre hierher zurück.',
-  'Έχεις τη διεύθυνση του PDF;': 'Hast du die PDF-Adresse?',
-  'Διεύθυνση του PDF': 'PDF-Adresse',
   'Κατεβάζω…': 'Wird heruntergeladen…',
   'Άνοιξε τη διεύθυνση, αποθήκευσε το PDF στα Αρχεία σου και μετά κάνε «Εισαγωγή αρχείου» από κάτω.':
     'Öffne die Adresse, speichere das PDF in deinen Dateien und tippe dann unten auf „Datei importieren“.',
@@ -209,7 +207,6 @@ const DE: Record<string, string> = {
   'προαιρετικό': 'optional',
   'Κωδικοί στο έντυπο': 'Codes auf der Anleitung',
   'Barcode προϊόντος': 'Produkt-Barcode',
-  'Οι σύνδεσμοι αποθηκεύονται στην καρτέλα του προϊόντος. Δεν ανοίγουν αυτόματα.': 'Links werden auf der Produktseite gespeichert. Sie öffnen sich nicht automatisch.',
   'Αποθήκευση και εύρεση ψηφιακού': 'Speichern und digitale Version finden',
   'Ή μήπως:': 'Oder vielleicht:',
   'Αρχειοθέτηση συνδέσμου {host}': 'Link {host} speichern',
@@ -477,5 +474,12 @@ const DE: Record<string, string> = {
   'Αποθήκευση στο προϊόν': 'Im Produkt speichern',
   'Η αναζήτηση δεν άνοιξε. Δοκίμασε ξανά.': 'Die Suche wurde nicht geöffnet. Versuche es erneut.',
   'Προτίμησε τη σελίδα του κατασκευαστή. Όταν βρεις το εγχειρίδιο ή τη σελίδα του, πάτα Κοινοποίηση και «Αποθήκευση στο προϊόν».': 'Am besten die Website des Herstellers. Wenn du die Anleitung oder ihre Seite gefunden hast, tippe auf Teilen und „Im Produkt speichern“.',
+  'Πρόοδος κατεβάσματος': 'Download-Fortschritt',
+  'Εύρεση του εγχειριδίου': 'Die Anleitung finden',
+  'Η αναζήτηση ανοίγει μέσα στην εφαρμογή. Όταν βρεις το εγχειρίδιο ή τη σελίδα του, πάτα Κοινοποίηση και «Αποθήκευση στο προϊόν»: η εφαρμογή το κατεβάζει απευθείας από τον ιστότοπο και το κρατά στη συσκευή. Αν αποθηκεύσεις σελίδα, σου δείχνει τα PDF της για να διαλέξεις. Η εφαρμογή δεν βλέπει τι άλλο κάνεις στην αναζήτηση — μόνο τη διεύθυνση που αποθηκεύεις.': 'Die Suche öffnet sich in der App. Wenn du die Anleitung oder ihre Seite gefunden hast, tippe auf Teilen und „Im Produkt speichern“: Die App lädt sie direkt von der Website und behält sie auf deinem Gerät. Speicherst du eine Seite, zeigt sie dir deren PDFs zur Auswahl. Die App sieht nichts anderes von deiner Suche – nur die Adresse, die du speicherst.',
+  // σάρωση: QR σε άλλη σελίδα, αυτόματη λήψη από το QR
+  'Δεν βρήκα QR στη φωτογραφία. Αν το έντυπο έχει QR σε άλλη σελίδα, σάρωσέ το: συχνά οδηγεί στο ψηφιακό εγχειρίδιο.': 'Kein QR-Code auf dem Foto. Hat die Anleitung auf einer anderen Seite einen QR-Code, scanne ihn: Er führt oft zur digitalen Anleitung.',
+  'Σάρωση κι άλλου QR': 'Weiteren QR-Code scannen',
+  'Οι σύνδεσμοι αποθηκεύονται στην καρτέλα. Αν κάποιος οδηγεί στο εγχειρίδιο, κατεβαίνει μόλις αποθηκεύσεις.': 'Die Links werden im Produkt gespeichert. Führt einer zur Anleitung, wird sie geladen, sobald du speicherst.',
 };
 export default DE;

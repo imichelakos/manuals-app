@@ -28,6 +28,8 @@ export default function ItemPage() {
   const [params, setParams] = useSearchParams();
   // μετά τη σάρωση (?find=1) ανοίγει κατευθείαν η εύρεση του ψηφιακού
   const [find, setFind] = useState(() => params.get('find') === '1');
+  // μόνο τότε: το εγχειρίδιο κατεβαίνει αυτόματα από το QR του εντύπου, αν υπάρχει
+  const [autoQr] = useState(() => params.get('find') === '1');
   // νέο προϊόν χωρίς σάρωση (?edit=1): τα στοιχεία ανοίγουν κατευθείαν σε επεξεργασία
   const [startEditing] = useState(() => params.get('edit') === '1');
   const cover = item ? coverOf(item) : undefined;
@@ -81,7 +83,7 @@ export default function ItemPage() {
         <RecyclingTipsSection item={item} />
       </div>
 
-      {find && <FindManualSheet item={item} onClose={() => setFind(false)} />}
+      {find && <FindManualSheet item={item} autoQr={autoQr} onClose={() => setFind(false)} />}
     </article>
   );
 }

@@ -164,8 +164,6 @@ const ES: Record<string, string> = {
   'Συμπλήρωσε πρώτα μάρκα, μοντέλο ή όνομα στην καρτέλα του προϊόντος.': 'Primero indique la marca, el modelo o el nombre en la ficha del producto.',
   'Ανοίγει στο {engine}. Προτίμησε τη σελίδα του κατασκευαστή. Αντίγραψε τη διεύθυνση του PDF και γύρνα εδώ.':
     'Se abre en {engine}. Da preferencia al sitio del fabricante. Copia la dirección del PDF y vuelve aquí.',
-  'Έχεις τη διεύθυνση του PDF;': '¿Tienes la dirección del PDF?',
-  'Διεύθυνση του PDF': 'Dirección del PDF',
   'Κατεβάζω…': 'Descargando…',
   'Άνοιξε τη διεύθυνση, αποθήκευσε το PDF στα Αρχεία σου και μετά κάνε «Εισαγωγή αρχείου» από κάτω.':
     'Abre la dirección, guarda el PDF en Archivos y después usa «Importar archivo» aquí abajo.',
@@ -209,7 +207,6 @@ const ES: Record<string, string> = {
   'προαιρετικό': 'opcional',
   'Κωδικοί στο έντυπο': 'Códigos del manual',
   'Barcode προϊόντος': 'Código de barras del producto',
-  'Οι σύνδεσμοι αποθηκεύονται στην καρτέλα του προϊόντος. Δεν ανοίγουν αυτόματα.': 'Los enlaces se guardan en la ficha del producto. No se abren automáticamente.',
   'Αποθήκευση και εύρεση ψηφιακού': 'Guardar y buscar la copia digital',
   'Ή μήπως:': 'O quizá:',
   'Αρχειοθέτηση συνδέσμου {host}': 'Guardar enlace {host}',
@@ -477,5 +474,12 @@ const ES: Record<string, string> = {
   'Αποθήκευση στο προϊόν': 'Guardar en el producto',
   'Η αναζήτηση δεν άνοιξε. Δοκίμασε ξανά.': 'No se ha podido abrir la búsqueda. Inténtalo de nuevo.',
   'Προτίμησε τη σελίδα του κατασκευαστή. Όταν βρεις το εγχειρίδιο ή τη σελίδα του, πάτα Κοινοποίηση και «Αποθήκευση στο προϊόν».': 'Mejor la web del fabricante. Cuando encuentres el manual o su página, toca Compartir y «Guardar en el producto».',
+  'Πρόοδος κατεβάσματος': 'Progreso de la descarga',
+  'Εύρεση του εγχειριδίου': 'Buscar el manual',
+  'Η αναζήτηση ανοίγει μέσα στην εφαρμογή. Όταν βρεις το εγχειρίδιο ή τη σελίδα του, πάτα Κοινοποίηση και «Αποθήκευση στο προϊόν»: η εφαρμογή το κατεβάζει απευθείας από τον ιστότοπο και το κρατά στη συσκευή. Αν αποθηκεύσεις σελίδα, σου δείχνει τα PDF της για να διαλέξεις. Η εφαρμογή δεν βλέπει τι άλλο κάνεις στην αναζήτηση — μόνο τη διεύθυνση που αποθηκεύεις.': 'La búsqueda se abre dentro de la app. Cuando encuentres el manual o su página, toca Compartir y «Guardar en el producto»: la app lo descarga directamente del sitio y lo guarda en tu dispositivo. Si guardas una página, te muestra sus PDF para que elijas. La app no ve nada más de lo que haces en la búsqueda, solo la dirección que guardas.',
+  // σάρωση: QR σε άλλη σελίδα, αυτόματη λήψη από το QR
+  'Δεν βρήκα QR στη φωτογραφία. Αν το έντυπο έχει QR σε άλλη σελίδα, σάρωσέ το: συχνά οδηγεί στο ψηφιακό εγχειρίδιο.': 'No he encontrado ningún código QR en la foto. Si el manual tiene un QR en otra página, escanéalo: a menudo lleva al manual digital.',
+  'Σάρωση κι άλλου QR': 'Escanear otro QR',
+  'Οι σύνδεσμοι αποθηκεύονται στην καρτέλα. Αν κάποιος οδηγεί στο εγχειρίδιο, κατεβαίνει μόλις αποθηκεύσεις.': 'Los enlaces se guardan en la ficha. Si alguno lleva al manual, se descarga en cuanto guardes.',
 };
 export default ES;

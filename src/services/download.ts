@@ -30,6 +30,8 @@ interface PdfDownloadPlugin {
 // τα plugins του Capacitor είναι Proxy που «απαντούν» και σε `then`: δηλώνονται στο επίπεδο του module, όχι μέσα σε Promise
 const PdfDownload = registerPlugin<PdfDownloadPlugin>('PdfDownload');
 const native = Capacitor.getPlatform() === 'ios' && Capacitor.isPluginAvailable('PdfDownload');
+/** κατέβασμα και από ιστοσελίδα (βρίσκονται τα PDF της): μόνο μέσω iOS — στο web το εμποδίζει το CORS */
+export const pageDownloadSupported = native;
 
 /** μέγιστο μέγεθος ιστοσελίδας που διαβάζεται για να βρεθούν τα PDF της */
 const MAX_PAGE_BYTES = 5 * 1024 ** 2;

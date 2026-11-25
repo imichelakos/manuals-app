@@ -164,8 +164,6 @@ const EN: Record<string, string> = {
   'Συμπλήρωσε πρώτα μάρκα, μοντέλο ή όνομα στην καρτέλα του προϊόντος.': 'First add a brand, model or name on the product page.',
   'Ανοίγει στο {engine}. Προτίμησε τη σελίδα του κατασκευαστή. Αντίγραψε τη διεύθυνση του PDF και γύρνα εδώ.':
     'Opens in {engine}. Prefer the manufacturer’s site. Copy the PDF address and come back here.',
-  'Έχεις τη διεύθυνση του PDF;': 'Have the PDF address?',
-  'Διεύθυνση του PDF': 'PDF address',
   'Κατεβάζω…': 'Downloading…',
   'Άνοιξε τη διεύθυνση, αποθήκευσε το PDF στα Αρχεία σου και μετά κάνε «Εισαγωγή αρχείου» από κάτω.':
     'Open the address, save the PDF to your Files, then use “Import file” below.',
@@ -209,7 +207,6 @@ const EN: Record<string, string> = {
   'προαιρετικό': 'optional',
   'Κωδικοί στο έντυπο': 'Codes on the manual',
   'Barcode προϊόντος': 'Product barcode',
-  'Οι σύνδεσμοι αποθηκεύονται στην καρτέλα του προϊόντος. Δεν ανοίγουν αυτόματα.': 'Links are saved on the product page. They never open automatically.',
   'Αποθήκευση και εύρεση ψηφιακού': 'Save and find the digital copy',
   'Ή μήπως:': 'Or maybe:',
   'Αρχειοθέτηση συνδέσμου {host}': 'Save link {host}',
@@ -477,5 +474,12 @@ const EN: Record<string, string> = {
   'Αποθήκευση στο προϊόν': 'Save to product',
   'Η αναζήτηση δεν άνοιξε. Δοκίμασε ξανά.': 'The search didn’t open. Try again.',
   'Προτίμησε τη σελίδα του κατασκευαστή. Όταν βρεις το εγχειρίδιο ή τη σελίδα του, πάτα Κοινοποίηση και «Αποθήκευση στο προϊόν».': 'Prefer the manufacturer’s site. When you find the manual or its page, tap Share and “Save to product”.',
+  'Πρόοδος κατεβάσματος': 'Download progress',
+  'Εύρεση του εγχειριδίου': 'Finding the manual',
+  'Η αναζήτηση ανοίγει μέσα στην εφαρμογή. Όταν βρεις το εγχειρίδιο ή τη σελίδα του, πάτα Κοινοποίηση και «Αποθήκευση στο προϊόν»: η εφαρμογή το κατεβάζει απευθείας από τον ιστότοπο και το κρατά στη συσκευή. Αν αποθηκεύσεις σελίδα, σου δείχνει τα PDF της για να διαλέξεις. Η εφαρμογή δεν βλέπει τι άλλο κάνεις στην αναζήτηση — μόνο τη διεύθυνση που αποθηκεύεις.': 'The search opens inside the app. When you find the manual or its page, tap Share and “Save to product”: the app downloads it straight from the website and keeps it on your device. If you save a page, it shows you the PDFs on it to choose from. The app doesn’t see anything else you do in the search — only the address you save.',
+  // σάρωση: QR σε άλλη σελίδα, αυτόματη λήψη από το QR
+  'Δεν βρήκα QR στη φωτογραφία. Αν το έντυπο έχει QR σε άλλη σελίδα, σάρωσέ το: συχνά οδηγεί στο ψηφιακό εγχειρίδιο.': 'No QR code found in the photo. If the manual has a QR code on another page, scan it: it often leads to the digital manual.',
+  'Σάρωση κι άλλου QR': 'Scan another QR code',
+  'Οι σύνδεσμοι αποθηκεύονται στην καρτέλα. Αν κάποιος οδηγεί στο εγχειρίδιο, κατεβαίνει μόλις αποθηκεύσεις.': 'The links are saved to the product. If one leads to the manual, it downloads as soon as you save.',
 };
 export default EN;

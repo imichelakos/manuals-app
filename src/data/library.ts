@@ -14,7 +14,6 @@ import { blobStore } from './blobs';
 
 let all: Item[] = [];
 let live: Item[] = [];
-let ready = false;
 const listeners = new Set<() => void>();
 
 function set(next: Item[]) {
@@ -45,9 +44,7 @@ export async function loadLibrary(): Promise<void> {
   }
   if (plain.length) await idb.write('items', { put: await Promise.all(plain.map(async (i) => ({ value: await seal(i) }))) });
   set(items);
-  ready = true;
 }
-export const isReady = () => ready;
 
 /** Τα ζωντανά προϊόντα (χωρίς διαγραμμένα). */
 export const useItems = (): Item[] => useSyncExternalStore(subscribe, () => live);

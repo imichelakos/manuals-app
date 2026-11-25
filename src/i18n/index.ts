@@ -64,7 +64,6 @@ export function fmtDate(iso: string): string {
   if (!y || !m || !d) return iso;
   return new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(y, m - 1, d)));
 }
-export const fmtMoney = (v: number, currency = 'EUR') => new Intl.NumberFormat(locale(), { style: 'currency', currency }).format(v);
 export const fmtPercent = (v: number) => new Intl.NumberFormat(locale(), { style: 'percent', maximumFractionDigits: 0 }).format(v);
 
 /** Οι γλώσσες του χρήστη κατά σειρά προτίμησης: της συσκευής, και στο τέλος της εφαρμογής. */

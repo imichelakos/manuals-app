@@ -1,17 +1,19 @@
 /**
  * «Βρες το ψηφιακό εγχειρίδιο»: τέσσερις δρόμοι, από τον πιο εύκολο —
- *  1. σύνδεσμος από το QR του εντύπου, 2. έτοιμη αναζήτηση στο διαδίκτυο, 3. επικόλληση διεύθυνσης PDF (κατέβασμα),
- *  4. εισαγωγή αρχείου ή φωτογράφιση των σελίδων. Όταν αποθηκευτεί, προτείνεται η ανακύκλωση του εντύπου.
+ *  1. σύνδεσμος από το QR του εντύπου, 2. έτοιμη αναζήτηση στο διαδίκτυο, 3. εισαγωγή αρχείου ή φωτογράφιση των σελίδων.
+ *  (Η επικόλληση διεύθυνσης PDF αφαιρέθηκε, 25/11/2026: όποιος την έχει, έχει ήδη και το αρχείο.)
+ * `autoQr` (αμέσως μετά τη σάρωση): αν ένα QR του εντύπου οδηγεί στο εγχειρίδιο, το κατέβασμα ξεκινά μόνο του —
+ * πρώτα όσα είναι PDF· αν η σελίδα έχει πολλά PDF, ο χρήστης διαλέγει. Όταν αποθηκευτεί, προτείνεται η ανακύκλωση του εντύπου.
  * Το κατέβασμα δείχνει πρόοδο και ακυρώνεται· αν η διεύθυνση είναι ιστοσελίδα, προτείνονται τα PDF της (iOS).
  * Στο iOS η αναζήτηση ανοίγει στο Safari της εφαρμογής: «Αποθήκευση στο προϊόν» στην Κοινοποίηση → κατέβασμα εδώ.
  */
 import { useEffect, useRef, useState } from 'react';
-import { displayName, type Item } from '@/domain/model';
+import { displayName, hasDigitalManual, type Item } from '@/domain/model';
 import { classifyCode } from '@/domain/codes';
 import { ENGINES, localManualLanguage, manualQueries } from '@/domain/manualSearch';
 import { updateItem } from '@/data/library';
 import { useSettings } from '@/data/settings';
-import { downloadPdf, type DownloadFailure, type DownloadProgress } from '@/services/download';
+import { downloadPdf, pageDownloadSupported, type DownloadFailure, type DownloadProgress } from '@/services/download';
 import type { PdfLink } from '@/domain/pdfLinks';
 import { prettySize } from '@/services/files';
 import { storeFile } from '@/services/files';
@@ -26,7 +28,7 @@ import { IconCamera, IconCheck, IconDownload, IconExternal, IconQr, IconRecycle,
 import { CameraPick } from '@/components/CameraPick';
 
 /** από ποιο βήμα ξεκίνησε το κατέβασμα: εκεί φαίνονται η πρόοδος και τα PDF της σελίδας */
-type Source = 'qr' | 'url' | 'search';
+type Source = 'qr' | 'search';
 
 const failText = (r: DownloadFailure): string =>
   r === 'bad-url' ? t('Αυτή δεν μοιάζει με διεύθυνση ιστοσελίδας.')
@@ -37,13 +39,19 @@ const failText = (r: DownloadFailure): string =>
     : r === 'network' ? t('Το κατέβασμα απέτυχε. Έλεγξε τη σύνδεση και δοκίμασε ξανά.')
     : t('Ο ιστότοπος δεν επιτρέπει απευθείας κατέβασμα από την εφαρμογή.');
 
-export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => void }) {
+export function FindManualSheet({ item, autoQr = false, onClose }: { item: Item; autoQr?: boolean; onClose: () => void }) {
   const { engine } = useSettings();
-  const [url, setUrl] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [blocked, setBlocked] = useState<string | null>(null);
+  // σύνδεσμοι από QR που μοιάζουν να οδηγούν στο εγχειρίδιο· όσοι κατεβαίνουν εδώ (PDF, ή σελίδα μέσω iOS)
+  const fromQr = item.links.filter((l) => { const c = classifyCode(l.url); return c.type === 'link' && c.manualHint; });
+  const downloadable = fromQr.filter((l) => l.kind === 'pdf' || pageDownloadSupported);
+  // αμέσως μετά τη σάρωση (autoQr): το πρώτο QR του εγχειριδίου, πρώτα τα PDF — κατεβαίνει μόνο του, μία φορά
+  const [autoTarget] = useState(() => (autoQr && !hasDigitalManual(item)
+    ? [...downloadable].sort((a, b) => Number(b.kind === 'pdf') - Number(a.kind === 'pdf'))[0]?.url ?? null : null));
+  const [busy, setBusy] = useState(autoTarget !== null);
+  /** ο ιστότοπος δεν άφησε το κατέβασμα: οδηγία για χειροκίνητη αποθήκευση και εισαγωγή */
+  const [blocked, setBlocked] = useState<{ from: Source; url: string } | null>(null);
   /** κατέβασμα σε εξέλιξη: από ποιο βήμα ξεκίνησε, πρόοδος, ακύρωση */
-  const [progress, setProgress] = useState<{ from: Source; p: DownloadProgress | null } | null>(null);
+  const [progress, setProgress] = useState<{ from: Source; p: DownloadProgress | null } | null>(autoTarget ? { from: 'qr', p: null } : null);
   const abort = useRef<AbortController | null>(null);
   // το φύλλο κλείνει → το κατέβασμα σταματά
   useEffect(() => () => abort.current?.abort(), []);
@@ -53,15 +61,17 @@ export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => 
   const queries = manualQueries(item, engine, localManualLanguage(userLanguages()));
   const labels = { pdf: t('PDF του εγχειριδίου (αγγλικά)'), support: t('Σελίδα υποστήριξης (αγγλικά)'), local: '' };
   const labelOf = (q: (typeof queries)[number]) => (q.id === 'local' ? t('Εγχειρίδιο στα {lang}', { lang: languageName(q.lang) }) : labels[q.id]);
-  // σύνδεσμοι από QR που μοιάζουν να οδηγούν στο εγχειρίδιο
-  const fromQr = item.links.filter((l) => { const c = classifyCode(l.url); return c.type === 'link' && c.manualHint; });
 
   /** fromList: διαλέχτηκε από τα PDF της σελίδας — η λίστα μένει (π.χ. μετά από «Άκυρο» ή για άλλο PDF) */
-  const fetchPdf = async (target: string, from: Source, fromList = false) => {
+  const fetchPdf = (target: string, from: Source, fromList = false) => {
     setBusy(true);
     setBlocked(null);
     if (!fromList) setFound(null);
     setProgress({ from, p: null });
+    return run(target, from);
+  };
+  /** το ίδιο το κατέβασμα και η αποθήκευση· οι αλλαγές κατάστασης γίνονται μόνο μετά το δίκτυο */
+  const run = async (target: string, from: Source) => {
     const ctl = new AbortController();
     abort.current = ctl;
     const r = await downloadPdf(target, { signal: ctl.signal, onProgress: (p) => setProgress({ from, p }) });
@@ -79,10 +89,17 @@ export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => 
       setFound({ from, page: target, links: r.links });
     } else {
       toast(failText(r.reason), 'error');
-      if (r.reason === 'blocked' || r.reason === 'not-pdf' || r.reason === 'http') setBlocked(target);
+      if (r.reason === 'blocked' || r.reason === 'not-pdf' || r.reason === 'http') setBlocked({ from, url: target });
     }
     setBusy(false);
   };
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (!autoTarget || autoStarted.current) return;
+    autoStarted.current = true;
+    void run(autoTarget, 'qr');
+  });
+
   /** αναζήτηση στο Safari της εφαρμογής· ό,τι αποθηκεύσει ο χρήστης από την Κοινοποίηση κατεβαίνει εδώ */
   const search = async (target: string) => {
     let saved: string | null = null;
@@ -123,13 +140,14 @@ export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => 
             <div key={l.id}>
               <p className="truncate text-[13px] text-ink-2">{l.url.replace(/^https?:\/\//, '')}</p>
               <div className="mt-2 flex gap-2">
-                {l.kind === 'pdf' && <button type="button" className="btn btn-soft flex-1" disabled={busy} onClick={() => void fetchPdf(l.url, 'qr')}><IconDownload className="text-lg" />{t('Κατέβασμα')}</button>}
+                {downloadable.includes(l) && <button type="button" className="btn btn-soft flex-1" disabled={busy} onClick={() => void fetchPdf(l.url, 'qr')}><IconDownload className="text-lg" />{t('Κατέβασμα')}</button>}
                 <ExternalLink href={l.url} className="btn btn-plain flex-1"><IconExternal className="text-lg" />{t('Άνοιγμα')}</ExternalLink>
               </div>
             </div>
           ))}
           {progress?.from === 'qr' && <Progress p={progress.p} onCancel={() => abort.current?.abort()} />}
           {found?.from === 'qr' && <FoundPdfs found={found} busy={busy} onPick={(u) => void fetchPdf(u, 'qr', true)} />}
+          {blocked?.from === 'qr' && <Blocked url={blocked.url} />}
         </Step>
       )}
 
@@ -154,25 +172,11 @@ export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => 
               : t('Ανοίγει στο {engine}. Προτίμησε τη σελίδα του κατασκευαστή. Αντίγραψε τη διεύθυνση του PDF και γύρνα εδώ.', { engine: ENGINES[engine].name })}</p>
             {progress?.from === 'search' && <Progress p={progress.p} onCancel={() => abort.current?.abort()} />}
             {found?.from === 'search' && <FoundPdfs found={found} busy={busy} onPick={(u) => void fetchPdf(u, 'search', true)} />}
+            {blocked?.from === 'search' && <Blocked url={blocked.url} />}
           </>}
       </Step>
 
-      <Step n={fromQr.length ? 3 : 2} title={t('Έχεις τη διεύθυνση του PDF;')} icon={<IconDownload />}>
-        <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); if (url.trim()) void fetchPdf(url.trim(), 'url'); }}>
-          <input className="input" type="url" inputMode="url" placeholder="https://…/manual.pdf" value={url} onChange={(e) => setUrl(e.target.value)} aria-label={t('Διεύθυνση του PDF')} autoComplete="off" />
-          <button type="submit" className="btn btn-primary shrink-0" disabled={busy || !url.trim()}>{busy ? t('Κατεβάζω…') : t('Κατέβασμα')}</button>
-        </form>
-        {progress?.from === 'url' && <Progress p={progress.p} onCancel={() => abort.current?.abort()} />}
-        {found?.from === 'url' && <FoundPdfs found={found} busy={busy} onPick={(u) => void fetchPdf(u, 'url', true)} />}
-        {blocked && (
-          <div className="mt-2.5 rounded-2xl bg-warn-soft p-3.5 text-[14px] leading-relaxed text-warn">
-            <p>{t('Άνοιξε τη διεύθυνση, αποθήκευσε το PDF στα Αρχεία σου και μετά κάνε «Εισαγωγή αρχείου» από κάτω.')}</p>
-            <ExternalLink href={blocked} className="btn mt-2 min-h-9 bg-surface px-3 py-1 text-sm text-ink"><IconExternal className="text-base" />{t('Άνοιγμα')}</ExternalLink>
-          </div>
-        )}
-      </Step>
-
-      <Step n={fromQr.length ? 4 : 3} title={t('Το έχεις ήδη ή δεν υπάρχει ψηφιακό;')} icon={<IconUpload />}>
+      <Step n={fromQr.length ? 3 : 2} title={t('Το έχεις ήδη ή δεν υπάρχει ψηφιακό;')} icon={<IconUpload />}>
         <div className="flex flex-col gap-2.5">
           <FilePick accept={DOC_TYPES} multiple disabled={busy} onFiles={(f) => void addLocal(f, 'import')} className="btn btn-plain"><IconUpload className="text-xl" />{t('Εισαγωγή αρχείου')}</FilePick>
           <CameraPick mode="document" disabled={busy} onCapture={(c) => void addLocal(c.files, 'scan')} className="btn btn-plain"><IconCamera className="text-xl" />{t('Φωτογράφιση σελίδας')}</CameraPick>
@@ -182,14 +186,35 @@ export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => 
   );
 }
 
-/** «Κατεβάζω… 42 %» (ή «12,3 MB» όταν ο ιστότοπος δεν δηλώνει μέγεθος), με «Άκυρο». */
+/**
+ * Πρόοδος κατεβάσματος: μπάρα και «Κατεβάζω… 42%», με «Άκυρο». Όταν ο ιστότοπος δεν δηλώνει μέγεθος: μπάρα που κινείται
+ * και τα MB ως τώρα.
+ */
 function Progress({ p, onCancel }: { p: DownloadProgress | null; onCancel: () => void }) {
-  const amount = p?.total ? fmtPercent(Math.min(1, p.bytes / p.total)) : p ? prettySize(p.bytes) : '';
+  const share = p?.total ? Math.min(1, p.bytes / p.total) : null;
+  const amount = share !== null ? fmtPercent(share) : p ? prettySize(p.bytes) : '';
   return (
-    <div className="mt-2.5 flex items-center gap-3 rounded-2xl bg-surface-2 p-3" role="status">
-      <span className="size-5 shrink-0 animate-spin rounded-full border-2 border-line border-t-accent" aria-hidden="true" />
-      <span className="flex-1 text-[14px] font-semibold">{amount ? t('Κατεβάζω… {amount}', { amount }) : t('Κατεβάζω…')}</span>
-      <button type="button" className="btn btn-plain min-h-9 px-3 py-1 text-sm" onClick={onCancel}>{t('Άκυρο')}</button>
+    <div className="mt-2.5 rounded-2xl bg-surface-2 p-3" role="status">
+      <div className="flex items-center gap-3">
+        <span className="flex-1 text-[14px] font-semibold">{amount ? t('Κατεβάζω… {amount}', { amount }) : t('Κατεβάζω…')}</span>
+        <button type="button" className="btn btn-plain min-h-9 px-3 py-1 text-sm" onClick={onCancel}>{t('Άκυρο')}</button>
+      </div>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-line" role="progressbar" aria-label={t('Πρόοδος κατεβάσματος')}
+        aria-valuemin={0} aria-valuemax={100} aria-valuenow={share !== null ? Math.round(share * 100) : undefined}>
+        {share !== null
+          ? <div className="h-full rounded-full bg-accent transition-[width] duration-200" style={{ width: `${share * 100}%` }} />
+          : <div className="h-full w-1/3 animate-pulse rounded-full bg-accent" />}
+      </div>
+    </div>
+  );
+}
+
+/** Ο ιστότοπος δεν άφησε το κατέβασμα: άνοιγμα της διεύθυνσης, αποθήκευση στα Αρχεία, εισαγωγή από κάτω. */
+function Blocked({ url }: { url: string }) {
+  return (
+    <div className="mt-2.5 rounded-2xl bg-warn-soft p-3.5 text-[14px] leading-relaxed text-warn">
+      <p>{t('Άνοιξε τη διεύθυνση, αποθήκευσε το PDF στα Αρχεία σου και μετά κάνε «Εισαγωγή αρχείου» από κάτω.')}</p>
+      <ExternalLink href={url} className="btn mt-2 min-h-9 bg-surface px-3 py-1 text-sm text-ink"><IconExternal className="text-base" />{t('Άνοιγμα')}</ExternalLink>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { CATEGORIES, type CategoryId } from '@/domain/categories';
 import { newProduct, newId, type Item, type LinkRef } from '@/domain/model';
 import type { CodePayload } from '@/domain/codes';
+import { QrButton, noLinkMessage } from '@/components/QrButton';
 import { suggestCategory } from '@/domain/categorySuggest';
 import { saveItem, useItems } from '@/data/library';
 import { blobStore } from '@/data/blobs';
@@ -151,6 +152,31 @@ function Working({ source, preview, step, progress }: { source: Source; preview:
   );
 }
 
+type LinkCode = Extract<CodePayload, { type: 'link' }>;
+
+/** Νέο προϊόν από τη σάρωση: φωτογραφία, PDF (αν εισήχθη), στοιχεία και οι σύνδεσμοι των QR που κράτησε ο χρήστης. */
+async function saveScanned(result: ScanResult, f: { name: string; brand: string; model: string; category: CategoryId; ean?: string }, links: LinkCode[]): Promise<string> {
+  const now = Date.now();
+  const attachments: Item['attachments'] = [];
+  if (result.cover && result.thumb) {
+    const blobId = newId(), thumbId = newId();
+    await blobStore.put(blobId, result.cover);
+    await blobStore.put(thumbId, result.thumb);
+    attachments.push({ id: newId(), kind: 'cover', name: 'cover.jpg', mime: 'image/jpeg', size: result.cover.size, blobId, thumbId, addedAt: now, origin: result.pdf ? 'import' : 'scan' });
+  }
+  // «Εισαγωγή PDF»: το ίδιο το PDF γίνεται το ψηφιακό εγχειρίδιο του προϊόντος
+  if (result.pdf) attachments.push(await storeFile(result.pdf.blob, { kind: 'manual', name: result.pdf.name, origin: 'import' }));
+  const item: Item = {
+    ...newProduct(now), name: f.name.trim(), brand: f.brand.trim(), model: f.model.trim(), category: f.category, ean: f.ean,
+    ocrText: result.text.slice(0, 20_000) || undefined,
+    attachments,
+    links: links.map((l): LinkRef => ({ id: newId(), url: l.url, title: linkLabel(l.kind), kind: l.kind, origin: 'qr', addedAt: now })),
+  };
+  const saved = await saveItem(item);
+  void enrichLinks(saved.id, linkLabel);   // τίτλοι και εικονίδια των συνδέσμων των QR, στο παρασκήνιο
+  return saved.id;
+}
+
 function Review({ preview, result, onSaved, onRetake }: { preview: string | null; result: ScanResult; onSaved: (id: string) => void; onRetake: (f: File) => void }) {
   const { found, codes } = result;
   const [brand, setBrand] = useState(found.brands[0] ?? '');
@@ -160,9 +186,20 @@ function Review({ preview, result, onSaved, onRetake }: { preview: string | null
   const library = useItems();
   const [chosenCategory, setCategory] = useState<CategoryId | null>(null);
   const category = chosenCategory ?? suggestCategory({ name, brand, model, ocrText: result.text }, library) ?? found.category;
-  const links = codes.flatMap((c) => (c.type === 'link' ? [c] : []));
-  const ean = codes.find((c) => c.type === 'ean')?.code;
-  const [keep, setKeep] = useState<Set<string>>(() => new Set(links.map((l) => l.url)));
+  // κωδικοί από δεύτερη σάρωση (QR σε άλλη σελίδα από το εξώφυλλο)
+  const [extra, setExtra] = useState<CodePayload[]>([]);
+  const all = [...codes, ...extra];
+  const links = all.flatMap((c) => (c.type === 'link' ? [c] : [])).filter((l, i, a) => a.findIndex((x) => x.url === l.url) === i);
+  const ean = all.find((c) => c.type === 'ean')?.code;
+  const [keep, setKeep] = useState<Set<string>>(() => new Set(codes.flatMap((c) => (c.type === 'link' ? [c.url] : []))));
+  const onQr = (c: CodePayload[] | null) => {
+    if (!c) return;
+    const fresh = c.filter((x) => x.type !== 'link' || !links.some((l) => l.url === x.url));
+    const newLinks = fresh.flatMap((x) => (x.type === 'link' ? [x.url] : []));
+    if (!newLinks.length && !fresh.some((x) => x.type === 'ean')) { toast(c.length ? t('Ο σύνδεσμος υπάρχει ήδη.') : noLinkMessage(c), 'error'); return; }
+    setExtra((e) => [...e, ...fresh]);
+    setKeep((k) => new Set([...k, ...newLinks]));
+  };
   const [busy, setBusy] = useState(false);
   const nothing = !found.brands.length && !found.models.length && !found.modelHints.length && !codes.length;
   // μάρκα που επιβεβαιώθηκε στο web: συμπληρώνεται (αν το πεδίο είναι κενό) και η λέξη της φεύγει από τις προτάσεις μοντέλου
@@ -170,34 +207,18 @@ function Review({ preview, result, onSaved, onRetake }: { preview: string | null
   const onWebBrand = useCallback((m: BrandMatch) => { setWebMatch(m); setBrand((b) => b || m.brand); }, []);
   const modelOptions = [...found.models, ...found.modelHints].filter((m) => !webMatch || m.toLowerCase() !== webMatch.candidate.toLowerCase());
 
-  async function save() {
+  const save = async () => {
     setBusy(true);
     try {
-      const now = Date.now();
-      const base = newProduct(now);
-      const attachments: Item['attachments'] = [];
-      if (result.cover && result.thumb) {
-        const blobId = newId(), thumbId = newId();
-        await blobStore.put(blobId, result.cover);
-        await blobStore.put(thumbId, result.thumb);
-        attachments.push({ id: newId(), kind: 'cover', name: 'cover.jpg', mime: 'image/jpeg', size: result.cover.size, blobId, thumbId, addedAt: now, origin: result.pdf ? 'import' : 'scan' });
-      }
-      // «Εισαγωγή PDF»: το ίδιο το PDF γίνεται το ψηφιακό εγχειρίδιο του προϊόντος
-      if (result.pdf) attachments.push(await storeFile(result.pdf.blob, { kind: 'manual', name: result.pdf.name, origin: 'import' }));
-      const item: Item = {
-        ...base, name: name.trim(), brand: brand.trim(), model: model.trim(), category, ean,
-        ocrText: result.text.slice(0, 20_000) || undefined,
-        attachments,
-        links: links.filter((l) => keep.has(l.url)).map((l): LinkRef => ({ id: newId(), url: l.url, title: linkLabel(l.kind), kind: l.kind, origin: 'qr', addedAt: now })),
-      };
-      const saved = await saveItem(item);
-      void enrichLinks(saved.id, linkLabel);   // τίτλοι και εικονίδια των συνδέσμων των QR, στο παρασκήνιο
-      onSaved(saved.id);
+      const id = await saveScanned(result, { name, brand, model, category, ean }, links.filter((l) => keep.has(l.url)));
+      onSaved(id);
     } catch {
       setBusy(false);
       toast(t('Η αποθήκευση απέτυχε. Ίσως δεν υπάρχει ελεύθερος χώρος.'), 'error');
     }
-  }
+  };
+
+
 
   return (
     <div className="pt-2">
@@ -241,14 +262,22 @@ function Review({ preview, result, onSaved, onRetake }: { preview: string | null
         </div>
       </div>
 
-      {(links.length > 0 || ean) && (
+      {(links.length > 0 || ean || !result.pdf) && (
         <div className="card mt-4 p-5">
           <h2 className="section-title flex items-center gap-2"><IconQr className="text-base" />{t('Κωδικοί στο έντυπο')}</h2>
-          <ul className="mt-3 space-y-2.5">
+          {!links.length && !result.pdf && (
+            <p className="mt-2 text-[15px] leading-relaxed text-ink-2">{t('Δεν βρήκα QR στη φωτογραφία. Αν το έντυπο έχει QR σε άλλη σελίδα, σάρωσέ το: συχνά οδηγεί στο ψηφιακό εγχειρίδιο.')}</p>
+          )}
+          <ul className={`space-y-2.5 ${links.length || ean ? 'mt-3' : ''}`}>
             {links.map((l) => <CodeRow key={l.url} link={l} on={keep.has(l.url)} onToggle={() => setKeep((s) => { const n = new Set(s); if (n.has(l.url)) n.delete(l.url); else n.add(l.url); return n; })} />)}
             {ean && <li className="flex items-center gap-3 rounded-2xl bg-surface-2 px-3.5 py-3 text-[15px]"><span className="text-ink-2">{t('Barcode προϊόντος')}</span><span className="ml-auto tabular-nums">{ean}</span></li>}
           </ul>
-          {links.length > 0 && <p className="mt-3 text-[13px] leading-relaxed text-ink-3">{t('Οι σύνδεσμοι αποθηκεύονται στην καρτέλα του προϊόντος. Δεν ανοίγουν αυτόματα.')}</p>}
+          {!result.pdf && (
+            <QrButton onCodes={onQr} className="btn btn-plain mt-3 w-full">
+              <IconQr className="text-xl" />{links.length ? t('Σάρωση κι άλλου QR') : t('Σάρωση QR')}
+            </QrButton>
+          )}
+          {links.length > 0 && <p className="mt-3 text-[13px] leading-relaxed text-ink-3">{t('Οι σύνδεσμοι αποθηκεύονται στην καρτέλα. Αν κάποιος οδηγεί στο εγχειρίδιο, κατεβαίνει μόλις αποθηκεύσεις.')}</p>}
         </div>
       )}
 

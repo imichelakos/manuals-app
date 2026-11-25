@@ -99,12 +99,8 @@ try {
   await shot('04-scan-review');
   await page.screenshot({ path: path.join(OUT, '04b-scan-review-full.png'), fullPage: true });
 
-  step('αποθήκευση → εύρεση ψηφιακού → κατέβασμα PDF από το QR');
+  step('αποθήκευση → το PDF του QR κατεβαίνει μόνο του (χωρίς κουμπί)');
   await page.getByRole('button', { name: 'Αποθήκευση και εύρεση ψηφιακού' }).click();
-  await page.getByRole('heading', { name: 'Βρες το ψηφιακό' }).waitFor();
-  await page.waitForTimeout(400);
-  await shot('05-find-manual');
-  await page.getByRole('button', { name: 'Κατέβασμα' }).first().click();
   await page.getByRole('heading', { name: 'Το ψηφιακό αποθηκεύτηκε' }).waitFor();
   await page.waitForTimeout(400);
   await shot('06-saved');
@@ -608,6 +604,30 @@ try {
   await shot('20-brand-web', lp);
   await lp.unroute('https://www.wikidata.org/w/api.php?**');
 
+  step('iOS: σάρωση χωρίς QR στη φωτογραφία → «Σάρωση QR» (άλλη σελίδα) → αποθήκευση → το PDF κατεβαίνει μόνο του');
+  await lp.goto(BASE);                                                                         // από το «Τι βρήκαμε» της προηγούμενης σάρωσης
+  await lp.goto(`${BASE}#/scan`);
+  await lp.evaluate(([page, pdfUrl]) => {
+    window.__mockLines = [{ text: 'Siemens', size: 0.06, top: 0.1 }, { text: 'WG44G2140', size: 0.04, top: 0.2 }];   // όχι «Bosch»: τα επόμενα σενάρια ψάχνουν το Bosch
+    window.__mockScanPage = page;                                                              // η «άλλη σελίδα»: έχει τα QR
+    window.__mockDownloads = { [pdfUrl]: { path: 'https://mock.local/qr.pdf', mime: 'application/pdf' } };
+    window.__downloads = [];
+  }, [readFileSync(files.cover).toString('base64'), PDF_URL]);
+  await lp.route('https://mock.local/**', (r) => r.fulfill({ status: 200, contentType: 'application/pdf', body: PDF_BYTES }));
+  await lp.locator('label:has-text("Από τις φωτογραφίες") input[type=file]').setInputFiles(files.receipt);
+  await lp.getByRole('heading', { name: 'Τι βρήκαμε' }).waitFor({ timeout: 120_000 });
+  await lp.getByText('Δεν βρήκα QR στη φωτογραφία.', { exact: false }).waitFor();
+  await lp.getByRole('button', { name: 'Σάρωση QR' }).click();                                // σαρωτής → η σελίδα με τα QR
+  await lp.getByText('Έγγραφο PDF').waitFor();
+  assert.equal(await lp.getByText('Δεν βρήκα QR στη φωτογραφία.', { exact: false }).count(), 0);
+  await lp.getByRole('button', { name: 'Σάρωση κι άλλου QR' }).scrollIntoViewIfNeeded();
+  await shot('27-scan-second-qr', lp);
+  await lp.getByRole('button', { name: 'Αποθήκευση και εύρεση ψηφιακού' }).click();
+  await lp.getByRole('heading', { name: 'Το ψηφιακό αποθηκεύτηκε' }).waitFor();               // χωρίς κουμπί
+  assert.deepEqual(await lp.evaluate(() => window.__downloads), [PDF_URL]);
+  await lp.getByRole('button', { name: 'Όχι ακόμη' }).click();
+  await lp.unroute('https://mock.local/**');
+
   step('iOS: σύντομος σύνδεσμος bit.ly → τελικός YouTube, τίτλος και μικρογραφία (CapacitorHttp)');
   await lp.goto(BASE);
   await lp.locator('ul > li a[href^="#/item/"]').filter({ hasText: 'Bosch' }).first().click();
@@ -687,7 +707,7 @@ try {
   await lp.getByRole('dialog', { name: 'Κλειδωμένο' }).waitFor({ state: 'detached' });
   await lp.evaluate(() => localStorage.removeItem('mock-bio'));
 
-  step('iOS: κατέβασμα PDF — ιστοσελίδα → τα PDF της, πρόοδος με ποσοστό, «Άκυρο», αποθήκευση');
+  step('iOS: κατέβασμα PDF — αποθηκευμένη ιστοσελίδα → τα PDF της, μπάρα με ποσοστό, «Άκυρο», αποθήκευση');
   await lp.route('https://mock.local/**', (r) => r.request().url().endsWith('.pdf')
     ? r.fulfill({ status: 200, contentType: 'application/pdf', body: PDF_BYTES })
     : r.fulfill({ status: 200, contentType: 'text/html', body: '<a href="/files/X7_manual_EN.pdf">User manual (EN)</a> <a href="https://cdn.example.com/x7-quick.pdf">Quick start</a> <a href="/about">About</a>' }));
@@ -698,13 +718,15 @@ try {
     'https://www.example.com/files/X7_manual_EN.pdf': { path: 'https://mock.local/x7.pdf', mime: 'application/pdf', hang: true },
   }; });
   await lp.getByRole('button', { name: 'Προσθήκη ή αναζήτηση άλλου' }).click();
-  await lp.getByLabel('Διεύθυνση του PDF').fill('https://www.example.com/support/x7');
-  await lp.getByLabel('Διεύθυνση του PDF').press('Enter');
+  assert.equal(await lp.getByText('Έχεις τη διεύθυνση του PDF;').count(), 0);                // το βήμα αφαιρέθηκε
+  await lp.evaluate(() => { window.__mockSaved = 'https://www.example.com/support/x7'; });      // «Αποθήκευση στο προϊόν» μιας σελίδας
+  await lp.getByRole('button', { name: 'Σελίδα υποστήριξης (αγγλικά)' }).click();
   await lp.getByText('Η διεύθυνση είναι ιστοσελίδα. Βρήκα σε αυτήν αυτά τα PDF').waitFor();
   assert.equal(await lp.getByRole('button', { name: /About/ }).count(), 0);                 // μόνο PDF
   await lp.getByRole('button', { name: /Quick start/ }).waitFor();
   await lp.getByRole('button', { name: /User manual \(EN\)/ }).click();                       // κατέβασμα του PDF που διάλεξε
   await lp.getByText('Κατεβάζω… 50%').waitFor();                                               // ποσοστό από την πρόοδο του iOS
+  assert.equal(await lp.getByRole('progressbar', { name: 'Πρόοδος κατεβάσματος' }).getAttribute('aria-valuenow'), '50');
   await shot('25-pdf-download', lp);
   await lp.getByRole('status').getByRole('button', { name: 'Άκυρο' }).click();
   await lp.getByText('Κατεβάζω… 50%').waitFor({ state: 'detached' });
@@ -728,15 +750,15 @@ try {
   await lp.getByRole('button', { name: 'PDF του εγχειριδίου (αγγλικά)' }).click();
   await lp.getByText('Το ψηφιακό αποθηκεύτηκε').waitFor();
   const opened = await lp.evaluate(() => window.__browserOpened);
-  assert.equal(opened.length, 1);
-  assert.ok(opened[0].url.startsWith('https://duckduckgo.com/?q='));                           // η έτοιμη αναζήτηση
-  assert.equal(opened[0].actionTitle, 'Αποθήκευση στο προϊόν');
+  assert.equal(opened.length, 2);
+  assert.ok(opened[1].url.startsWith('https://duckduckgo.com/?q='));                           // η έτοιμη αναζήτηση
+  assert.equal(opened[1].actionTitle, 'Αποθήκευση στο προϊόν');
   await lp.getByRole('button', { name: 'Όχι ακόμη' }).click();
   // κλείσιμο του Safari χωρίς αποθήκευση: τίποτα δεν κατεβαίνει
   await lp.evaluate(() => { window.__mockSaved = null; window.__downloads = []; });
   await lp.getByRole('button', { name: 'Προσθήκη ή αναζήτηση άλλου' }).click();
   await lp.getByRole('button', { name: 'PDF του εγχειριδίου (αγγλικά)' }).click();
-  await lp.waitForFunction(() => window.__browserOpened.length === 2);
+  await lp.waitForFunction(() => window.__browserOpened.length === 3);
   assert.deepEqual(await lp.evaluate(() => window.__downloads), []);
   await lp.getByRole('button', { name: 'Κλείσιμο' }).click();
   await lp.unroute('https://mock.local/**');
