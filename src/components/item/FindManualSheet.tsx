@@ -3,6 +3,7 @@
  *  1. σύνδεσμος από το QR του εντύπου, 2. έτοιμη αναζήτηση στο διαδίκτυο, 3. επικόλληση διεύθυνσης PDF (κατέβασμα),
  *  4. εισαγωγή αρχείου ή φωτογράφιση των σελίδων. Όταν αποθηκευτεί, προτείνεται η ανακύκλωση του εντύπου.
  * Το κατέβασμα δείχνει πρόοδο και ακυρώνεται· αν η διεύθυνση είναι ιστοσελίδα, προτείνονται τα PDF της (iOS).
+ * Στο iOS η αναζήτηση ανοίγει στο Safari της εφαρμογής: «Αποθήκευση στο προϊόν» στην Κοινοποίηση → κατέβασμα εδώ.
  */
 import { useEffect, useRef, useState } from 'react';
 import { displayName, type Item } from '@/domain/model';
@@ -14,6 +15,7 @@ import { downloadPdf, type DownloadFailure, type DownloadProgress } from '@/serv
 import type { PdfLink } from '@/domain/pdfLinks';
 import { prettySize } from '@/services/files';
 import { storeFile } from '@/services/files';
+import { manualBrowserAvailable, searchManual } from '@/services/manualBrowser';
 import { fmtPercent, languageName, t, userLanguages } from '@/i18n';
 import { Sheet } from '@/components/Sheet';
 import { ExternalLink } from '@/components/ExternalLink';
@@ -22,6 +24,9 @@ import { toast } from '@/components/Toast';
 import { addFiles } from './Documents';
 import { IconCamera, IconCheck, IconDownload, IconExternal, IconQr, IconRecycle, IconSearch, IconUpload } from '@/components/icons';
 import { CameraPick } from '@/components/CameraPick';
+
+/** από ποιο βήμα ξεκίνησε το κατέβασμα: εκεί φαίνονται η πρόοδος και τα PDF της σελίδας */
+type Source = 'qr' | 'url' | 'search';
 
 const failText = (r: DownloadFailure): string =>
   r === 'bad-url' ? t('Αυτή δεν μοιάζει με διεύθυνση ιστοσελίδας.')
@@ -38,12 +43,12 @@ export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => 
   const [busy, setBusy] = useState(false);
   const [blocked, setBlocked] = useState<string | null>(null);
   /** κατέβασμα σε εξέλιξη: από ποιο βήμα ξεκίνησε, πρόοδος, ακύρωση */
-  const [progress, setProgress] = useState<{ from: 'qr' | 'url'; p: DownloadProgress | null } | null>(null);
+  const [progress, setProgress] = useState<{ from: Source; p: DownloadProgress | null } | null>(null);
   const abort = useRef<AbortController | null>(null);
   // το φύλλο κλείνει → το κατέβασμα σταματά
   useEffect(() => () => abort.current?.abort(), []);
   /** τα PDF που βρέθηκαν στη σελίδα που δόθηκε αντί για PDF */
-  const [found, setFound] = useState<{ from: 'qr' | 'url'; page: string; links: PdfLink[] } | null>(null);
+  const [found, setFound] = useState<{ from: Source; page: string; links: PdfLink[] } | null>(null);
   const [saved, setSaved] = useState(false);
   const queries = manualQueries(item, engine, localManualLanguage(userLanguages()));
   const labels = { pdf: t('PDF του εγχειριδίου (αγγλικά)'), support: t('Σελίδα υποστήριξης (αγγλικά)'), local: '' };
@@ -52,7 +57,7 @@ export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => 
   const fromQr = item.links.filter((l) => { const c = classifyCode(l.url); return c.type === 'link' && c.manualHint; });
 
   /** fromList: διαλέχτηκε από τα PDF της σελίδας — η λίστα μένει (π.χ. μετά από «Άκυρο» ή για άλλο PDF) */
-  const fetchPdf = async (target: string, from: 'qr' | 'url', fromList = false) => {
+  const fetchPdf = async (target: string, from: Source, fromList = false) => {
     setBusy(true);
     setBlocked(null);
     if (!fromList) setFound(null);
@@ -77,6 +82,13 @@ export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => 
       if (r.reason === 'blocked' || r.reason === 'not-pdf' || r.reason === 'http') setBlocked(target);
     }
     setBusy(false);
+  };
+  /** αναζήτηση στο Safari της εφαρμογής· ό,τι αποθηκεύσει ο χρήστης από την Κοινοποίηση κατεβαίνει εδώ */
+  const search = async (target: string) => {
+    let saved: string | null = null;
+    try { saved = await searchManual(target, t('Αποθήκευση στο προϊόν')); }
+    catch { toast(t('Η αναζήτηση δεν άνοιξε. Δοκίμασε ξανά.'), 'error'); }
+    if (saved) await fetchPdf(saved, 'search');
   };
   const addLocal = async (files: File[], origin: 'scan' | 'import') => {
     setBusy(true);
@@ -126,13 +138,22 @@ export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => 
           ? <p className="text-sm text-ink-2">{t('Συμπλήρωσε πρώτα μάρκα, μοντέλο ή όνομα στην καρτέλα του προϊόντος.')}</p>
           : <>
             <div className="flex flex-col gap-2">
-              {queries.map((q) => (
-                <ExternalLink key={q.id} href={q.url} className="btn btn-soft justify-between text-left">
-                  <span>{labelOf(q)}</span><IconExternal className="shrink-0 text-lg" />
-                </ExternalLink>
-              ))}
+              {queries.map((q) => manualBrowserAvailable
+                ? (
+                  <button key={q.id} type="button" disabled={busy} className="btn btn-soft justify-between text-left" onClick={() => void search(q.url)}>
+                    <span>{labelOf(q)}</span><IconSearch className="shrink-0 text-lg" />
+                  </button>
+                ) : (
+                  <ExternalLink key={q.id} href={q.url} className="btn btn-soft justify-between text-left">
+                    <span>{labelOf(q)}</span><IconExternal className="shrink-0 text-lg" />
+                  </ExternalLink>
+                ))}
             </div>
-            <p className="mt-2 text-[13px] leading-relaxed text-ink-3">{t('Ανοίγει στο {engine}. Προτίμησε τη σελίδα του κατασκευαστή. Αντίγραψε τη διεύθυνση του PDF και γύρνα εδώ.', { engine: ENGINES[engine].name })}</p>
+            <p className="mt-2 text-[13px] leading-relaxed text-ink-3">{manualBrowserAvailable
+              ? t('Προτίμησε τη σελίδα του κατασκευαστή. Όταν βρεις το εγχειρίδιο ή τη σελίδα του, πάτα Κοινοποίηση και «Αποθήκευση στο προϊόν».')
+              : t('Ανοίγει στο {engine}. Προτίμησε τη σελίδα του κατασκευαστή. Αντίγραψε τη διεύθυνση του PDF και γύρνα εδώ.', { engine: ENGINES[engine].name })}</p>
+            {progress?.from === 'search' && <Progress p={progress.p} onCancel={() => abort.current?.abort()} />}
+            {found?.from === 'search' && <FoundPdfs found={found} busy={busy} onPick={(u) => void fetchPdf(u, 'search', true)} />}
           </>}
       </Step>
 

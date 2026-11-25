@@ -473,5 +473,9 @@ const DE: Record<string, string> = {
   'Το κατέβασμα απέτυχε. Έλεγξε τη σύνδεση και δοκίμασε ξανά.': 'Der Download ist fehlgeschlagen. Prüfe deine Verbindung und versuche es erneut.',
   'Κατεβάζω… {amount}': 'Wird heruntergeladen… {amount}',
   'Η διεύθυνση είναι ιστοσελίδα. Βρήκα σε αυτήν αυτά τα PDF — διάλεξε το εγχειρίδιο:': 'Diese Adresse ist eine Webseite. Ich habe darauf diese PDFs gefunden – wähle die Anleitung:',
+  // αναζήτηση στο Safari της εφαρμογής: «Αποθήκευση στο προϊόν»
+  'Αποθήκευση στο προϊόν': 'Im Produkt speichern',
+  'Η αναζήτηση δεν άνοιξε. Δοκίμασε ξανά.': 'Die Suche wurde nicht geöffnet. Versuche es erneut.',
+  'Προτίμησε τη σελίδα του κατασκευαστή. Όταν βρεις το εγχειρίδιο ή τη σελίδα του, πάτα Κοινοποίηση και «Αποθήκευση στο προϊόν».': 'Am besten die Website des Herstellers. Wenn du die Anleitung oder ihre Seite gefunden hast, tippe auf Teilen und „Im Produkt speichern“.',
 };
 export default DE;

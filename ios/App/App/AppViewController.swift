@@ -21,6 +21,7 @@ class AppViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(QrScannerPlugin())  // ζωντανή σάρωση QR (VisionKit DataScanner)
         bridge?.registerPluginInstance(FilePreviewPlugin())  // προβολή αρχείων μέσα στην εφαρμογή (QuickLook)
         bridge?.registerPluginInstance(PdfDownloadPlugin())  // κατέβασμα PDF χωρίς CORS, με πρόοδο και ακύρωση
+        bridge?.registerPluginInstance(ManualBrowserPlugin())  // αναζήτηση στο Safari με «Αποθήκευση στο προϊόν»
         exportBuildInfo()
         reportBackground()
     }

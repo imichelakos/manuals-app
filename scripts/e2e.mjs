@@ -442,6 +442,7 @@ try {
         { name: 'CapacitorHttp', methods: ['request', 'get'].map((name) => ({ name, rtype: 'promise' })) },
         { name: 'Filesystem', methods: ['writeFile', 'rmdir'].map((name) => ({ name, rtype: 'promise' })) },
         { name: 'FilePreview', methods: [{ name: 'preview', rtype: 'promise' }] },
+        { name: 'ManualBrowser', methods: [{ name: 'open', rtype: 'promise' }] },
         { name: 'PdfDownload', methods: [...['download', 'cancel', 'discard'].map((name) => ({ name, rtype: 'promise' })), { name: 'addListener' }, { name: 'removeListener' }] },
         // Face ID: μόνο στο σενάριο του κλειδώματος (αλλιώς η εφαρμογή θα ξεκινούσε κλειδωμένη σε όλα τα σενάρια iOS)
         ...(localStorage.getItem('mock-bio') ? [{ name: 'Biometric', methods: ['info', 'authenticate'].map((name) => ({ name, rtype: 'promise' })) }] : []),
@@ -485,6 +486,8 @@ try {
           if (m.hang) await new Promise((_, no) => { window.__cancelDownload = () => no(Object.assign(new Error('cancelled'), { code: 'cancelled' })); });
           return { path: m.path, finalUrl: o.url, mime: m.mime, size: 1 };
         }
+        // Safari της εφαρμογής: ο χρήστης «αποθηκεύει» τη διεύθυνση window.__mockSaved
+        if (plugin === 'ManualBrowser' && method === 'open') { (window.__browserOpened ??= []).push(o); return { url: window.__mockSaved ?? null }; }
         if (plugin === 'PdfDownload' && method === 'cancel') { window.__cancelDownload?.(); return {}; }
         if (plugin === 'PdfDownload' && method === 'discard') { (window.__discarded ??= []).push(o.path); return {}; }
         if (plugin === 'Biometric' && method === 'info') return { available: true, type: 'faceID' };
@@ -714,6 +717,28 @@ try {
   assert.deepEqual(dl.discarded, ['https://mock.local/page.html', 'https://mock.local/x7.pdf']);   // τα προσωρινά αρχεία σβήνονται
   await lp.getByRole('button', { name: 'Όχι ακόμη' }).click();
   await lp.getByText('X7_manual_EN.pdf').waitFor();                                            // μπήκε ως εγχειρίδιο
+
+  step('iOS: αναζήτηση στο Safari της εφαρμογής → «Αποθήκευση στο προϊόν» → κατέβασμα');
+  await lp.evaluate(() => { window.__mockSaved = 'https://www.example.com/files/X7_manual_EN.pdf'; });
+  await lp.getByRole('button', { name: 'Προσθήκη ή αναζήτηση άλλου' }).click();
+  await lp.getByText('Όταν βρεις το εγχειρίδιο ή τη σελίδα του, πάτα Κοινοποίηση', { exact: false }).waitFor();
+  await lp.getByRole('button', { name: 'PDF του εγχειριδίου (αγγλικά)' }).scrollIntoViewIfNeeded();
+  await lp.waitForTimeout(400);                                                                // τέλος της κίνησης του φύλλου
+  await shot('26-search-safari', lp);
+  await lp.getByRole('button', { name: 'PDF του εγχειριδίου (αγγλικά)' }).click();
+  await lp.getByText('Το ψηφιακό αποθηκεύτηκε').waitFor();
+  const opened = await lp.evaluate(() => window.__browserOpened);
+  assert.equal(opened.length, 1);
+  assert.ok(opened[0].url.startsWith('https://duckduckgo.com/?q='));                           // η έτοιμη αναζήτηση
+  assert.equal(opened[0].actionTitle, 'Αποθήκευση στο προϊόν');
+  await lp.getByRole('button', { name: 'Όχι ακόμη' }).click();
+  // κλείσιμο του Safari χωρίς αποθήκευση: τίποτα δεν κατεβαίνει
+  await lp.evaluate(() => { window.__mockSaved = null; window.__downloads = []; });
+  await lp.getByRole('button', { name: 'Προσθήκη ή αναζήτηση άλλου' }).click();
+  await lp.getByRole('button', { name: 'PDF του εγχειριδίου (αγγλικά)' }).click();
+  await lp.waitForFunction(() => window.__browserOpened.length === 2);
+  assert.deepEqual(await lp.evaluate(() => window.__downloads), []);
+  await lp.getByRole('button', { name: 'Κλείσιμο' }).click();
   await lp.unroute('https://mock.local/**');
 
   step('εισαγωγή PDF στη σάρωση — web (χωρίς PDFKit): από το όνομα του αρχείου');
