@@ -16,6 +16,9 @@
 
 ## Αποφάσεις
 
+- **25/11/2026** — Ο λογαριασμός Apple Developer ενεργοποιήθηκε σήμερα. Ανοίγουν τα βήματα που τον χρειάζονται: Φάση 3
+  (capability iCloud/CloudKit), Φάση 5 (TestFlight, App Store). Πηγές: [Enabling CloudKit in Your App](https://developer.apple.com/documentation/cloudkit/enabling-cloudkit-in-your-app)
+  («verify that your Apple Developer Program membership is active»), [Membership Details](https://developer.apple.com/programs/whats-included/).
 - **25/11/2026** — Εύρεση εγχειριδίου: μετρήθηκε σε 27 προϊόντα / 27 μάρκες. GS1 resolver 0/27, Wikidata P2078 1/27
   (εκτός αλυσίδας)· ιστότοπος κατασκευαστή (sitemaps → σελίδα → PDF) ~13–16/27, 9/9 στις μεγάλες συσκευές. Επίσημα APIs
   αναζήτησης: όχι (κλειδί μέσα σε εφαρμογή αντίκειται στους όρους· Google κλείνει 1/1/2027, Bing αποσύρθηκε 11/8/2025).
