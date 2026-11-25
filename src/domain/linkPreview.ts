@@ -25,7 +25,8 @@ export function cleanText(s: string): string {
     .replace(/\s+/g, ' ').trim().slice(0, 200);
 }
 
-const attr = (tag: string, name: string) => tag.match(new RegExp(`\\b${name}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, 'i'))?.slice(2).find((x) => x !== undefined);
+/** τιμή ενός χαρακτηριστικού μέσα σε μια ετικέτα HTML (με ή χωρίς εισαγωγικά) */
+export const attr = (tag: string, name: string) => tag.match(new RegExp(`\\b${name}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, 'i'))?.slice(2).find((x) => x !== undefined);
 
 /** Από το <head> μιας σελίδας: τίτλος και εικονίδια (απόλυτες διευθύνσεις, με σειρά προτίμησης). */
 export function parseHead(html: string, pageUrl: string): { title: string | null; icons: string[] } {

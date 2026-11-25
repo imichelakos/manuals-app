@@ -468,5 +468,10 @@ const EN: Record<string, string> = {
   'Στοιχεία εγγράφου': 'Document details',
   'Π.χ. σέρβις από το κατάστημα': 'E.g. serviced by the store',
   'Άνοιγμα {title}': 'Open {title}',
+  // κατέβασμα PDF μέσω iOS: πρόοδος, σφάλματα, PDF της σελίδας
+  'Ο ιστότοπος απάντησε με σφάλμα — ίσως η διεύθυνση δεν ισχύει πια.': 'The site returned an error — the address may no longer be valid.',
+  'Το κατέβασμα απέτυχε. Έλεγξε τη σύνδεση και δοκίμασε ξανά.': 'The download failed. Check your connection and try again.',
+  'Κατεβάζω… {amount}': 'Downloading… {amount}',
+  'Η διεύθυνση είναι ιστοσελίδα. Βρήκα σε αυτήν αυτά τα PDF — διάλεξε το εγχειρίδιο:': 'This address is a web page. I found these PDFs on it — pick the manual:',
 };
 export default EN;

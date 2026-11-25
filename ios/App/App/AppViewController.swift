@@ -20,6 +20,7 @@ class AppViewController: CAPBridgeViewController {
         bridge?.registerPluginInstance(ProductReaderPlugin())  // αναγνώριση προϊόντος στη συσκευή (Vision + Apple Foundation Models)
         bridge?.registerPluginInstance(QrScannerPlugin())  // ζωντανή σάρωση QR (VisionKit DataScanner)
         bridge?.registerPluginInstance(FilePreviewPlugin())  // προβολή αρχείων μέσα στην εφαρμογή (QuickLook)
+        bridge?.registerPluginInstance(PdfDownloadPlugin())  // κατέβασμα PDF χωρίς CORS, με πρόοδο και ακύρωση
         exportBuildInfo()
         reportBackground()
     }

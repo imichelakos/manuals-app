@@ -2,16 +2,19 @@
  * «Βρες το ψηφιακό εγχειρίδιο»: τέσσερις δρόμοι, από τον πιο εύκολο —
  *  1. σύνδεσμος από το QR του εντύπου, 2. έτοιμη αναζήτηση στο διαδίκτυο, 3. επικόλληση διεύθυνσης PDF (κατέβασμα),
  *  4. εισαγωγή αρχείου ή φωτογράφιση των σελίδων. Όταν αποθηκευτεί, προτείνεται η ανακύκλωση του εντύπου.
+ * Το κατέβασμα δείχνει πρόοδο και ακυρώνεται· αν η διεύθυνση είναι ιστοσελίδα, προτείνονται τα PDF της (iOS).
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { displayName, type Item } from '@/domain/model';
 import { classifyCode } from '@/domain/codes';
 import { ENGINES, localManualLanguage, manualQueries } from '@/domain/manualSearch';
 import { updateItem } from '@/data/library';
 import { useSettings } from '@/data/settings';
-import { downloadPdf, type DownloadFailure } from '@/services/download';
+import { downloadPdf, type DownloadFailure, type DownloadProgress } from '@/services/download';
+import type { PdfLink } from '@/domain/pdfLinks';
+import { prettySize } from '@/services/files';
 import { storeFile } from '@/services/files';
-import { languageName, t, userLanguages } from '@/i18n';
+import { fmtPercent, languageName, t, userLanguages } from '@/i18n';
 import { Sheet } from '@/components/Sheet';
 import { ExternalLink } from '@/components/ExternalLink';
 import { DOC_TYPES, FilePick } from '@/components/controls';
@@ -25,6 +28,8 @@ const failText = (r: DownloadFailure): string =>
     : r === 'insecure' ? t('Κατεβάζω μόνο από ασφαλείς διευθύνσεις (https).')
     : r === 'not-pdf' ? t('Η διεύθυνση δεν δίνει αρχείο PDF — ίσως είναι η σελίδα που το περιέχει.')
     : r === 'too-big' ? t('Το αρχείο είναι πολύ μεγάλο (όριο 200 MB).')
+    : r === 'http' ? t('Ο ιστότοπος απάντησε με σφάλμα — ίσως η διεύθυνση δεν ισχύει πια.')
+    : r === 'network' ? t('Το κατέβασμα απέτυχε. Έλεγξε τη σύνδεση και δοκίμασε ξανά.')
     : t('Ο ιστότοπος δεν επιτρέπει απευθείας κατέβασμα από την εφαρμογή.');
 
 export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => void }) {
@@ -32,6 +37,13 @@ export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => 
   const [url, setUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [blocked, setBlocked] = useState<string | null>(null);
+  /** κατέβασμα σε εξέλιξη: από ποιο βήμα ξεκίνησε, πρόοδος, ακύρωση */
+  const [progress, setProgress] = useState<{ from: 'qr' | 'url'; p: DownloadProgress | null } | null>(null);
+  const abort = useRef<AbortController | null>(null);
+  // το φύλλο κλείνει → το κατέβασμα σταματά
+  useEffect(() => () => abort.current?.abort(), []);
+  /** τα PDF που βρέθηκαν στη σελίδα που δόθηκε αντί για PDF */
+  const [found, setFound] = useState<{ from: 'qr' | 'url'; page: string; links: PdfLink[] } | null>(null);
   const [saved, setSaved] = useState(false);
   const queries = manualQueries(item, engine, localManualLanguage(userLanguages()));
   const labels = { pdf: t('PDF του εγχειριδίου (αγγλικά)'), support: t('Σελίδα υποστήριξης (αγγλικά)'), local: '' };
@@ -39,19 +51,30 @@ export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => 
   // σύνδεσμοι από QR που μοιάζουν να οδηγούν στο εγχειρίδιο
   const fromQr = item.links.filter((l) => { const c = classifyCode(l.url); return c.type === 'link' && c.manualHint; });
 
-  const fetchPdf = async (target: string) => {
+  /** fromList: διαλέχτηκε από τα PDF της σελίδας — η λίστα μένει (π.χ. μετά από «Άκυρο» ή για άλλο PDF) */
+  const fetchPdf = async (target: string, from: 'qr' | 'url', fromList = false) => {
     setBusy(true);
     setBlocked(null);
-    const r = await downloadPdf(target);
+    if (!fromList) setFound(null);
+    setProgress({ from, p: null });
+    const ctl = new AbortController();
+    abort.current = ctl;
+    const r = await downloadPdf(target, { signal: ctl.signal, onProgress: (p) => setProgress({ from, p }) });
+    abort.current = null;
+    setProgress(null);
     if (r.ok) {
       try {
         const a = await storeFile(r.blob, { kind: 'manual', origin: 'download', name: r.name, sourceUrl: target });
         await updateItem(item.id, (c) => ({ ...c, attachments: [...c.attachments, a] }));
         setSaved(true);
       } catch { toast(t('Το αρχείο δεν αποθηκεύτηκε. Ίσως δεν υπάρχει ελεύθερος χώρος.'), 'error'); }
+    } else if (r.reason === 'cancelled') {
+      // ο χρήστης ακύρωσε: τίποτα άλλο
+    } else if (r.links?.length) {
+      setFound({ from, page: target, links: r.links });
     } else {
       toast(failText(r.reason), 'error');
-      if (r.reason === 'blocked' || r.reason === 'not-pdf') setBlocked(target);
+      if (r.reason === 'blocked' || r.reason === 'not-pdf' || r.reason === 'http') setBlocked(target);
     }
     setBusy(false);
   };
@@ -88,11 +111,13 @@ export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => 
             <div key={l.id}>
               <p className="truncate text-[13px] text-ink-2">{l.url.replace(/^https?:\/\//, '')}</p>
               <div className="mt-2 flex gap-2">
-                {l.kind === 'pdf' && <button type="button" className="btn btn-soft flex-1" disabled={busy} onClick={() => void fetchPdf(l.url)}><IconDownload className="text-lg" />{t('Κατέβασμα')}</button>}
+                {l.kind === 'pdf' && <button type="button" className="btn btn-soft flex-1" disabled={busy} onClick={() => void fetchPdf(l.url, 'qr')}><IconDownload className="text-lg" />{t('Κατέβασμα')}</button>}
                 <ExternalLink href={l.url} className="btn btn-plain flex-1"><IconExternal className="text-lg" />{t('Άνοιγμα')}</ExternalLink>
               </div>
             </div>
           ))}
+          {progress?.from === 'qr' && <Progress p={progress.p} onCancel={() => abort.current?.abort()} />}
+          {found?.from === 'qr' && <FoundPdfs found={found} busy={busy} onPick={(u) => void fetchPdf(u, 'qr', true)} />}
         </Step>
       )}
 
@@ -112,10 +137,12 @@ export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => 
       </Step>
 
       <Step n={fromQr.length ? 3 : 2} title={t('Έχεις τη διεύθυνση του PDF;')} icon={<IconDownload />}>
-        <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); if (url.trim()) void fetchPdf(url.trim()); }}>
+        <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); if (url.trim()) void fetchPdf(url.trim(), 'url'); }}>
           <input className="input" type="url" inputMode="url" placeholder="https://…/manual.pdf" value={url} onChange={(e) => setUrl(e.target.value)} aria-label={t('Διεύθυνση του PDF')} autoComplete="off" />
           <button type="submit" className="btn btn-primary shrink-0" disabled={busy || !url.trim()}>{busy ? t('Κατεβάζω…') : t('Κατέβασμα')}</button>
         </form>
+        {progress?.from === 'url' && <Progress p={progress.p} onCancel={() => abort.current?.abort()} />}
+        {found?.from === 'url' && <FoundPdfs found={found} busy={busy} onPick={(u) => void fetchPdf(u, 'url', true)} />}
         {blocked && (
           <div className="mt-2.5 rounded-2xl bg-warn-soft p-3.5 text-[14px] leading-relaxed text-warn">
             <p>{t('Άνοιξε τη διεύθυνση, αποθήκευσε το PDF στα Αρχεία σου και μετά κάνε «Εισαγωγή αρχείου» από κάτω.')}</p>
@@ -131,6 +158,41 @@ export function FindManualSheet({ item, onClose }: { item: Item; onClose: () => 
         </div>
       </Step>
     </Sheet>
+  );
+}
+
+/** «Κατεβάζω… 42 %» (ή «12,3 MB» όταν ο ιστότοπος δεν δηλώνει μέγεθος), με «Άκυρο». */
+function Progress({ p, onCancel }: { p: DownloadProgress | null; onCancel: () => void }) {
+  const amount = p?.total ? fmtPercent(Math.min(1, p.bytes / p.total)) : p ? prettySize(p.bytes) : '';
+  return (
+    <div className="mt-2.5 flex items-center gap-3 rounded-2xl bg-surface-2 p-3" role="status">
+      <span className="size-5 shrink-0 animate-spin rounded-full border-2 border-line border-t-accent" aria-hidden="true" />
+      <span className="flex-1 text-[14px] font-semibold">{amount ? t('Κατεβάζω… {amount}', { amount }) : t('Κατεβάζω…')}</span>
+      <button type="button" className="btn btn-plain min-h-9 px-3 py-1 text-sm" onClick={onCancel}>{t('Άκυρο')}</button>
+    </div>
+  );
+}
+
+/** Η διεύθυνση ήταν ιστοσελίδα: τα PDF που βρέθηκαν σε αυτήν· πάτημα → κατέβασμα. */
+function FoundPdfs({ found, busy, onPick }: { found: { page: string; links: PdfLink[] }; busy: boolean; onPick: (url: string) => void }) {
+  return (
+    <div className="mt-2.5 rounded-2xl bg-surface-2 p-3">
+      <p className="text-[14px] leading-snug">{t('Η διεύθυνση είναι ιστοσελίδα. Βρήκα σε αυτήν αυτά τα PDF — διάλεξε το εγχειρίδιο:')}</p>
+      <ul className="mt-2 space-y-1.5">
+        {found.links.map((l) => (
+          <li key={l.url}>
+            <button type="button" disabled={busy} onClick={() => onPick(l.url)}
+              className="flex w-full items-center gap-2.5 rounded-xl bg-surface p-2.5 text-left disabled:opacity-50">
+              <IconDownload className="shrink-0 text-lg text-accent" />
+              <span className="min-w-0">
+                <span className="line-clamp-2 break-words text-[14px] font-semibold leading-snug">{l.title}</span>
+                <span className="block truncate text-[12px] text-ink-2">{l.url.replace(/^https:\/\//, '')}</span>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

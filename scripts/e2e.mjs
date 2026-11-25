@@ -442,11 +442,13 @@ try {
         { name: 'CapacitorHttp', methods: ['request', 'get'].map((name) => ({ name, rtype: 'promise' })) },
         { name: 'Filesystem', methods: ['writeFile', 'rmdir'].map((name) => ({ name, rtype: 'promise' })) },
         { name: 'FilePreview', methods: [{ name: 'preview', rtype: 'promise' }] },
+        { name: 'PdfDownload', methods: [...['download', 'cancel', 'discard'].map((name) => ({ name, rtype: 'promise' })), { name: 'addListener' }, { name: 'removeListener' }] },
         // Face ID: μόνο στο σενάριο του κλειδώματος (αλλιώς η εφαρμογή θα ξεκινούσε κλειδωμένη σε όλα τα σενάρια iOS)
         ...(localStorage.getItem('mock-bio') ? [{ name: 'Biometric', methods: ['info', 'authenticate'].map((name) => ({ name, rtype: 'promise' })) }] : []),
         { name: 'LocalNotifications', methods: [{ name: 'addListener' }, { name: 'removeListener' }, ...['checkPermissions', 'requestPermissions', 'getPending', 'schedule', 'cancel'].map((name) => ({ name, rtype: 'promise' }))] },
       ],
-      nativeCallback: () => 'mock-callback',
+      // οι listeners (π.χ. πρόοδος κατεβάσματος) κρατιούνται, για να τους καλεί η προσομοίωση
+      nativeCallback: (plugin, method, o, cb) => { if (method === 'addListener') (window.__listeners ??= {})[`${plugin}.${o.eventName}`] = cb; return 'mock-callback'; },
       nativePromise: async (plugin, method, o) => {
         if (plugin === 'PdfReader' && method === 'read' && window.__mockLogoOnly) {
           // η μάρκα μόνο ως λογότυπο: το κείμενο δεν τη γράφει· το εξώφυλλο (εικόνα) τη δείχνει → OCR
@@ -474,6 +476,17 @@ try {
         // αρχεία στο cache και QuickLook: καταγράφονται οι κλήσεις· το «αντίγραφο με σημειώσεις» το ορίζει το σενάριο
         if (plugin === 'Filesystem' && method === 'writeFile') { (window.__files ??= []).push(o.path); return { uri: `file:///cache/${o.path}` }; }
         if (plugin === 'Filesystem' && method === 'rmdir') { (window.__rmdirs ??= []).push(o.path); return {}; }
+        // κατέβασμα μέσω iOS: window.__mockDownloads[url] = { path, mime } · hang: περιμένει «Άκυρο» μετά από πρόοδο 50%
+        if (plugin === 'PdfDownload' && method === 'download') {
+          (window.__downloads ??= []).push(o.url);
+          const m = window.__mockDownloads?.[o.url];
+          if (!m) throw Object.assign(new Error('http'), { code: 'http' });
+          window.__listeners?.['PdfDownload.progress']?.({ id: o.id, bytes: 5e6, total: 1e7 });
+          if (m.hang) await new Promise((_, no) => { window.__cancelDownload = () => no(Object.assign(new Error('cancelled'), { code: 'cancelled' })); });
+          return { path: m.path, finalUrl: o.url, mime: m.mime, size: 1 };
+        }
+        if (plugin === 'PdfDownload' && method === 'cancel') { window.__cancelDownload?.(); return {}; }
+        if (plugin === 'PdfDownload' && method === 'discard') { (window.__discarded ??= []).push(o.path); return {}; }
         if (plugin === 'Biometric' && method === 'info') return { available: true, type: 'faceID' };
         if (plugin === 'Biometric' && method === 'authenticate') { window.__faceId = (window.__faceId ?? 0) + 1; return { ok: true }; }
         if (plugin === 'FilePreview' && method === 'preview') { (window.__previews ??= []).push(o); return { edited: window.__mockEdited ?? null }; }
@@ -670,6 +683,38 @@ try {
   await lp.waitForFunction(() => window.__faceId === 2);
   await lp.getByRole('dialog', { name: 'Κλειδωμένο' }).waitFor({ state: 'detached' });
   await lp.evaluate(() => localStorage.removeItem('mock-bio'));
+
+  step('iOS: κατέβασμα PDF — ιστοσελίδα → τα PDF της, πρόοδος με ποσοστό, «Άκυρο», αποθήκευση');
+  await lp.route('https://mock.local/**', (r) => r.request().url().endsWith('.pdf')
+    ? r.fulfill({ status: 200, contentType: 'application/pdf', body: PDF_BYTES })
+    : r.fulfill({ status: 200, contentType: 'text/html', body: '<a href="/files/X7_manual_EN.pdf">User manual (EN)</a> <a href="https://cdn.example.com/x7-quick.pdf">Quick start</a> <a href="/about">About</a>' }));
+  await lp.goto(BASE);
+  await lp.locator('ul > li a[href^="#/item/"]').filter({ hasText: 'Bosch' }).first().click();
+  await lp.evaluate(() => { window.__mockDownloads = {
+    'https://www.example.com/support/x7': { path: 'https://mock.local/page.html', mime: 'text/html' },
+    'https://www.example.com/files/X7_manual_EN.pdf': { path: 'https://mock.local/x7.pdf', mime: 'application/pdf', hang: true },
+  }; });
+  await lp.getByRole('button', { name: 'Προσθήκη ή αναζήτηση άλλου' }).click();
+  await lp.getByLabel('Διεύθυνση του PDF').fill('https://www.example.com/support/x7');
+  await lp.getByLabel('Διεύθυνση του PDF').press('Enter');
+  await lp.getByText('Η διεύθυνση είναι ιστοσελίδα. Βρήκα σε αυτήν αυτά τα PDF').waitFor();
+  assert.equal(await lp.getByRole('button', { name: /About/ }).count(), 0);                 // μόνο PDF
+  await lp.getByRole('button', { name: /Quick start/ }).waitFor();
+  await lp.getByRole('button', { name: /User manual \(EN\)/ }).click();                       // κατέβασμα του PDF που διάλεξε
+  await lp.getByText('Κατεβάζω… 50%').waitFor();                                               // ποσοστό από την πρόοδο του iOS
+  await shot('25-pdf-download', lp);
+  await lp.getByRole('status').getByRole('button', { name: 'Άκυρο' }).click();
+  await lp.getByText('Κατεβάζω… 50%').waitFor({ state: 'detached' });
+  assert.equal(await lp.getByText('Το ψηφιακό αποθηκεύτηκε').count(), 0);
+  await lp.evaluate(() => { window.__mockDownloads['https://www.example.com/files/X7_manual_EN.pdf'].hang = false; });
+  await lp.getByRole('button', { name: /User manual \(EN\)/ }).click();
+  await lp.getByText('Το ψηφιακό αποθηκεύτηκε').waitFor();
+  const dl = await lp.evaluate(() => ({ downloads: window.__downloads, discarded: window.__discarded }));
+  assert.deepEqual(dl.downloads, ['https://www.example.com/support/x7', 'https://www.example.com/files/X7_manual_EN.pdf', 'https://www.example.com/files/X7_manual_EN.pdf']);
+  assert.deepEqual(dl.discarded, ['https://mock.local/page.html', 'https://mock.local/x7.pdf']);   // τα προσωρινά αρχεία σβήνονται
+  await lp.getByRole('button', { name: 'Όχι ακόμη' }).click();
+  await lp.getByText('X7_manual_EN.pdf').waitFor();                                            // μπήκε ως εγχειρίδιο
+  await lp.unroute('https://mock.local/**');
 
   step('εισαγωγή PDF στη σάρωση — web (χωρίς PDFKit): από το όνομα του αρχείου');
   const pc = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'el-GR' });

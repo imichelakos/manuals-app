@@ -13,6 +13,7 @@ import { suggestCategory } from '@/domain/categorySuggest';
 import { recyclingStats } from '@/domain/recycling';
 import { mergeItems, referencedBlobs } from '@/domain/merge';
 import { checkReceipt, extractDates } from '@/domain/receiptHints';
+import { fileNameOf, pdfLinksFromHtml } from '@/domain/pdfLinks';
 import { emptyItem, itemSchema, newId, displayName, type Item } from '@/domain/model';
 
 test('dates: addMonths κρατά την ημέρα ή πάει στο τέλος του μήνα', () => {
@@ -244,4 +245,27 @@ test('linkPreview: oEmbed για βίντεο, τίτλος και εικονί�
   assert.equal(formatTitle('YouTube', 'X7 Usage EN'), 'X7 Usage EN');   // χωρίς «YouTube —» μπροστά
   assert.equal(formatTitle('YouTube', null), 'YouTube');                // μόνο όταν λείπει τίτλος
   assert.equal(formatTitle(null, '  Οδηγίες&nbsp;χρήσης '), 'Οδηγίες χρήσης');
+});
+
+test('pdfLinks: τα PDF μιας σελίδας υποστήριξης — απόλυτες διευθύνσεις, τίτλοι, μόνο https, χωρίς διπλότυπα', () => {
+  const html = `<html><head><base href="https://cdn.example.com/files/"></head><body>
+    <a href="X7_manual_EN.pdf"><span>User manual</span> (EN)</a>
+    <a href='/docs/X7_quick.PDF?v=2#p1' title="Quick start">  </a>
+    <a href="https://cdn.example.com/files/X7_manual_EN.pdf#page=3">Again</a>
+    <a href="http://insecure.example.com/a.pdf">Insecure</a>
+    <a href="support.html">Support</a>
+    <a href="download?file=a.pdf">Query only</a>
+    <a href="Declaration%20of%20conformity.pdf"></a>
+    <a href="https://cdn.example.com/files/R&amp;D.pdf">R&amp;D notes</a>
+  </body></html>`;
+  assert.deepEqual(pdfLinksFromHtml(html, 'https://www.example.com/support/x7'), [
+    { url: 'https://cdn.example.com/files/X7_manual_EN.pdf', title: 'User manual (EN)' },
+    { url: 'https://cdn.example.com/docs/X7_quick.PDF?v=2', title: 'Quick start' },
+    { url: 'https://cdn.example.com/files/Declaration%20of%20conformity.pdf', title: 'Declaration of conformity.pdf' },
+    { url: 'https://cdn.example.com/files/R&D.pdf', title: 'R&D notes' },
+  ]);
+  assert.deepEqual(pdfLinksFromHtml('<p>Χωρίς συνδέσμους</p>', 'https://example.com/'), []);
+  assert.equal(fileNameOf('https://example.com/a/b/Manual%20X7.pdf?x=1'), 'Manual X7.pdf');
+  assert.equal(fileNameOf('https://example.com/'), 'example.com');
+  assert.equal(fileNameOf('https://example.com/bad%E0.pdf'), 'bad%E0.pdf');   // λάθος κωδικοποίηση: ως έχει
 });
